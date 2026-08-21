@@ -198,6 +198,7 @@ _CAT_KEYWORDS = {
              "编辑", "新建", "写入", "保存", "重命名", "组织"),
     "网络": ("搜索", "查", "调研", "网络", "网页", "资料", "新闻", "天气", "在线", "下载", "研究"),
     "记忆": ("记住", "回忆", "记忆", "存档", "之前"),
+    "MCP":  ("mcp", "外部工具", "工具服务", "插件", "服务器", "api", "数据库"),
 }
 
 def route_categories(text):
@@ -226,7 +227,9 @@ def tools_for_categories(cats, active=None, extra=None):
     for n in names:
         if n in avail and n not in active_names:
             active.append(avail[n])
-    return [t for t in active if t["function"]["name"] in names]
+    result = [t for t in active if t["function"]["name"] in names]
+    result += mcp_tool_defs(cats)   # 扁平并入该类别下的 MCP 工具(真实工具,模型直接调用)
+    return result
 
 # ---------------- 记忆 ----------------
 def load_memory():
@@ -378,6 +381,98 @@ def mcp_call(server, tool, args):
     except Exception as e:
         return f"[mcp_call error: {e}]"
 
+# ============ MCP 打散重组 + 扁平化(每个工具独立并入类别,模型直接调用) ============
+# mcp.json 每个服务器可声明 "categories"(该服务器工具的默认类别);
+# "大而全"的服务器可再给每个工具单独打标:
+#   "tools": {"read_file":["文件"], "search_web":["网络"], "exec_sql":["代码"]}
+# 未声明类别的工具默认归入 "MCP" 类。任务路由到某类别时,该类别下的 MCP 工具
+# 以真实工具定义(名称 = "服务器.工具名",带压缩 schema)扁平加载进 prefill,
+# 模型原生直接调用;派发器自动路由到对应 MCP 服务器。
+_MCP_CACHE = {"t": 0, "data": None}
+_MCP_TTL = 300   # 探测结果缓存秒数(探测要拉起 stdio 进程,贵)
+
+def mcp_server_categories(name, cfg):
+    cats = cfg.get("categories") if isinstance(cfg, dict) else None
+    if not cats:
+        return ["MCP"]
+    return [str(c) for c in cats if c in _CAT_KEYWORDS or c == "MCP"]
+
+def _compact_schema(js):
+    """MCP JSON Schema → 压缩版(只留参数名+类型+必填,省 token)。"""
+    if not isinstance(js, dict):
+        return {"type": "object", "properties": {}, "required": []}
+    props = {}
+    for k, v in (js.get("properties") or {}).items():
+        t = v.get("type") if isinstance(v, dict) else None
+        props[k] = {"type": t} if t else {}
+    req = js.get("required") or list(props.keys())
+    return {"type": "object", "properties": props, "required": req}
+
+def _introspect_mcp_tools(name, cfg):
+    """连接 MCP 服务器取 tools/list(名称+描述+输入 schema)。失败返回 []。"""
+    try:
+        from mcp import ClientSession, StdioServerParameters
+        from mcp.client.stdio import stdio_client
+        params = StdioServerParameters(command=cfg["command"], args=cfg.get("args", []), env=cfg.get("env"))
+        async def _run():
+            async with stdio_client(params) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    res = await session.list_tools()
+                    return [{"name": t.name, "desc": (t.description or "")[:150],
+                             "schema": _compact_schema(getattr(t, "inputSchema", None) or {})}
+                            for t in res.tools]
+        return asyncio.run(asyncio.wait_for(_run(), timeout=10))   # 坏服务器最多等 10s,不阻塞任务
+    except Exception:
+        return []
+
+def mcp_manifest(force=False):
+    """服务器 → {categories, tools:[{name,desc,schema,categories}]}。缓存。"""
+    now = time.time()
+    if not force and _MCP_CACHE["data"] is not None and now - _MCP_CACHE["t"] < _MCP_TTL:
+        return _MCP_CACHE["data"]
+    servers = load_mcp_servers()
+    manifest = {}
+    for name, cfg in servers.items():
+        if not isinstance(cfg, dict) or not cfg.get("command"):
+            continue
+        server_cats = mcp_server_categories(name, cfg)
+        per_tool = cfg.get("tools") if isinstance(cfg.get("tools"), dict) else {}
+        raw = _introspect_mcp_tools(name, cfg)
+        tools = []
+        for t in raw:
+            tools.append({
+                "name": t["name"],
+                "desc": t.get("desc", ""),
+                "schema": t.get("schema") or {"type": "object", "properties": {}},
+                "categories": per_tool.get(t["name"]) or server_cats,
+            })
+        manifest[name] = {"categories": server_cats, "tools": tools}
+    _MCP_CACHE.update({"t": now, "data": manifest})
+    return manifest
+
+def mcp_tool_defs(cats):
+    """按类别返回 MCP 工具定义(扁平化为真实工具,名称="服务器.工具名")。"""
+    manifest = mcp_manifest()
+    defs = []
+    for server, info in manifest.items():
+        for t in info["tools"]:
+            if not (set(t["categories"]) & set(cats)):
+                continue
+            defs.append({"type": "function", "function": {
+                "name": f"{server}.{t['name']}",
+                "description": t["desc"] or f"{server} 工具",
+                "parameters": t["schema"],
+            }})
+    return defs
+
+def is_mcp_tool(name):
+    """是否形如 "服务器.工具名" 且该服务器已配置。"""
+    if "." not in name:
+        return False
+    server, _, tool = name.partition(".")
+    return bool(server and tool) and server in load_mcp_servers()
+
 # ---------------- 工具执行 ----------------
 _active_tools = list(CORE_TOOLS)
 def active_tool_defs():
@@ -456,6 +551,9 @@ def run_tool(name, args, workdir):
         gate = _gate_check(name, args, workdir)
         if gate:
             return gate
+        if is_mcp_tool(name):           # MCP 打散后的扁平工具:"服务器.工具名" → 路由到 mcp_call
+            server, _, tool = name.partition(".")
+            return mcp_call(server, tool, args or {})
         if name=="create_file":
             p=os.path.join(workdir,args["path"]); os.makedirs(os.path.dirname(p),exist_ok=True)
             open(p,"w",encoding="utf-8").write(args["content"])
@@ -848,6 +946,7 @@ def agent_loop(model, messages, workdir, session):
                            if m.get("role") == "user" and not str(m.get("content","")).startswith(
                                ("⚠️", "Continue:", "[已拦截", "回答已经足够"))), "")
         cats = route_categories(_task_text)
+        mcp_manifest()   # 预热 MCP 探测缓存(实际工具由 tools_for_categories 扁平并入)
     allowed_extra = set()   # 模型 enable_tools 补充的工具名
     for i in range(200):
         if casual_force:
@@ -900,7 +999,8 @@ def agent_loop(model, messages, workdir, session):
                     try: args=json.loads(args)
                     except: args={}
                 # 禁用工具必须拒绝执行(模型可能幻觉调用已被禁用的工具)
-                if name not in [t["function"]["name"] for t in _active_tools]:
+                # MCP 扁平工具("服务器.工具名")不在 _active_tools 里,需放行(run_tool 会路由)
+                if name not in [t["function"]["name"] for t in _active_tools] and not is_mcp_tool(name):
                     res = f"[tool {name} 已被禁用,请改用其他工具;若是搜索/抓取请直接写报告]"
                 elif name not in ("finish", "todo") and last_sig == (name, json.dumps(args, sort_keys=True, ensure_ascii=False)) and dup_warns < 3:
                     # 严格不重复同一命令:完全相同签名连续调用 → 拦截并提醒换策略

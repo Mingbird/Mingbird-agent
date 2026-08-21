@@ -188,31 +188,52 @@ description: 一句话说明这个技能干什么(≤30 字,agent 靠它判断�
 
 MCP(Model Context Protocol)让 agent 调用外部程序的能力(文件系统、数据库、浏览器、自定义工具)。
 
+### 接入要求:打散重组,再接入(重要)
+
+MCP 服务器接入时必须**打散重组**:把服务器提供的工具**拆开、归类、并入已有标签**,而不是整个服务器当一个黑盒。这样工具才能被任务自动发现、按类别扁平加载、被模型原生调用。不这样做,藏在 MCP 后面的能力永远不会被路由到。
+
+**规则:**
+1. 每个服务器必须声明 `categories`(归入已有标签:文件/代码/网络/记忆/MCP;可多选)。
+2. "大而全"的服务器(一个服务器里有多个领域的工具)必须用 `tools` 字段**给每个工具单独打标**。
+3. 服务器本身的类别是默认;`tools` 里的单个工具类别**覆盖**服务器默认。
+4. 打标时**尽量归入已有标签**,不要自造新标签(新标签不会被路由到)。
+5. 避免与内置工具重复的能力(如内置已有 `create_file/read_file` 等文件工具,再挂一个 filesystem MCP 会重复并可能写错位置)——要么不接,要么明确其沙箱根目录是工作目录。
+
 ### 配置格式(`~/.ollama_agent/mcp.json`)
 ```json
 {
-  "server名": {
-    "command": "可执行命令(在 PATH 里)",
-    "args": ["参数1", "参数2"]
+  "filesystem": {
+    "command": "mcp-server-filesystem",
+    "args": ["C:/work"],
+    "categories": ["文件"]
   },
-  "my_server": {
+  "big_server": {
     "command": "python",
-    "args": ["C:/path/to/my_mcp_server.py"]
+    "args": ["C:/path/to/my_big_server.py"],
+    "categories": ["文件"],
+    "tools": {
+      "search_web": ["网络"],
+      "exec_sql":  ["代码"],
+      "save_note":  ["记忆", "文件"]
+    }
   }
 }
 ```
+- `categories`:该服务器所有工具的默认类别(不写则归入 "MCP")。
+- `tools`:可选,`工具名 → [类别]`,给单个工具单独打标(大服务器必备)。
 
 ### 安装步骤(给 agent 看)
 1. 确认目标电脑有所需运行时(node/npx/python 等,按 MCP server 要求)。
-2. 把 server 程序放到本机,在 `mcp.json` 里加一个条目(command + args)。
-3. 重启软件。agent 需要时调用 `enable_tools(["mcp_call"])`,然后用 `mcp_call(server="my_server", tool="工具名", args={...})` 调用。
+2. 把 server 程序放到本机,在 `mcp.json` 里加一个条目(command + args + categories,大服务器再给 tools 逐个打标)。
+3. 重启软件。软件会自动探测每个服务器的工具清单(带缓存),任务路由到对应类别时,该类别下的 MCP 工具以 `服务器.工具名` 的真实工具身份扁平加载,模型可直接调用,无需再手动 `enable_tools`。
 
 ### 内置示例 server(见 `~/.ollama_agent/mcp.json` 或 `mcp/` 目录)
-- `filesystem`:文件系统读写(需 mcp-server-filesystem,npm 安装)
+- `filesystem`:文件系统读写(需 mcp-server-filesystem,npm 安装)——注意它有独立沙箱根目录,写入不走 agent 工作目录
 - `memory`:持久记忆(需 mcp-server-memory)
 - `utils`:纯 Python 工具(时间/计算/哈希,`mcp_utils_server.py`,无需额外依赖)
 
 > 注意:node 类 MCP server 需要目标电脑装 Node.js;纯 Python 的 `utils` server 开箱即用。
+> 模型调用 MCP 工具的形态:`utils.calculate`(服务器名.工具名)——和内置工具一样直接调用,派发器自动路由。
 
 ## 12. 给 agent 的协作建议(重要)
 - 遇到"模型反复修不好"的情况,**先检查是否有 `.bak` 备份可回滚**(edit_file 自动生成),或让模型 `read_file` 看真实内容再改,不要重复同一命令。
