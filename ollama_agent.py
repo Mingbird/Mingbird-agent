@@ -404,8 +404,11 @@ def _compact_schema(js):
     props = {}
     for k, v in (js.get("properties") or {}).items():
         t = v.get("type") if isinstance(v, dict) else None
-        props[k] = {"type": t} if t else {}
+        if t:
+            props[k] = {"type": t}
     req = js.get("required") or list(props.keys())
+    if len(props) > 8:            # 参数过多只留必填,防 prefill 膨胀
+        props = {k: props[k] for k in req if k in props}
     return {"type": "object", "properties": props, "required": req}
 
 def _introspect_mcp_tools(name, cfg):
@@ -451,17 +454,36 @@ def mcp_manifest(force=False):
     _MCP_CACHE.update({"t": now, "data": manifest})
     return manifest
 
+_BUILTIN_NAMES = {t["function"]["name"] for t in CORE_TOOLS + ADVANCED_TOOLS}
+# MCP 文件类工具 → 内置替代(内置更懂工作目录;避免 MCP 沙箱写错位置)
+_FILE_DUP = {
+    "write_file": "create_file", "create_file": "create_file", "read_file": "read_file",
+    "read_text_file": "read_file", "list_directory": "list_dir", "directory_tree": "list_dir",
+    "list_allowed_directories": "list_dir", "search_files": "search_files",
+    "edit_file": "edit_file", "delete_file": "delete_file", "move_file": "create_file",
+    "append_file": "append_file",
+}
+
 def mcp_tool_defs(cats):
-    """按类别返回 MCP 工具定义(扁平化为真实工具,名称="服务器.工具名")。"""
+    """按类别返回 MCP 工具定义(扁平化为真实工具,名称="服务器.工具名")。
+    跳过与内置工具重复的 MCP 工具:同名,或文件类工具的动词已被内置覆盖
+    (内置更懂工作目录;filesystem 等 MCP 写的是自己的沙箱,会写错位置)。"""
     manifest = mcp_manifest()
     defs = []
     for server, info in manifest.items():
         for t in info["tools"]:
             if not (set(t["categories"]) & set(cats)):
                 continue
+            if t["name"] in _BUILTIN_NAMES:
+                continue   # 与内置工具同名,跳过
+            if "文件" in t["categories"] and t["name"] in _FILE_DUP and _FILE_DUP[t["name"]] in _BUILTIN_NAMES:
+                continue   # 文件类操作被内置覆盖(create/read/list/search/edit/delete),跳过
+            desc = (t["desc"] or "").replace("\n", " ")
+            if len(desc) > 60:
+                desc = desc[:60] + "…"
             defs.append({"type": "function", "function": {
                 "name": f"{server}.{t['name']}",
-                "description": t["desc"] or f"{server} 工具",
+                "description": desc or f"{server} 工具",
                 "parameters": t["schema"],
             }})
     return defs
@@ -472,6 +494,45 @@ def is_mcp_tool(name):
         return False
     server, _, tool = name.partition(".")
     return bool(server and tool) and server in load_mcp_servers()
+
+_PRODUCING_PREFIX = ("create_", "write_", "render_", "export_", "update_", "save_",
+                     "generate_", "build_", "insert_", "convert_", "import_", "add_")
+def _is_mcp_producing(name):
+    """MCP 工具是否为产出型(创建/写入/渲染/导出等 → 算做了实际工作)。"""
+    tool = name.partition(".")[2]
+    return tool.startswith(_PRODUCING_PREFIX)
+
+_PATH_ARGS = ("path", "filepath", "file", "dir", "folder", "filename", "directory",
+              "output", "out", "dest", "destination", "doc", "src", "source", "target", "input")
+def _is_abs(p):
+    return bool(re.match(r"^[A-Za-z]:[\\/]|^[/\\]", p)) or p.startswith(("http://", "https://", "file://", "data:", "C:/", "C:\\"))
+
+def _is_path_key(k):
+    kl = k.lower()
+    if kl in _PATH_ARGS:
+        return True
+    # 复合路径名: docx_path / output_file / input_dir / filename ...
+    return kl.endswith(("_path", "_file", "_dir", "_folder", "_filename", "_pathname"))
+
+def _resolve_mcp_paths(args, workdir):
+    """MCP 工具路径解析:agent 传的相对路径(相对工作目录) → 绝对路径。
+    MCP 服务器进程 CWD 与 agent 工作目录不同,相对路径会找不到文件。
+    仅解析形如 path/filePath/docx_path/output_file 等路径型参数;URL/绝对路径/命令不动。"""
+    if not args:
+        return args
+    out = dict(args)
+    for k, v in list(out.items()):
+        if not isinstance(v, str) or not v:
+            continue
+        if not _is_path_key(k):
+            continue
+        v = v.strip().strip('"').strip("'")
+        if not v or _is_abs(v):
+            continue
+        if "://" in v or v.lower().startswith(("mailto:", "tel:", "#")):
+            continue
+        out[k] = os.path.normpath(os.path.join(workdir, v))
+    return out
 
 # ---------------- 工具执行 ----------------
 _active_tools = list(CORE_TOOLS)
@@ -553,7 +614,15 @@ def run_tool(name, args, workdir):
             return gate
         if is_mcp_tool(name):           # MCP 打散后的扁平工具:"服务器.工具名" → 路由到 mcp_call
             server, _, tool = name.partition(".")
-            return mcp_call(server, tool, args or {})
+            _args = _resolve_mcp_paths(args or {}, workdir)   # 相对路径→按工作目录解析为绝对路径
+            _res = mcp_call(server, tool, _args)
+            _low = str(_res).lower()
+            if any(k in _low for k in ("access denied", "outside allowed", "not in allowed",
+                                       "outside the allowed", "permission denied", "越权", "不在允许")):
+                _res += ("\n[提示:这是 MCP 文件服务器自己的沙箱目录。要读写 agent 工作目录的文件,"
+                         "请用内置 create_file/read_file/edit_file/list_dir;"
+                         "MCP 的文件工具只对它配置的根目录有效。]")
+            return _res
         if name=="create_file":
             p=os.path.join(workdir,args["path"]); os.makedirs(os.path.dirname(p),exist_ok=True)
             open(p,"w",encoding="utf-8").write(args["content"])
@@ -1027,6 +1096,8 @@ def agent_loop(model, messages, workdir, session):
                     last_sig = (name, json.dumps(args, sort_keys=True, ensure_ascii=False))
                 if name in ("create_file", "edit_file", "append_file", "run_bash"):
                     productive_used = True
+                elif is_mcp_tool(name) and _is_mcp_producing(name):
+                    productive_used = True   # MCP 产出型工具(create_docx/write_*/render_* 等)
                 print(f"[{i}] ⚙ {name} {json.dumps(args,ensure_ascii=False)[:60]} -> {res[:90]}", flush=True)
                 if name=="finish":
                     # 假完成守护:没做任何实际工作就 finish → 拒绝并强制继续
