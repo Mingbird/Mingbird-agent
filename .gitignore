@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# PyInstaller 构建产物
+build/
+dist/
+*.spec
+
+# 运行时数据(不提交)
+*.log
+app_lang.txt
+gui_prefs.json
+
+# 发布临时脚本/无效素材
+release/_*.py
+release/_*.ps1
+release/screenshot-en.jpg
+
+# 语音模型 78MB(安装包已内嵌,不入库)
+stt/
+
+# 基准测试工作目录(内含嵌套 .git 或临时产物)
+bench/**/work_*/
+
+# 旧打包产物(不入库)
+LocalAgent.7z
+setup_src/
+inno.exe
+release/_*.wav
+
+# 本地开发脚本/日志(含本机绝对路径,不对外)
+myagent.sh
+run_agent.sh
+run_one.sh
+start_ollama_igpu.cmd
+setup.sed
+log_model_*.txt
+
+# 软著申请材料(私有,不进公开仓库)
+release/软著登记/
+
+# 截图素材(等待用户提供无泄露版本)
+release/screenshot-*
+release/preview-*
+# 基准测试原始数据/录音(本地保留,不进公开仓库)
+bench/
+# 内部开发/定时任务文档(不进公开仓库)
+schedule/
+
+# 开发残留/旧构建产物
+7z-extra.7z
+TASK.md
+build_exe.bat
+installer.iss
