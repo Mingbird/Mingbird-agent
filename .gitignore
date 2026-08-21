@@ -57,3 +57,8 @@ TASK.md
 build_exe.bat
 installer.iss
 _test.iss
+
+# 个人学术测试产物(不入库)
+_academic_kit/
+_make_*.py
+_test_docs/
