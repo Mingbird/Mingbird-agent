@@ -273,6 +273,13 @@ class AgentGUI:
         self._streaming_asst = False # 当前助手内容是否已流式上屏(避免重复渲染)
 
         root.title(f"{_t('蜂鸟 · 本地 AI 助手')} — {self.app_version()}")
+        # 窗口图标(原创蜂鸟,随包自带)
+        try:
+            _ic = os.path.join(AGENT_DIR, "app.ico")
+            if os.path.exists(_ic):
+                root.iconbitmap(_ic)
+        except Exception:
+            pass
         # 默认开足够大的窗口,保证所有功能露出(避免小窗口只显示左上角)
         try:
             sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
