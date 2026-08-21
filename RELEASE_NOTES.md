@@ -1,7 +1,7 @@
 # Hummingbird / 蜂鸟 v1.0.0 — Release Notes
 
 ## What is it
-A local, small-model-first AI agent for Windows. Runs fully offline on Ollama models (0.5–9B), tuned for modest hardware (integrated GPU, 13.7GB RAM).
+A local, small-model-first AI agent for Windows. Runs fully offline on Ollama models (0.5–9B), tuned for modest hardware (AMD Radeon 680M iGPU, 16 GB RAM).
 
 ## Highlights
 - **Flat prefill architecture**: tools loaded by category on demand → 50%+ context reduction, faster every request.
@@ -19,7 +19,7 @@ A local, small-model-first AI agent for Windows. Runs fully offline on Ollama mo
 
 ## Languages
 - **EN**: `Hummingbird-v1.0.0-EN-Setup.exe` (English UI)
-- **ZH**: `蜂鸟-v1.0.0-中文安装包.exe` (中文界面)
+- **ZH**: `Hummingbird-v1.0.0-ZH-Setup.exe` (中文界面)
 
 ## Docs
 - `AGENTS.md` — full manual for AI agents (install skills / MCP / model selection)
