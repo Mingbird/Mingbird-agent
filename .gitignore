@@ -41,7 +41,14 @@ setup.sed
 log_model_*.txt
 
 # 软著申请材料(私有,不进公开仓库)
-release/软著登记/
+# 注意:该目录可能是中文名且编码随终端变化,用通配排除 release/ 下除已跟踪外的任何内容
+release/*
+!release/github/
+!release/launch/
+!release/positioning.md
+
+# 临时工作台(按项目约定不进仓库)
+workspace/
 
 # 截图素材(等待用户提供无泄露版本)
 release/screenshot-*

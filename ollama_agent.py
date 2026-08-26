@@ -354,29 +354,39 @@ def mcp_call(server, tool, args):
     if not cfg:
         return f"[MCP server '{server}' not configured. Edit {MCP_CONFIG}: {{\"{server}\":{{\"command\":\"...\",\"args\":[...]}}}}]"
     try:
-        from mcp import ClientSession, StdioServerParameters
-        from mcp.client.stdio import stdio_client
-        params = StdioServerParameters(command=cfg["command"], args=cfg.get("args",[]), env=cfg.get("env"))
+        from mcp import ClientSession
+        url = cfg.get("url")
+        async def _call(session):
+            await session.initialize()
+            try:
+                res = await session.call_tool(tool, args or {})
+            except Exception as e:
+                # 参数校验失败 → 返回该工具期望的参数名,帮模型下次猜对
+                try:
+                    tools = (await session.list_tools()).tools
+                    for t in tools:
+                        if t.name == tool:
+                            props = t.inputSchema.get("properties", {})
+                            names = ", ".join(props.keys())
+                            return f"[mcp_call error: {e}] 工具 {tool} 期望参数: {names or '(无参数)'}"
+                except Exception:
+                    pass
+                return f"[mcp_call error: {e}]"
+            txt = res.content[0].text if res.content and hasattr(res.content[0],"text") else str(res)
+            return txt[:4000]
         async def _run():
-            async with stdio_client(params) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    try:
-                        res = await session.call_tool(tool, args or {})
-                    except Exception as e:
-                        # 参数校验失败 → 返回该工具期望的参数名,帮模型下次猜对
-                        try:
-                            tools = (await session.list_tools()).tools
-                            for t in tools:
-                                if t.name == tool:
-                                    props = t.inputSchema.get("properties", {})
-                                    names = ", ".join(props.keys())
-                                    return f"[mcp_call error: {e}] 工具 {tool} 期望参数: {names or '(无参数)'}"
-                        except Exception:
-                            pass
-                        return f"[mcp_call error: {e}]"
-                    txt = res.content[0].text if res.content and hasattr(res.content[0],"text") else str(res)
-                    return txt[:4000]
+            if url:
+                from mcp.client.streamable_http import streamablehttp_client
+                async with streamablehttp_client(url, headers=cfg.get("headers")) as (read, write, _sid):
+                    async with ClientSession(read, write) as session:
+                        return await _call(session)
+            else:
+                from mcp import StdioServerParameters
+                from mcp.client.stdio import stdio_client
+                params = StdioServerParameters(command=cfg["command"], args=cfg.get("args",[]), env=cfg.get("env"))
+                async with stdio_client(params) as (read, write):
+                    async with ClientSession(read, write) as session:
+                        return await _call(session)
         return asyncio.run(_run())
     except Exception as e:
         return f"[mcp_call error: {e}]"
@@ -412,19 +422,32 @@ def _compact_schema(js):
     return {"type": "object", "properties": props, "required": req}
 
 def _introspect_mcp_tools(name, cfg):
-    """连接 MCP 服务器取 tools/list(名称+描述+输入 schema)。失败返回 []。"""
+    """连接 MCP 服务器取 tools/list(名称+描述+输入 schema)。失败返回 []。
+    支持本地 stdio(command) 与远程 HTTP(url, 如 tavily)。"""
     try:
-        from mcp import ClientSession, StdioServerParameters
-        from mcp.client.stdio import stdio_client
-        params = StdioServerParameters(command=cfg["command"], args=cfg.get("args", []), env=cfg.get("env"))
+        from mcp import ClientSession
+        url = cfg.get("url")
         async def _run():
-            async with stdio_client(params) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    res = await session.list_tools()
-                    return [{"name": t.name, "desc": (t.description or "")[:150],
-                             "schema": _compact_schema(getattr(t, "inputSchema", None) or {})}
-                            for t in res.tools]
+            if url:
+                from mcp.client.streamable_http import streamablehttp_client
+                async with streamablehttp_client(url, headers=cfg.get("headers")) as (read, write, _sid):
+                    async with ClientSession(read, write) as session:
+                        await session.initialize()
+                        res = await session.list_tools()
+                        return [{"name": t.name, "desc": (t.description or "")[:150],
+                                 "schema": _compact_schema(getattr(t, "inputSchema", None) or {})}
+                                for t in res.tools]
+            else:
+                from mcp import StdioServerParameters
+                from mcp.client.stdio import stdio_client
+                params = StdioServerParameters(command=cfg["command"], args=cfg.get("args", []), env=cfg.get("env"))
+                async with stdio_client(params) as (read, write):
+                    async with ClientSession(read, write) as session:
+                        await session.initialize()
+                        res = await session.list_tools()
+                        return [{"name": t.name, "desc": (t.description or "")[:150],
+                                 "schema": _compact_schema(getattr(t, "inputSchema", None) or {})}
+                                for t in res.tools]
         return asyncio.run(asyncio.wait_for(_run(), timeout=10))   # 坏服务器最多等 10s,不阻塞任务
     except Exception:
         return []
@@ -437,7 +460,7 @@ def mcp_manifest(force=False):
     servers = load_mcp_servers()
     manifest = {}
     for name, cfg in servers.items():
-        if not isinstance(cfg, dict) or not cfg.get("command"):
+        if not isinstance(cfg, dict) or not (cfg.get("command") or cfg.get("url")):
             continue
         server_cats = mcp_server_categories(name, cfg)
         per_tool = cfg.get("tools") if isinstance(cfg.get("tools"), dict) else {}
