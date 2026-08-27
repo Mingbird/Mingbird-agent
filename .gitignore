@@ -55,6 +55,8 @@ release/screenshot-*
 release/preview-*
 # 基准测试原始数据/录音(本地保留,不进公开仓库)
 bench/
+# 对决/评测归档(含运行日志,本地保留)
+bench_archive/
 # 内部开发/定时任务文档(不进公开仓库)
 schedule/
 
