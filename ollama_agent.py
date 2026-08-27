@@ -178,6 +178,7 @@ ADVANCED_TOOLS = [
  _f("web_search","Search the web (Bing/Baidu), return titles+links+snippets", P(query={"type":"string"}),["query"]),
  _f("web_fetch","Fetch a URL: full text saved to sources/, return summary+path", P(url={"type":"string"}),["url"]),
  _f("web_search_multi","Parallel search multiple queries at once (fast)", P(queries={"type":"array","items":{"type":"string"}},max_results={"type":"number"}),["queries"]),
+ _f("batch_tools","Batch-run multiple tool calls in parallel (fast): [{tool,args},...], merge results. Reduces round-trips.", P(calls={"type":"array","items":{"type":"object"}}),["calls"]),
  _f("memory_store","Save an important fact to long-term memory", P(text={"type":"string"}),["text"]),
  _f("memory_recall","Retrieve facts from memory relevant to a query", P(query={"type":"string"},limit={"type":"number"}),["query"]),
  _f("mcp_call","Call a tool exposed by an MCP server", P(server={"type":"string"},tool={"type":"string"},args={"type":"object"}),["server","tool"]),
@@ -219,7 +220,7 @@ _BASE_TOOLS = {"read_file", "list_dir", "todo", "skills", "enable_tools", "finis
 _CATEGORY_TOOLS = {
     "文件": ["create_file", "edit_file", "append_file", "delete_file", "search_files"],
     "代码": ["run_bash"],
-    "网络": ["web_search", "web_fetch", "web_search_multi"],
+    "网络": ["web_search", "web_fetch", "web_search_multi", "batch_tools"],
     "记忆": ["memory_store", "memory_recall"],
     "MCP":  ["mcp_call"],
 }
@@ -348,6 +349,45 @@ def web_search_multi(queries, max_results=3):
     parts = []
     for q in queries:
         parts.append(f"### 查询: {q}\n{results.get(q, '(failed)')}")
+    return "\n\n".join(parts)
+
+def batch_tools(calls, workdir):
+    """批处理编排:一次执行多个工具调用,合并结果(减少 agent round-trip)。
+    输入: [{"tool": "read_file", "args": {...}}, {"tool": "web_search", "args": {...}}, ...]
+    - 网络/检索类工具(web_search/web_fetch/web_search_multi/mcp_call)并行执行(提速)
+    - 文件/命令类工具串行执行(保依赖,避免 create 后立即 read 的竞态)
+    每个子调用仍走 run_tool(含安全门/路径边界),单个失败不影响整体。
+    限制: 最多 8 个;禁止嵌套 batch_tools。"""
+    if not calls or not isinstance(calls, list):
+        return "[batch_tools: 需提供 calls 数组,形如 [{tool, args}, ...]]"
+    calls = calls[:8]   # 并发上限
+    # 禁止嵌套
+    if any(isinstance(c.get("tool"), str) and c.get("tool") == "batch_tools" for c in calls):
+        return "[batch_tools: 禁止嵌套 batch_tools]"
+    _PARALLEL_SAFE = ("web_search", "web_fetch", "web_search_multi", "mcp_call")
+    import concurrent.futures as _cf
+    results = {}
+    def _one(c):
+        try:
+            tool = c.get("tool", ""); args = c.get("args", {}) or {}
+            r = run_tool(tool, args, workdir)
+            return str(r)[:2000]
+        except Exception as e:
+            return f"[batch error: {e}]"
+    # 网络类并行,文件类串行(保依赖)
+    parallel = [(i, c) for i, c in enumerate(calls) if c.get("tool") in _PARALLEL_SAFE]
+    serial = [(i, c) for i, c in enumerate(calls) if c.get("tool") not in _PARALLEL_SAFE]
+    if parallel:
+        with _cf.ThreadPoolExecutor(max_workers=min(8, len(parallel))) as ex:
+            futs = {ex.submit(_one, c): i for i, c in parallel}
+            for fut in _cf.as_completed(futs):
+                results[futs[fut]] = fut.result()
+    for i, c in serial:
+        results[i] = _one(c)
+    parts = []
+    for i, c in enumerate(calls):
+        tool = c.get("tool", "?")
+        parts.append(f"### [{i+1}] {tool}\n{results.get(i, '(failed)')}")
     return "\n\n".join(parts)
 
 def web_fetch(url, workdir=None):
@@ -998,6 +1038,7 @@ def run_tool(name, args, workdir):
             return out
         if name=="web_search": return web_search(args["query"])
         if name=="web_search_multi": return web_search_multi(args.get("queries", []), int(args.get("max_results", 3)))
+        if name=="batch_tools": return batch_tools(args.get("calls", []), workdir)
         if name=="web_fetch": return web_fetch(args["url"], workdir)
         if name=="memory_store": return memory_store(args["text"])
         if name=="memory_recall": return memory_recall(args["query"], int(args.get("limit",3)))
@@ -1069,6 +1110,34 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
         if tool_calls: m["tool_calls"] = tool_calls
         return {"message": m, "prompt_eval_count": prompt_ev, "eval_count": eval_ev}
     return json.loads(urllib.request.urlopen(req, timeout=900).read())
+
+# ---------------- 上下文事前估算 ----------------
+def _estimate_tokens(text):
+    """粗略估算文本 token 数(中文≈1字/token,英文≈4字符/token)。
+    用于 API 调用前判断是否超限,不等 ollama 返回(500 时拿不到用量)。"""
+    try:
+        if not text:
+            return 0
+        # 统计 CJK 字符数
+        cjk = sum(1 for ch in text if '一' <= ch <= '鿿' or '㐀' <= ch <= '䶿')
+        other = len(text) - cjk
+        return cjk + other // 4 + 1
+    except Exception:
+        return len(str(text)) // 4
+
+def _estimate_messages_tokens(messages, tools=None):
+    """估算消息+工具 schema 的总 token 数。"""
+    total = 0
+    for m in messages or []:
+        total += _estimate_tokens(str(m.get("content", "")))
+        for tc in (m.get("tool_calls") or []):
+            total += _estimate_tokens(str(tc.get("function", {}).get("name", "")))
+            total += _estimate_tokens(str(tc.get("function", {}).get("arguments", "")))
+    for t in (tools or []):
+        total += _estimate_tokens(str(t.get("function", {}).get("name", "")))
+        total += _estimate_tokens(str(t.get("function", {}).get("description", "")))
+        total += _estimate_tokens(str(t.get("function", {}).get("parameters", {})))
+    return total
 
 def compact_history(model, messages, level=3):
     """分层压缩上下文(符合 context-rot 经验:本地模型 ~60% 就开始退化,应分级提前压缩)。
@@ -1414,6 +1483,18 @@ def agent_loop(model, messages, workdir, session):
                 ct = tools_for_categories(cats, extra=allowed_extra)   # 任务:按类别加载(扁平 prefill)
             else:
                 ct = None                    # 全量(兜底)
+            # 上下文事前估算:调用前估算消息+工具 token,超限主动压缩(不等 ollama 返回,
+            # 500 时拿不到用量;opencode 同思路——请求前预算检查避免超限/错误)
+            _est = _estimate_messages_tokens(messages, ct)
+            if _est > CTX_BUDGET * 0.90 and _compact_lvl < 3:
+                messages = compact_history(model, messages, level=3); _compact_lvl = 3
+                print(f"[{i}] 事前估算 {_est} token 超限,已压缩(L3)", flush=True)
+            elif _est > CTX_BUDGET * 0.75 and _compact_lvl < 2:
+                messages = compact_history(model, messages, level=2); _compact_lvl = 2
+                print(f"[{i}] 事前估算 {_est} token 超限,已压缩(L2)", flush=True)
+            elif _est > CTX_BUDGET * 0.60 and _compact_lvl < 1:
+                messages = compact_history(model, messages, level=1); _compact_lvl = 1
+                print(f"[{i}] 事前估算 {_est} token 超限,已压缩(L1)", flush=True)
             if STREAM:
                 r = call_chat(model, messages, tools=ct, stream=True, on_token=_stream_tok, on_think=_stream_think)
             else:
@@ -1445,7 +1526,27 @@ def agent_loop(model, messages, workdir, session):
                         sys.exit(1)
             except Exception:
                 pass
-            fails += 1; wait = min(3 * (2 ** (fails - 1)), 60)
+            # 500 降级重试:连续 500(ollama 资源紧张/超限)时,先触发压缩缩小上下文再重试,
+            # 而非纯退避等待。这直接缓解 ollama 压力,减少 500 恢复时间。
+            _is_500 = False
+            try:
+                import urllib.error as _ue2
+                _is_500 = isinstance(e, _ue2.HTTPError) and e.code == 500
+            except Exception:
+                pass
+            fails += 1
+            if _is_500 and fails >= 2 and _compact_lvl < 3:
+                # 已连续 ≥2 次 500 → 压缩上下文(L1→L2→L3 递进)再重试
+                lvl = min(3, _compact_lvl + 1)
+                _compact_lvl = lvl
+                try:
+                    messages = compact_history(model, messages, level=lvl)
+                    print(f"[{i}] 500 错误,已降级压缩上下文(L{lvl})再重试", flush=True)
+                except Exception:
+                    pass
+                time.sleep(2)
+                continue
+            wait = min(3 * (2 ** (fails - 1)), 60)
             print(f"[{i}] API error: {e} (retry {fails}, wait {wait}s)", flush=True)
             time.sleep(wait)
             if fails >= 6:
