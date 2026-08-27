@@ -1,5 +1,5 @@
-﻿; Hummingbird v1.0.0 EN installer (Inno Setup)
-#define MyAppVersion "1.0.0"
+﻿; Hummingbird v1.1.0 EN installer (Inno Setup)
+#define MyAppVersion "1.1.0"
 #define MyAppName "Hummingbird"
 #define MyAppFullName "Hummingbird · Local AI Assistant"
 #define MyAppExe "LocalAgent.exe"
@@ -14,7 +14,7 @@ DefaultDirName={localappdata}\Hummingbird
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
-OutputBaseFilename=Hummingbird-v1.0.0-EN-Setup
+OutputBaseFilename=Hummingbird-v1.1.0-EN-Setup
 OutputDir=dist
 SetupIconFile=app.ico
 Compression=lzma2

@@ -36,6 +36,37 @@ SKILLS_DIR_HOME = os.path.join(AGENT_HOME, "skills")
 MCP_CONFIG = os.path.join(AGENT_HOME, "mcp.json")
 for d in (AGENT_HOME, SESSIONS_DIR, SKILLS_DIR_HOME):
     os.makedirs(d, exist_ok=True)
+CACHE_DIR = os.path.join(AGENT_HOME, "cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
+# ---------- 通用磁盘缓存(缓存昂贵操作:网页抓取/搜索/MCP 结果) ----------
+# 原则:网络请求/长文本处理代价高,结果按 key 哈希写盘,TTL 内复用。
+# 命中 → 直接返回(零网络开销);TTL 过期或 force → 重新计算。harness 层兜底,不依赖模型。
+def _cache_key(*parts):
+    """把任意字符串拼成缓存 key(sha1 哈希)。"""
+    import hashlib
+    raw = "|".join(str(p) for p in parts)
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:24]
+
+def _cache_get(key, ttl=3600):
+    """读缓存文件,返回内容或 None。损坏/缺失/过期返回 None。"""
+    try:
+        p = os.path.join(CACHE_DIR, key + ".json")
+        if os.path.exists(p):
+            d = json.load(open(p, encoding="utf-8"))
+            if time.time() - float(d.get("ts", 0)) < ttl:
+                return d.get("data")
+    except Exception:
+        pass
+    return None
+
+def _cache_set(key, data):
+    """写缓存(带时间戳)。失败静默(缓存只是加速,不阻塞)。"""
+    try:
+        p = os.path.join(CACHE_DIR, key + ".json")
+        json.dump({"ts": time.time(), "data": data}, open(p, "w", encoding="utf-8"),
+                  ensure_ascii=False)
+    except Exception:
+        pass
 
 THINK = os.environ.get("AGENT_THINK") == "1"
 CTX_BUDGET = int(os.environ.get("AGENT_CTX", "16384"))
@@ -131,7 +162,7 @@ _REQ_ARGS = {"create_file":["path","content"],"read_file":["path"],"edit_file":[
 
 CORE_TOOLS = [
  _f("create_file","Create or overwrite a file", P(path={"type":"string"},content={"type":"string"}),["path","content"]),
- _f("read_file","Read a file's content", P(path={"type":"string"}),["path"]),
+ _f("read_file","Read a file's content (optional start_line/end_line to read a range)", P(path={"type":"string"},start_line={"type":"number"},end_line={"type":"number"}),["path"]),
  _f("edit_file","Find-and-replace text in a file", P(path={"type":"string"},old={"type":"string"},new={"type":"string"}),["path","old","new"]),
  _f("list_dir","List files in a directory", P(path={"type":"string"}),["path"]),
  _f("run_bash","Run a command (cwd=workspace, no cd /workspace)", P(command={"type":"string"}),["command"]),
@@ -145,7 +176,8 @@ ADVANCED_TOOLS = [
  _f("delete_file","Delete a file", P(path={"type":"string"}),["path"]),
  _f("search_files","Grep-like content search in a directory", P(path={"type":"string"},pattern={"type":"string"}),["path","pattern"]),
  _f("web_search","Search the web (Bing/Baidu), return titles+links+snippets", P(query={"type":"string"}),["query"]),
- _f("web_fetch","Fetch a URL and return its plain text", P(url={"type":"string"}),["url"]),
+ _f("web_fetch","Fetch a URL: full text saved to sources/, return summary+path", P(url={"type":"string"}),["url"]),
+ _f("web_search_multi","Parallel search multiple queries at once (fast)", P(queries={"type":"array","items":{"type":"string"}},max_results={"type":"number"}),["queries"]),
  _f("memory_store","Save an important fact to long-term memory", P(text={"type":"string"}),["text"]),
  _f("memory_recall","Retrieve facts from memory relevant to a query", P(query={"type":"string"},limit={"type":"number"}),["query"]),
  _f("mcp_call","Call a tool exposed by an MCP server", P(server={"type":"string"},tool={"type":"string"},args={"type":"object"}),["server","tool"]),
@@ -187,7 +219,7 @@ _BASE_TOOLS = {"read_file", "list_dir", "todo", "skills", "enable_tools", "finis
 _CATEGORY_TOOLS = {
     "文件": ["create_file", "edit_file", "append_file", "delete_file", "search_files"],
     "代码": ["run_bash"],
-    "网络": ["web_search", "web_fetch"],
+    "网络": ["web_search", "web_fetch", "web_search_multi"],
     "记忆": ["memory_store", "memory_recall"],
     "MCP":  ["mcp_call"],
 }
@@ -228,7 +260,7 @@ def tools_for_categories(cats, active=None, extra=None):
         if n in avail and n not in active_names:
             active.append(avail[n])
     result = [t for t in active if t["function"]["name"] in names]
-    result += mcp_tool_defs(cats)   # 扁平并入该类别下的 MCP 工具(真实工具,模型直接调用)
+    result += mcp_tool_defs(cats, extra=extra)   # 扁平并入该类别下的 MCP 工具(真实工具,模型直接调用)
     return result
 
 # ---------------- 记忆 ----------------
@@ -270,6 +302,10 @@ def load_todo_str(workdir):
 
 # ---------------- 网页 ----------------
 def web_search(query, max_results=5):
+    key = _cache_key("search", query, max_results)
+    cached = _cache_get(key)
+    if cached:
+        return cached
     import requests
     from bs4 import BeautifulSoup
     hd = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
@@ -287,18 +323,71 @@ def web_search(query, max_results=5):
                 cap = li.select_one(".b_caption p") or li.select_one("p") or li.select_one(".c-abstract")
                 sn = cap.get_text(strip=True)[:200] if cap else ""
                 if t: out.append(f"• {t}\n  {h}\n  {sn}")
-            if out: return "\n".join(out)
+            if out:
+                result = "\n".join(out)
+                _cache_set(key, result)
+                return result
         except Exception as e:
             last_err = str(e)[:80]
     return f"[web_search error: {last_err}]"
-def web_fetch(url):
+def web_search_multi(queries, max_results=3):
+    """并行检索多个查询(线程池),合并结果。独立查询并发执行,显著提速。
+    返回: 每个查询的结果块(带查询标签)。单个失败不影响整体。"""
+    if not queries:
+        return "[web_search_multi: 需提供 queries 数组]"
+    import concurrent.futures as _cf
+    results = {}
+    with _cf.ThreadPoolExecutor(max_workers=min(6, len(queries))) as ex:
+        futs = {ex.submit(web_search, q, max_results): q for q in queries}
+        for fut in _cf.as_completed(futs):
+            q = futs[fut]
+            try:
+                results[q] = fut.result()
+            except Exception as e:
+                results[q] = f"[error: {e}]"
+    parts = []
+    for q in queries:
+        parts.append(f"### 查询: {q}\n{results.get(q, '(failed)')}")
+    return "\n\n".join(parts)
+
+def web_fetch(url, workdir=None):
+    """抓取网页:全量落盘 + 摘要进上下文 + 缓存。
+    科研场景要求"读越多原文越好"——不截断丢弃全文,而是:
+    1) 全文写入 workdir/sources/<hash>.txt(完整保留,模型可 read_file 精读任意部分)
+    2) 返回 800 字摘要 + 文件路径(摘要进上下文,省 token)
+    3) 磁盘缓存:同 URL 命中直接返回,不重复网络请求
+    返回格式: 摘要文本 + '\n[全文已存: sources/xxx.txt,需要细节用 read_file 读取]'
+    """
+    key = _cache_key("fetch", url)
+    cached = _cache_get(key)
+    if cached:
+        return cached
     try:
         import requests
         from bs4 import BeautifulSoup
         r = requests.get(url, headers={"User-Agent":"Mozilla/5.0"}, timeout=25)
         soup = BeautifulSoup(r.text, "html.parser")
         for t in soup(["script","style","nav","footer","header","noscript"]): t.decompose()
-        return soup.get_text(" ", strip=True)[:6000]
+        full = soup.get_text(" ", strip=True)
+        if not full:
+            return f"[web_fetch error: 页面无文本内容]"
+        # 1) 全量落盘(完整保留,供按需精读)
+        src_dir = ""
+        if workdir:
+            src_dir = os.path.join(workdir, "sources")
+            os.makedirs(src_dir, exist_ok=True)
+            fname = f"fetch_{key}.txt"
+            with open(os.path.join(src_dir, fname), "w", encoding="utf-8") as f:
+                f.write(f"URL: {url}\n\n{full}")
+        # 2) 摘要进上下文(前 800 字,保留关键信息)
+        summary = full[:800]
+        note = f"\n[全文已存: sources/fetch_{key}.txt ({len(full)} 字符)。需要细节时用 read_file 读取对应部分。]"
+        if workdir:
+            out = summary + note
+        else:
+            out = summary[:6000]
+        _cache_set(key, out)
+        return out
     except Exception as e:
         return f"[web_fetch error: {e}]"
 
@@ -359,7 +448,10 @@ def mcp_call(server, tool, args):
         async def _call(session):
             await session.initialize()
             try:
-                res = await session.call_tool(tool, args or {})
+                # MCP 调用加超时(60s),防止卡死的服务器无限阻塞 agent
+                res = await asyncio.wait_for(session.call_tool(tool, args or {}), timeout=60)
+            except asyncio.TimeoutError:
+                return f"[mcp_call error: 工具 {tool} 调用超时(60s)。服务器可能卡死,请换其他工具或稍后重试。]"
             except Exception as e:
                 # 参数校验失败 → 返回该工具期望的参数名,帮模型下次猜对
                 try:
@@ -400,6 +492,28 @@ def mcp_call(server, tool, args):
 # 模型原生直接调用;派发器自动路由到对应 MCP 服务器。
 _MCP_CACHE = {"t": 0, "data": None}
 _MCP_TTL = 300   # 探测结果缓存秒数(探测要拉起 stdio 进程,贵)
+_MCP_CACHE_FILE = os.path.join(AGENT_HOME, "mcp_manifest_cache.json")  # 磁盘持久化缓存
+# 探测代价高(拉起多个 stdio 进程 ~7s),缓存写盘避免每次 agent 进程都重新探测。
+# 通用原则:配置没变 → 直接用缓存;force=True 或 TTL 过期 → 重新探测。不绑定任何服务器。
+
+def _load_mcp_cache_disk():
+    """读磁盘缓存。返回 (ts, data) 或 (0, None)。损坏/缺失返回空。"""
+    try:
+        if os.path.exists(_MCP_CACHE_FILE):
+            d = json.load(open(_MCP_CACHE_FILE, encoding="utf-8"))
+            return float(d.get("ts", 0)), d.get("data")
+    except Exception:
+        pass
+    return 0, None
+
+def _save_mcp_cache_disk(data):
+    """把探测结果写盘(含时间戳)。失败静默(缓存只是加速,不阻塞)。"""
+    try:
+        os.makedirs(AGENT_HOME, exist_ok=True)
+        json.dump({"ts": time.time(), "data": data},
+                  open(_MCP_CACHE_FILE, "w", encoding="utf-8"), ensure_ascii=False)
+    except Exception:
+        pass
 
 def mcp_server_categories(name, cfg):
     cats = cfg.get("categories") if isinstance(cfg, dict) else None
@@ -452,29 +566,54 @@ def _introspect_mcp_tools(name, cfg):
     except Exception:
         return []
 
+def _mcp_expose(per_tool, tname, server_expose):
+    """解析工具的暴露策略。优先级:工具级 expose > 服务器级 expose > 默认 auto。
+    工具级可写 'expose': 'on-demand' 或 'auto' 或 'disabled'。"""
+    t = per_tool.get(tname)
+    if isinstance(t, dict) and t.get("expose"):
+        return t["expose"]
+    return server_expose or "auto"
+
 def mcp_manifest(force=False):
-    """服务器 → {categories, tools:[{name,desc,schema,categories}]}。缓存。"""
+    """服务器 → {categories, tools:[{name,desc,schema,categories,expose}]}。缓存(内存+磁盘)。
+    expose ∈ {auto, on-demand, disabled}:
+      auto      → 随类别默认注入 prefill(轻量高相关)
+      on-demand → 默认不注入,模型 enable_tools 显式加载才可用(重量/低频)
+      disabled  → 永不自动注入(仅配置声明确认需要时)
+    由 mcp.json 配置声明(服务器级 expose 或 tools 里工具级 expose),harness 不特判服务器名。
+    探测代价高(拉起 stdio 进程 ~7s),结果写盘缓存;新进程/任务不重复探测,TTL 过期或 force 才重测。"""
     now = time.time()
+    # 1) 内存缓存
     if not force and _MCP_CACHE["data"] is not None and now - _MCP_CACHE["t"] < _MCP_TTL:
         return _MCP_CACHE["data"]
+    # 2) 磁盘缓存(跨进程):未过期直接用,不重新拉起服务器
+    if not force:
+        disk_ts, disk_data = _load_mcp_cache_disk()
+        if disk_data and now - disk_ts < _MCP_TTL:
+            _MCP_CACHE.update({"t": disk_ts, "data": disk_data})
+            return disk_data
     servers = load_mcp_servers()
     manifest = {}
     for name, cfg in servers.items():
         if not isinstance(cfg, dict) or not (cfg.get("command") or cfg.get("url")):
             continue
         server_cats = mcp_server_categories(name, cfg)
+        server_expose = cfg.get("expose")
         per_tool = cfg.get("tools") if isinstance(cfg.get("tools"), dict) else {}
         raw = _introspect_mcp_tools(name, cfg)
         tools = []
         for t in raw:
+            tname = t["name"]
             tools.append({
-                "name": t["name"],
+                "name": tname,
                 "desc": t.get("desc", ""),
                 "schema": t.get("schema") or {"type": "object", "properties": {}},
-                "categories": per_tool.get(t["name"]) or server_cats,
+                "categories": per_tool.get(tname) if isinstance(per_tool.get(tname), list) else server_cats,
+                "expose": _mcp_expose(per_tool, tname, server_expose),
             })
         manifest[name] = {"categories": server_cats, "tools": tools}
     _MCP_CACHE.update({"t": now, "data": manifest})
+    _save_mcp_cache_disk(manifest)   # 写盘,下次进程直接用
     return manifest
 
 _BUILTIN_NAMES = {t["function"]["name"] for t in CORE_TOOLS + ADVANCED_TOOLS}
@@ -487,25 +626,33 @@ _FILE_DUP = {
     "append_file": "append_file",
 }
 
-def mcp_tool_defs(cats):
+def mcp_tool_defs(cats, extra=None):
     """按类别返回 MCP 工具定义(扁平化为真实工具,名称="服务器.工具名")。
+    分层:expose=auto 的工具随类别默认注入;on-demand/disabled 默认跳过,
+    仅当 extra(模型 enable_tools 显式请求的工具名)里出现时才注入。
     跳过与内置工具重复的 MCP 工具:同名,或文件类工具的动词已被内置覆盖
     (内置更懂工作目录;filesystem 等 MCP 写的是自己的沙箱,会写错位置)。"""
     manifest = mcp_manifest()
+    extra = extra or set()
     defs = []
     for server, info in manifest.items():
         for t in info["tools"]:
-            if not (set(t["categories"]) & set(cats)):
+            full = f"{server}.{t['name']}"
+            # 类别不匹配且未显式请求 → 跳过
+            if not (set(t["categories"]) & set(cats)) and full not in extra:
                 continue
-            if t["name"] in _BUILTIN_NAMES:
-                continue   # 与内置工具同名,跳过
-            if "文件" in t["categories"] and t["name"] in _FILE_DUP and _FILE_DUP[t["name"]] in _BUILTIN_NAMES:
-                continue   # 文件类操作被内置覆盖(create/read/list/search/edit/delete),跳过
+            # 分层:auto 随类别;on-demand/disabled 需 extra 显式请求
+            if t["expose"] != "auto" and full not in extra:
+                continue
+            if t["name"] in _BUILTIN_NAMES and full not in extra:
+                continue   # 与内置工具同名,跳过(除非显式请求)
+            if "文件" in t["categories"] and t["name"] in _FILE_DUP and _FILE_DUP[t["name"]] in _BUILTIN_NAMES and full not in extra:
+                continue   # 文件类操作被内置覆盖,跳过(除非显式请求)
             desc = (t["desc"] or "").replace("\n", " ")
             if len(desc) > 60:
                 desc = desc[:60] + "…"
             defs.append({"type": "function", "function": {
-                "name": f"{server}.{t['name']}",
+                "name": full,
                 "description": desc or f"{server} 工具",
                 "parameters": t["schema"],
             }})
@@ -564,10 +711,17 @@ def active_tool_defs():
 def enable_advanced_tools(names):
     avail = {t["function"]["name"]: t for t in ADVANCED_TOOLS}
     added = []
+    mcp_added = []
     for n in names:
         if n in avail and n not in [t["function"]["name"] for t in _active_tools]:
             _active_tools.append(avail[n]); added.append(n)
-    return f"[enabled tools: {', '.join(added) or '(none)'}. Now available: {', '.join(t['function']['name'] for t in _active_tools)}]"
+        elif is_mcp_tool(n) and n not in mcp_added:
+            # MCP 扁平工具(服务器.工具名):由 agent_loop 的 allowed_extra 负责注入
+            mcp_added.append(n)
+    note = ""
+    if mcp_added:
+        note = f" MCP 工具已按需加载: {', '.join(mcp_added)}"
+    return f"[enabled tools: {', '.join(added) or '(none)'}. Now available: {', '.join(t['function']['name'] for t in _active_tools)}]{note}"
 
 def _auto_repair(path):
     """写文件后自愈:小模型常把换行/引号转义成字面反斜杠序列(层数不固定),导致 .py 语法错误。
@@ -623,8 +777,10 @@ _DANGER_CMD = ("rm -rf", "rm -fr", "format c:", "format c:\\", "del /s /q c:", "
 # 敏感路径片段(命中即受保护):写一律拒绝,读也需确认。全小写匹配。
 _SENSITIVE_PATTERNS = (".ssh\\", ".aws\\", ".gnupg\\", ".env", ".pem", "id_rsa", "id_ed25519",
                        "credentials\\", "\\token", "secrets", ".wav", "gui_prefs.json",
-                       "mcp.json", "config.json", "memory.json", ".agent_state.json",
+                       "mcp.json", "config.json", "memory.json",
                        "app_lang.txt", "\\program files\\", "\\windows\\", "\\system32\\")
+# 注意:.agent_state.json 是蜂鸟自己的运行时检查点(会话历史),模型写它属于正常工作,
+# 不能列入敏感模式(否则检查点保存失败,崩溃无法续跑)。真正的隐私文件用上面的列表保护。
 # run_bash 里疑似访问工作目录之外的命令模式(全小写匹配;命中→走确认通道)
 _BASH_ESCAPE_PATTERNS = (
     r"cd\s+[a-z]:\\\\", r"cd\s+/d\s+[a-z]:", r"del\s+[a-z]:\\", r"type\s+[a-z]:\\",
@@ -769,7 +925,18 @@ def run_tool(name, args, workdir):
             return f"[created {args['path']} ({tag})]"
         if name=="read_file":
             p=os.path.join(workdir,args["path"])
-            return read_text(p)[:6000] if os.path.exists(p) else f"[not found: {args['path']}]"
+            if not os.path.exists(p):
+                return f"[not found: {args['path']}]"
+            # 按需精读:start_line/end_line 只读指定行区间(科研场景精读全文落盘文件)
+            sl = int(args.get("start_line", 0) or 0)
+            el = int(args.get("end_line", 0) or 0)
+            lines = read_text(p).splitlines()
+            if sl > 0 or el > 0:
+                if el <= 0: el = len(lines)
+                chunk = lines[max(0, sl-1):el]
+                meta = f"\n[文件共 {len(lines)} 行,已读取 {max(0,sl-1)+1}-{min(el,len(lines))} 行。需要其他部分用 read_file(start_line=.., end_line=..)。]"
+                return "\n".join(chunk)[:6000] + meta
+            return read_text(p)[:6000]
         if name=="edit_file":
             p=os.path.join(workdir,args["path"]); s=read_text(p)
             # 编辑前备份 .bak,模型改坏文件时可回滚
@@ -830,7 +997,8 @@ def run_tool(name, args, workdir):
                 out += "\n[提示: Windows 无 bash 的 time 命令。请在脚本内用 python time 模块计时,或用 python -c 执行计时。]"
             return out
         if name=="web_search": return web_search(args["query"])
-        if name=="web_fetch": return web_fetch(args["url"])
+        if name=="web_search_multi": return web_search_multi(args.get("queries", []), int(args.get("max_results", 3)))
+        if name=="web_fetch": return web_fetch(args["url"], workdir)
         if name=="memory_store": return memory_store(args["text"])
         if name=="memory_recall": return memory_recall(args["query"], int(args.get("limit",3)))
         if name=="todo":
@@ -875,7 +1043,8 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
     if stream:
         parts, thinks, tool_calls = [], [], None
         prompt_ev, eval_ev = None, None
-        resp = urllib.request.urlopen(req, timeout=900)
+        # 生成超时 240s:正常 35B 生成足够,卡死(模型不吐 token)能兜底退出,避免无限等
+        resp = urllib.request.urlopen(req, timeout=240)
         for line in resp:
             line = line.strip()
             if not line: continue
@@ -901,10 +1070,52 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
         return {"message": m, "prompt_eval_count": prompt_ev, "eval_count": eval_ev}
     return json.loads(urllib.request.urlopen(req, timeout=900).read())
 
-def compact_history(model, messages):
-    """超预算时把较早历史压成摘要,保留 system + 最近3条。"""
+def compact_history(model, messages, level=3):
+    """分层压缩上下文(符合 context-rot 经验:本地模型 ~60% 就开始退化,应分级提前压缩)。
+
+    level 1(轻):  丢弃/精简旧工具输出——把较早 tool 消息的长结果截断为一行标注,
+                  保留结构(assistant 的决策/结论),不动 system 和最近轮次。
+    level 2(中):  摘要更早的轮次为一段摘要,保留 system + 最近 5 条(比 level3 温和)。
+    level 3(重):  全量摘要 + 重建工作集:system + 摘要 + 最近 3 条(原有行为)。
+
+    保留原则(无论哪级):目标、已做决定、当前产物文件、未完成事项;丢弃:旧日志、
+    已被替换的计划、已读过的文件全文。"""
     if len(messages) <= 4: return messages
-    head = messages[0]; tail = messages[-3:]; to_zip = messages[1:-3]
+    head = messages[0]
+    if level <= 1:
+        # level 1:只精简旧 tool 输出(截断长结果),保留所有角色结构
+        _MAX_TOOL = 120   # 旧 tool 消息只留前 120 字符
+        out = [head]
+        keep_tail = messages[-2:]   # 保留最近 2 条(通常是刚发生的 tool+assistant)
+        for i, m in enumerate(messages[1:], 1):
+            m = dict(m)
+            is_recent = any(m is orig for orig in keep_tail)
+            if m.get("role") == "tool" and not is_recent:   # 旧 tool 结果截断
+                c = str(m.get("content", ""))
+                if len(c) > _MAX_TOOL:
+                    m["content"] = c[:_MAX_TOOL] + f"…(已截断,原 {len(c)} 字符)"
+            out.append(m)
+        print(f"[上下文压缩 L1: 截断旧工具输出]", flush=True)
+        return out
+    if level <= 2:
+        # level 2:摘要更早的轮次,保留 system + 最近 5 条
+        if len(messages) <= 6: return messages
+        tail = messages[-5:]; to_zip = messages[1:-5]
+        if not to_zip: return messages
+        text = "\n".join(f"[{m.get('role')}]: {str(m.get('content',''))[:400]}" for m in to_zip)
+        try:
+            req = [{"role":"system","content":"用中文压缩成 ≤150 字摘要,保留目标、关键文件名、已做决定、错误和未完成事项,丢弃旧日志与已读全文。"},
+                   {"role":"user","content": text}]
+            r = call_chat(model, req, ctx=8000, tools=[])
+            summary = r.get("message",{}).get("content","") or "(summary failed)"
+            out = [head, {"role":"user","content":"[先前上下文摘要] " + summary}, *tail]
+            print(f"[上下文压缩 L2: {len(messages)} → {len(out)} 条消息]", flush=True)
+            return out
+        except Exception:
+            return messages
+    # level 3(原有行为):全量摘要 + 重建工作集
+    if len(messages) <= 4: return messages
+    tail = messages[-3:]; to_zip = messages[1:-3]
     text = "\n".join(f"[{m.get('role')}]: {str(m.get('content',''))[:400]}" for m in to_zip)
     try:
         req = [{"role":"system","content":"用中文把下面这段 agent 对话压缩成 ≤150 字摘要,保留关键文件名、代码决策、错误信息和未完成事项。"},
@@ -912,7 +1123,7 @@ def compact_history(model, messages):
         r = call_chat(model, req, ctx=8000, tools=[])
         summary = r.get("message",{}).get("content","") or "(summary failed)"
         out = [head, {"role":"user","content":"[先前上下文摘要] " + summary}, *tail]
-        print(f"[上下文已压缩: {len(messages)} → {len(out)} 条消息]", flush=True)
+        print(f"[上下文压缩 L3: {len(messages)} → {len(out)} 条消息]", flush=True)
         return out
     except Exception:
         return messages
@@ -1060,6 +1271,32 @@ def _is_qa(messages):
             return False
     return False
 
+def _dedupe_trailing_assistant(messages):
+    """修复对话结构:删除末尾连续的空 assistant 消息(保留最后一条)。
+    连续 assistant(无 tool_calls)会让 ollama 报 400 'Cannot have 2 or more
+    assistant messages at the end of the list'。空内容 + 无 tool_calls 的
+    assistant 是无效的(模型没输出也没调工具),应被合并掉。"""
+    if not messages:
+        return messages
+    # 只在末尾处理连续 assistant:合并空的无调用 assistant,保留最后一条有内容的
+    while len(messages) >= 2 and messages[-1].get("role") == "assistant" and \
+          messages[-2].get("role") == "assistant":
+        # 若末条为空且无 tool_calls,丢弃它;否则保留末条丢弃前一条空的
+        last = messages[-1]; prev = messages[-2]
+        last_empty = not (last.get("content") or "").strip() and not last.get("tool_calls")
+        prev_empty = not (prev.get("content") or "").strip() and not prev.get("tool_calls")
+        if last_empty:
+            messages.pop()
+        elif prev_empty:
+            messages.pop(-2)
+        else:
+            # 两条都有内容/调用:合并内容到后一条,删前一条
+            merged = dict(prev)
+            merged["content"] = (prev.get("content") or "") + "\n" + (last.get("content") or "")
+            merged["tool_calls"] = last.get("tool_calls") or prev.get("tool_calls")
+            messages[-2:] = [merged]
+    return messages
+
 def _similar(a, b, thresh=0.75):
     """判断两段文本是否高度相似(用于重复输出死循环检测)。"""
     a = "".join(a.split()); b = "".join(b.split())
@@ -1160,12 +1397,17 @@ def agent_loop(model, messages, workdir, session):
         cats = route_categories(_task_text)
         mcp_manifest()   # 预热 MCP 探测缓存(实际工具由 tools_for_categories 扁平并入)
     allowed_extra = set()   # 模型 enable_tools 补充的工具名
+    _compact_lvl = 0        # 已执行的最高压缩级别(避免同级别重复触发)
     for i in range(200):
         if casual_force:
             print("[收尾] 本轮已足够,强制结束(防问答重复/死循环)", flush=True)
             messages.append({"role":"tool","content":"[TASK_COMPLETE] 已回答,结束本轮"})
             break
         try:
+            # 修复对话结构:连续 assistant 消息会让 ollama 返回 400
+            # (Cannot have 2 or more assistant messages at the end)。
+            # 删除末尾连续的空 assistant(保留最后一条),避免"可修复的 400"被误判为致命。
+            messages = _dedupe_trailing_assistant(messages)
             if qa:
                 ct = _chat_tool_defs()      # 问答:只读工具(根治加戏)
             elif cats:
@@ -1178,24 +1420,31 @@ def agent_loop(model, messages, workdir, session):
                 r = call_chat(model, messages, tools=ct)
             fails = 0
         except Exception as e:
-            # verify-before-retry:HTTP 4xx(400/404/409 等)重试无意义(参数/上下文/模型问题),
-            # 直接停止而非盲目重试;网络/5xx/超时才退避重试(幂等安全)。
-            _fatal_http = False
+            # verify-before-retry:区分"可修复的 4xx"(对话结构问题→清理后重试)
+            # 与"不可修复的 4xx"(模型不存在/参数非法→停止)。
+            body = ""
             try:
                 import urllib.error as _ue
-                if isinstance(e, _ue.HTTPError) and 400 <= e.code < 500:
-                    _fatal_http = True
+                if isinstance(e, _ue.HTTPError):
+                    body = (e.read().decode("utf-8", "replace") if hasattr(e, "read") else "")[:300]
+                    if 400 <= e.code < 500:
+                        # 结构类 400(assistant 连续) → sanitize 后重试,不退出
+                        if "assistant messages at the end" in body or "consecutive" in body.lower():
+                            cleaned = _dedupe_trailing_assistant(messages)
+                            if len(cleaned) != len(messages):
+                                messages = cleaned
+                                print(f"[{i}] 修复对话结构(连续 assistant),已清理重试", flush=True)
+                                fails += 1
+                                if fails >= 6:
+                                    save_session(session, messages); sys.exit(1)
+                                time.sleep(1)
+                                continue
+                        # 其他 4xx(模型/参数) → 不可修复,停止
+                        print(f"[{i}] API 4xx 错误(重试无意义,已停止): {e} {body}", flush=True)
+                        save_session(session, messages)
+                        sys.exit(1)
             except Exception:
                 pass
-            if _fatal_http:
-                body = ""
-                try:
-                    body = (e.read().decode("utf-8", "replace") if hasattr(e, "read") else "")[:200]
-                except Exception:
-                    pass
-                print(f"[{i}] API 4xx 错误(重试无意义,已停止): {e} {body}", flush=True)
-                save_session(session, messages)
-                sys.exit(1)
             fails += 1; wait = min(3 * (2 ** (fails - 1)), 60)
             print(f"[{i}] API error: {e} (retry {fails}, wait {wait}s)", flush=True)
             time.sleep(wait)
@@ -1208,8 +1457,14 @@ def agent_loop(model, messages, workdir, session):
         if pt:
             pct = pt * 100 // CTX_BUDGET
             print(f"[ctx: {pt}/{CTX_BUDGET} = {pct}%]", flush=True)
-            if pt > CTX_BUDGET * 0.90:
-                messages = compact_history(model, messages)
+            # 分层压缩(context-rot:本地模型早退化,分级提前压缩)
+            # 60% → L1 截断旧工具输出;75% → L2 摘要早轮次;90% → L3 全量重建
+            if pt > CTX_BUDGET * 0.90 and _compact_lvl < 3:
+                messages = compact_history(model, messages, level=3); _compact_lvl = 3
+            elif pt > CTX_BUDGET * 0.75 and _compact_lvl < 2:
+                messages = compact_history(model, messages, level=2); _compact_lvl = 2
+            elif pt > CTX_BUDGET * 0.60 and _compact_lvl < 1:
+                messages = compact_history(model, messages, level=1); _compact_lvl = 1
         msg = r.get("message",{})
         content = msg.get("content","") or ""
         tcs = msg.get("tool_calls")
@@ -1255,6 +1510,11 @@ def agent_loop(model, messages, workdir, session):
                 else:
                     res = run_tool(name, args, workdir)
                     last_sig = (name, json.dumps(args, sort_keys=True, ensure_ascii=False))
+                if name == "enable_tools":
+                    # 记录 enable_tools 请求的工具名 → 下一轮 tools_for_categories 的 extra 里纳入
+                    # (修复:此前 enable_advanced_tools 只改 _active_tools,on-demand MCP 工具实际加载不上)
+                    for _n in (args.get("tools") or []):
+                        allowed_extra.add(str(_n))
                 if name in ("create_file", "edit_file", "append_file", "run_bash"):
                     productive_used = True
                 elif is_mcp_tool(name) and _is_mcp_producing(name):
