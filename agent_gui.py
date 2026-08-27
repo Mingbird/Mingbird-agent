@@ -1013,6 +1013,7 @@ class AgentGUI:
         self.log(f"====== {_t('开始: ')}{model}" + (f" | {_t('会话:')}{self.session}" if self.session else "") + " ======")
         self.log(f"工作目录: {workdir}\n")
         self.proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            stdin=subprocess.PIPE,   # 守护系统:GUI 通过 stdin 回传越界确认
             text=True, encoding="utf-8", errors="replace", env=env, bufsize=1)
         threading.Thread(target=self.reader, daemon=True).start()
         self.send_btn.config(state="disabled")
@@ -1183,7 +1184,62 @@ class AgentGUI:
         except Exception:
             pass
 
+    def _ask_approval(self, req):
+        """守护系统:agent 请求越界操作,弹确认框,用户选择后写回 stdin。
+        按钮:允许一次 / 拒绝 / 允许全部(本轮)。超时或进程退出默认拒绝。"""
+        try:
+            tool = req.get("tool", "?")
+            path = req.get("path", "?")
+            action = req.get("action", "访问")
+            wd = req.get("workdir", "?")
+            win = tb.Toplevel(self.root)
+            win.title(_t("⚠ 越界操作确认"))
+            win.geometry("560x280")
+            win.attributes("-topmost", True)
+            tb.Label(win, text=_t("AI 想访问工作目录之外的文件"), bootstyle="warning",
+                     font=("Microsoft YaHei UI", 12, "bold"), padding=8).pack(anchor="w")
+            txt = (f"工具: {tool}\n"
+                   f"操作: {action}\n"
+                   f"目标: {path}\n\n"
+                   f"工作目录: {wd}\n\n"
+                   f"允许这次访问吗?")
+            tb.Label(win, text=txt, justify="left", padding=(10, 4),
+                     font=("Microsoft YaHei UI", 10)).pack(fill="both", expand=True, padx=6)
+            btnrow = tb.Frame(win); btnrow.pack(fill="x", padx=8, pady=8)
+            result = {}
+            def _reply(v):
+                result["v"] = v
+                win.destroy()
+            tb.Button(btnrow, text=_t("允许一次"), bootstyle="success",
+                      command=lambda: _reply("@allow")).pack(side="left", padx=4)
+            tb.Button(btnrow, text=_t("允许全部(本轮)"), bootstyle="primary",
+                      command=lambda: _reply("@allow_all")).pack(side="left", padx=4)
+            tb.Button(btnrow, text=_t("拒绝"), bootstyle="secondary",
+                      command=lambda: _reply("@deny")).pack(side="left", padx=4)
+            # 超时默认拒绝:60s 后自动关(agent 侧 120s 超时,这里提前响应避免卡死)
+            win.after(60000, lambda: _reply("@deny") if not result else None)
+            win.grab_set()
+            win.wait_window()
+            choice = result.get("v", "@deny")
+        except Exception:
+            choice = "@deny"
+        # 写回 stdin 给 agent
+        try:
+            if self.proc and self.proc.stdin and self.proc.poll() is None:
+                self.proc.stdin.write(choice + "\n")
+                self.proc.stdin.flush()
+        except Exception:
+            pass
+
     def feed_transcript(self, line):
+        if line.startswith("@@ASK@@"):
+            try:
+                req = json.loads(line[len("@@ASK@@"):])
+            except Exception:
+                req = {}
+            self.log_note(_t("[越界操作请求,请确认]") + " " + req.get("path", "?"))
+            self._ask_approval(req)
+            return
         if line.startswith("@@TOK@@"):
             self._stream_tok(line[len("@@TOK@@"):])
             return

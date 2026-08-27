@@ -611,17 +611,132 @@ def _auto_repair(path):
     open(path, "w", encoding="utf-8").write(s)   # 回退原内容
     return 0
 
+# 本轮已获得"允许全部"授权的工具名(GUI 弹窗用户选"允许全部"后,本轮同工具不再确认)
+_allow_all = set()
+# 本进程可读写的目录白名单(工作目录;可被 AGENT_ALLOW_DIRS 环境变量扩展,冒号分隔)
+_allow_dirs = set()
+
 _SYSTEM_DIRS = ("\\windows\\", "\\program files\\", "\\system32\\", "/windows/", "/program files/", "/usr", "/etc/", "/bin/", "/root")
-_DANGER_CMD = ("rm -rf", "rm -fr", "format c:", "format c:\\", "del /s /q c:", "rd /s /q c:\\", "diskpart", "mkfs", "shutdown", "taskkill /f /im")
+_DANGER_CMD = ("rm -rf", "rm -fr", "format c:", "format c:\\", "del /s /q c:", "rd /s /q c:\\", "diskpart", "mkfs", "shutdown", "taskkill /f /im",
+               "curl | bash", "curl | sh", "wget | bash", "powershell -c", "reg add", "reg delete", "netsh", "sc create", "certutil", "del c:\\*",
+               "rm -rf /", "rm -fr /", "sudo rm")
+# 敏感路径片段(命中即受保护):写一律拒绝,读也需确认。全小写匹配。
+_SENSITIVE_PATTERNS = (".ssh\\", ".aws\\", ".gnupg\\", ".env", ".pem", "id_rsa", "id_ed25519",
+                       "credentials\\", "\\token", "secrets", ".wav", "gui_prefs.json",
+                       "mcp.json", "config.json", "memory.json", ".agent_state.json",
+                       "app_lang.txt", "\\program files\\", "\\windows\\", "\\system32\\")
+# run_bash 里疑似访问工作目录之外的命令模式(全小写匹配;命中→走确认通道)
+_BASH_ESCAPE_PATTERNS = (
+    r"cd\s+[a-z]:\\\\", r"cd\s+/d\s+[a-z]:", r"del\s+[a-z]:\\", r"type\s+[a-z]:\\",
+    r"dir\s+[a-z]:\\", r"copy\s+[a-z]:\\", r"move\s+[a-z]:\\", r"ren\s+[a-z]:\\",
+    r"echo\s+.*>\\[a-z]:\\", r"more\s+[a-z]:\\", r"xcopy\s+[a-z]:\\", r"rd\s+[a-z]:\\",
+    r"attrib\s+[a-z]:\\", r"cacls\s+[a-z]:\\", r"icacls\s+[a-z]:\\", r"takeown\s+[a-z]:\\",
+    r"%userprofile%", r"%appdata%", r"%localappdata%", r"\.ssh", r"\.aws", r"\.env",
+    r"c:\\users", r"c:\program", r"d:\\", r"e:\\",
+)
+_FILE_TOOLS = ("create_file", "read_file", "edit_file", "append_file", "delete_file",
+               "list_dir", "search_files")
+
+def _safe_path(workdir, path):
+    """解析路径并判断是否在工作目录(或允许目录)内。返回 (real_abs, inside_bool)。
+    关键:os.path.join 在 Windows 上遇到绝对路径会直接返回绝对路径本身(绕过 workdir),
+    且 `..` 可向上跳转。这里用 abspath 折叠 `..` + commonpath 判定边界。
+    _allow_dirs 可由 AGENT_ALLOW_DIRS 环境变量(冒号分隔)扩展,允许 agent 访问额外目录。"""
+    try:
+        base = os.path.abspath(workdir)
+        real = os.path.abspath(os.path.join(workdir, str(path or "")))
+        allowed = [os.path.abspath(d) for d in ([base] + sorted(_allow_dirs))]
+        for d in allowed:
+            try:
+                common = os.path.commonpath([os.path.normcase(d), os.path.normcase(real)])
+                if common == os.path.normcase(d):
+                    return real, True
+            except Exception:
+                continue
+        return real, False
+    except Exception:
+        return os.path.abspath(os.path.join(workdir, str(path or ""))), False
+
+def _is_sensitive_path(path):
+    """路径是否命中敏感模式(含工作目录名本身触发的误报排除:敏感模式用全路径片段匹配)。"""
+    p = str(path).lower()
+    return any(s in p for s in _SENSITIVE_PATTERNS)
+
+def _ask_user_confirm(name, real_path, workdir, action="访问"):
+    """越界操作征求用户同意。GUI 模式(AGENT_STREAM=1):发 @@ASK@@ 到 stdout,阻塞读 stdin 回传。
+    CLI/无 stdin 模式:直接拒绝。返回 (allow:bool, allow_all:bool, msg:str)。
+    注:用线程带超时读 stdin(Windows console 上 select 不可靠;GUI 提供的是 PIPE 管道)。"""
+    try:
+        if os.environ.get("AGENT_STREAM") == "1" and sys.stdin and not sys.stdin.closed:
+            req = {"tool": name, "path": real_path, "action": action,
+                   "workdir": os.path.abspath(workdir)}
+            print("@@ASK@@" + json.dumps(req, ensure_ascii=False), flush=True)
+            # 线程带超时读一行(120s)
+            import threading, queue as _q
+            box = _q.Queue()
+            def _read():
+                try:
+                    box.put(sys.stdin.readline().strip())
+                except Exception:
+                    box.put(None)
+            th = threading.Thread(target=_read, daemon=True)
+            th.start()
+            try:
+                line = box.get(timeout=120)
+            except Exception:
+                line = None
+            if line:
+                low = line.lower()
+                if low in ("@allow", "@allow_all", "allow", "yes", "y"):
+                    return True, low in ("@allow_all", "allow_all"), ""
+                return False, False, "[安全门:用户拒绝了本次越界访问]"
+            return False, False, "[安全门:等待用户确认超时(120s),已按拒绝处理]"
+        return False, False, f"[安全门拦截:路径 {real_path} 在工作目录之外。工作目录: {os.path.abspath(workdir)}。已拒绝。CLI 模式不允许越界访问。]"
+    except Exception as e:
+        return False, False, f"[安全门拦截:越界访问确认失败({e}),已拒绝]"
 
 def _gate_check(name, args, workdir):
-    """工具安全门:拦截危险操作(删系统/危险命令),来自 V33 Mellum2 验证的安全层。"""
+    """工具安全门:拦截危险操作(删系统/危险命令) + 工作目录边界 + 敏感路径。
+    返回拦截消息(字符串)或 None(放行)。"""
     try:
         if name == "run_bash":
             cmd = str(args.get("command", ""))
             low = cmd.lower()
+            # 危险命令无论是否"允许全部"都拦截(不可被用户一次性放行)
             if any(d in low for d in _DANGER_CMD):
                 return f"[安全门拦截:命令含危险操作,已拒绝执行。原命令: {cmd[:80]}]"
+            # 越界命令模式 → 征求同意(允许全部仅本轮豁免路径确认,不含危险命令)
+            if name not in _allow_all:
+                for pat in _BASH_ESCAPE_PATTERNS:
+                    if re.search(pat, low):
+                        allow, allok, msg = _ask_user_confirm(name, f"bash: {cmd[:60]}", workdir, "执行命令")
+                        if allow:
+                            if allok: _allow_all.add(name)
+                            return None
+                        return msg or f"[安全门拦截:命令疑似访问工作目录之外,已拒绝。原命令: {cmd[:80]}]"
+        # "允许全部"只豁免路径确认,不豁免危险命令(已在上面拦过 run_bash 危险命令)
+        if name in _allow_all and name in _FILE_TOOLS:
+            return None
+        if name in _FILE_TOOLS:
+            path = str(args.get("path", "") or args.get("dir", "") or args.get("filepath", "") or "")
+            if path:
+                real, inside = _safe_path(workdir, path)
+                if not inside:
+                    allow, allok, msg = _ask_user_confirm(name, real, workdir, "访问")
+                    if allow:
+                        if allok: _allow_all.add(name)
+                        return None
+                    return msg or (f"[安全门拦截:路径 {real} 在工作目录之外。工作目录: {os.path.abspath(workdir)}。"
+                                   f"已拒绝。若确需访问,请在 GUI 弹窗确认。]")
+                if _is_sensitive_path(real):
+                    # 敏感路径:写一律拒绝;读也需确认
+                    if name in ("create_file", "edit_file", "append_file", "delete_file"):
+                        return f"[安全门拦截:路径 {real} 命中敏感模式,写操作一律拒绝。]"
+                    allow, allok, msg = _ask_user_confirm(name, real, workdir, "读取敏感文件")
+                    if allow:
+                        if allok: _allow_all.add(name)
+                        return None
+                    return msg or f"[安全门拦截:路径 {real} 命中敏感模式,已拒绝读取。]"
         if name in ("delete_file", "edit_file", "create_file", "append_file"):
             p = (str(args.get("path", "")) + "\\").lower()
             if any(d in p for d in _SYSTEM_DIRS):
@@ -853,6 +968,11 @@ def save_session(name, msgs):
 # ---------------- 主循环 ----------------
 def main():
     args = sys.argv[1:]
+    # 守护系统:允许目录白名单(AGENT_ALLOW_DIRS 冒号分隔,追加到工作目录之外)
+    global _allow_dirs
+    _extra = os.environ.get("AGENT_ALLOW_DIRS", "")
+    if _extra:
+        _allow_dirs = set(os.path.abspath(d.strip()) for d in _extra.split(";") if d.strip())
     if not ensure_ollama():
         print("⚠️ 未能自动启动 ollama,请手动运行 ollama serve 后重试。", flush=True)
     session = None; interactive = False
@@ -1058,6 +1178,24 @@ def agent_loop(model, messages, workdir, session):
                 r = call_chat(model, messages, tools=ct)
             fails = 0
         except Exception as e:
+            # verify-before-retry:HTTP 4xx(400/404/409 等)重试无意义(参数/上下文/模型问题),
+            # 直接停止而非盲目重试;网络/5xx/超时才退避重试(幂等安全)。
+            _fatal_http = False
+            try:
+                import urllib.error as _ue
+                if isinstance(e, _ue.HTTPError) and 400 <= e.code < 500:
+                    _fatal_http = True
+            except Exception:
+                pass
+            if _fatal_http:
+                body = ""
+                try:
+                    body = (e.read().decode("utf-8", "replace") if hasattr(e, "read") else "")[:200]
+                except Exception:
+                    pass
+                print(f"[{i}] API 4xx 错误(重试无意义,已停止): {e} {body}", flush=True)
+                save_session(session, messages)
+                sys.exit(1)
             fails += 1; wait = min(3 * (2 ** (fails - 1)), 60)
             print(f"[{i}] API error: {e} (retry {fails}, wait {wait}s)", flush=True)
             time.sleep(wait)
