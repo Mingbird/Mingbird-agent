@@ -138,6 +138,29 @@ def system_prompt():
         return read_text(SYSTEM_FILE)
     return SYSTEM
 
+def restart_ollama(timeout=40):
+    """重启 ollama(治本:长运行后的进程级退化,重启即恢复)。
+    流程:taskkill ollama → 等 API 死透 → ensure_ollama 拉起 → 等就绪。
+    返回 True=重启成功。"""
+    import time as _t
+    exe = _find_ollama_exe()
+    # 1) 杀掉现有 ollama(serve 与 runner 子进程)
+    subprocess.run(["taskkill", "/F", "/IM", "ollama.exe"],
+                   capture_output=True, shell=False)
+    # 2) 等 API 死透(最多 15s)
+    import urllib.request as _ur
+    host = appconfig.ollama_host()
+    for _ in range(30):
+        try:
+            _ur.urlopen(f"{host}/api/tags", timeout=1)
+            _t.sleep(0.5)   # 还活着,再等
+        except Exception:
+            break
+    _t.sleep(2)   # 端口释放
+    # 3) 重新拉起(ensure_ollama 检测 API 不可达会启动 serve)
+    ok = ensure_ollama(timeout=timeout)
+    return ok
+
 # ---------------- 编码兼容 ----------------
 def read_text(path):
     for enc in ("utf-8", "gbk", "latin-1"):
@@ -1467,6 +1490,7 @@ def agent_loop(model, messages, workdir, session):
         mcp_manifest()   # 预热 MCP 探测缓存(实际工具由 tools_for_categories 扁平并入)
     allowed_extra = set()   # 模型 enable_tools 补充的工具名
     _compact_lvl = 0        # 已执行的最高压缩级别(避免同级别重复触发)
+    _restarts = 0           # ollama 重启次数(单任务上限 3 次,防无限重启)
     for i in range(200):
         if casual_force:
             print("[收尾] 本轮已足够,强制结束(防问答重复/死循环)", flush=True)
@@ -1535,22 +1559,47 @@ def agent_loop(model, messages, workdir, session):
             except Exception:
                 pass
             fails += 1
-            if _is_500 and fails >= 2 and _compact_lvl < 3:
-                # 已连续 ≥2 次 500 → 压缩上下文(L1→L2→L3 递进)再重试
-                lvl = min(3, _compact_lvl + 1)
-                _compact_lvl = lvl
+            if _is_500 and fails >= 4 and _restarts < 3:
+                # ★ 治本:连续 ≥4 次 500 = ollama 进程级退化(temp=0 下同消息重走同坏路径,
+                # 压缩/等待都无法逃逸)。重启 ollama 即恢复;检查点机制保证任务不丢。
+                _restarts += 1
+                print(f"[{i}] 连续 {fails} 次 500 → 判定 ollama 进程退化,自动重启(第 {_restarts}/3 次)...", flush=True)
                 try:
-                    messages = compact_history(model, messages, level=lvl)
-                    print(f"[{i}] 500 错误,已降级压缩上下文(L{lvl})再重试", flush=True)
-                except Exception:
-                    pass
+                    ok = restart_ollama()
+                    if ok:
+                        print(f"[{i}] ✓ ollama 已重启,继续任务", flush=True)
+                    else:
+                        print(f"[{i}] ⚠ ollama 重启未就绪,仍继续重试", flush=True)
+                except Exception as _re:
+                    print(f"[{i}] ⚠ ollama 重启异常: {_re}", flush=True)
+                fails = 0   # 重启后重置连续错误计数
+                time.sleep(3)
+                continue
+            if _is_500 and fails >= 2:
+                # 连续 ≥2 次 500:①压缩缩小上下文;②注入继续提示打破 temp=0 的
+                # 同路径死循环(相同 messages 在退化 runner 上必然复现同一坏输出)
+                if _compact_lvl < 3:
+                    lvl = min(3, _compact_lvl + 1)
+                    _compact_lvl = lvl
+                    try:
+                        messages = compact_history(model, messages, level=lvl)
+                        print(f"[{i}] 500 错误,已降级压缩上下文(L{lvl})再重试", flush=True)
+                    except Exception:
+                        pass
+                # 打破路径:若无未答的继续提示,追加一条(user 角色改变消息序列 → 模型换生成路径)
+                _last_user = next((m for m in reversed(messages) if m.get("role") == "user"), None)
+                if not (str(_last_user.get("content", "")).startswith("⚠️") if _last_user else False):
+                    messages.append({"role": "user", "content":
+                        "⚠️ 系统提示:上一请求遇到服务错误。请基于当前已有进度继续完成任务,"
+                        "可以从换一种写法或先做下一步开始。"})
+                    print(f"[{i}] 500 错误,已注入继续提示(打破死循环路径)", flush=True)
                 time.sleep(2)
                 continue
             wait = min(3 * (2 ** (fails - 1)), 60)
             print(f"[{i}] API error: {e} (retry {fails}, wait {wait}s)", flush=True)
             time.sleep(wait)
-            if fails >= 6:
-                print("===== FAILED: ollama 连续错误,已停止。修复后勾选'续跑'可从中断处继续 =====", flush=True)
+            if fails >= 8:
+                print("===== FAILED: ollama 连续错误(含重启后仍失败),已停止。修复后勾选'续跑'可从中断处继续 =====", flush=True)
                 save_session(session, messages)
                 sys.exit(1)
             continue
