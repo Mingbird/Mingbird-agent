@@ -1,5 +1,5 @@
-﻿; 蜂鸟 v1.0.0 中文安装程序 (Inno Setup)
-#define MyAppVersion "1.0.0"
+﻿; 蜂鸟 v1.1.0 中文安装程序 (Inno Setup)
+#define MyAppVersion "1.1.0"
 #define MyAppName "蜂鸟"
 #define MyAppFullName "蜂鸟 · 本地 AI 助手"
 #define MyAppExe "LocalAgent.exe"
@@ -14,7 +14,7 @@ DefaultDirName={localappdata}\Hummingbird
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
-OutputBaseFilename=蜂鸟-v1.0.0-中文安装包
+OutputBaseFilename=蜂鸟-v1.1.0-中文安装包
 OutputDir=dist
 SetupIconFile=app.ico
 Compression=lzma2
