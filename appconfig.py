@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """统一配置层:所有机器相关、环境相关的设置都从这里读取。
 用户配置放在 ~/.ollama_agent/config.json;环境变量可覆盖。绝不硬编码个人/本机信息。
+隔离/便携模式:设 HUMMINGBIRD_HOME 环境变量可将配置/技能/会话整体搬到独立目录
+(多实例、基准评测隔离、便携安装),互不影响。
 """
 import json, os
 
-AGENT_HOME = os.path.expanduser("~/.ollama_agent")
+AGENT_HOME = os.environ.get("HUMMINGBIRD_HOME") or os.path.expanduser("~/.ollama_agent")
 CONFIG_FILE = os.path.join(AGENT_HOME, "config.json")
 
 # 默认值:只含通用默认,不含任何个人/机器特定内容

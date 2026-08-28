@@ -29,7 +29,7 @@ try:
 except Exception:
     pass
 
-AGENT_HOME = os.path.expanduser("~/.ollama_agent")
+AGENT_HOME = os.environ.get("HUMMINGBIRD_HOME") or os.path.expanduser("~/.ollama_agent")
 MEMORY_FILE = os.path.join(AGENT_HOME, "memory.json")
 SESSIONS_DIR = os.path.join(AGENT_HOME, "sessions")
 SKILLS_DIR_HOME = os.path.join(AGENT_HOME, "skills")

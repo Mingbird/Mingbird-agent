@@ -1,0 +1,46 @@
+{
+  "task_id": "WF-06",
+  "domain": "statistical-analysis-visualization",
+  "milestone_score": 0.0,
+  "final_score": 0.0,
+  "milestone_details": [
+    {
+      "artifact": "anomalies.md",
+      "check": "exists",
+      "ok": false,
+      "detail": "missing"
+    },
+    {
+      "artifact": "analysis.py",
+      "check": "python_compiles",
+      "ok": false,
+      "detail": "missing"
+    }
+  ],
+  "final_details": [
+    {
+      "artifact": "fig_strength.png",
+      "check": "file_min_bytes",
+      "ok": false,
+      "detail": "missing"
+    },
+    {
+      "artifact": "fig_elongation.png",
+      "check": "file_min_bytes",
+      "ok": false,
+      "detail": "missing"
+    },
+    {
+      "artifact": "analysis.md",
+      "check": "min_words",
+      "ok": false,
+      "detail": "missing"
+    }
+  ],
+  "total": 0.0,
+  "agent": "agent-mini",
+  "model": "qwen3.5:4b",
+  "wall_seconds": 760.2,
+  "exit_code": 0,
+  "run_id": "m1_agentmini_4b_WF06"
+}
