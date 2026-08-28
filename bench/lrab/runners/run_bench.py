@@ -37,6 +37,8 @@ def run_hummingbird(task, workdir, model, timeout_min):
     taskfile = os.path.join(workdir, "task_input.txt")
     env = dict(os.environ)
     env.pop("AGENT_STREAM", None)
+    # 基准隔离: 干净实例(仅 tavily MCP, 无私人 skills)
+    env["HUMMINGBIRD_HOME"] = os.path.expanduser("~/.hummingbird_bench")
     t0 = time.time()
     proc = subprocess.run(
         [sys.executable, os.path.join(HB_ROOT, "ollama_agent.py"), model, taskfile, workdir],
@@ -49,10 +51,13 @@ def run_opencode(task, workdir, model, timeout_min):
     t0 = time.time()
     oc_cmd = shutil.which("opencode") or os.path.expandvars(
         r"%LOCALAPPDATA%\MyAgents\nodejs\opencode.cmd")
+    env = dict(os.environ)
+    # 基准隔离: 干净配置(仅 tavily MCP, 无私人 skills)
+    env["OPENCODE_CONFIG"] = os.path.expanduser("~/.hummingbird_bench/opencode-config/opencode.json")
     proc = subprocess.run(
         [oc_cmd, "run", "--model", f"ollama/{model}", task["prompt"]],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
-        timeout=timeout_min * 60, cwd=workdir)
+        timeout=timeout_min * 60, cwd=workdir, env=env)
     return proc, time.time() - t0
 
 
@@ -173,10 +178,12 @@ def main():
         json.dump(score, f, ensure_ascii=False, indent=2)
     print(json.dumps({k: score[k] for k in ("task_id", "agent", "model", "milestone_score",
                                             "final_score", "total", "wall_seconds")}, ensure_ascii=False))
-    # snapshot workdir artifacts into the archive (exclude pyc/cache noise)
-    snap = os.path.join(out_dir, "workdir")
-    shutil.copytree(workdir, snap, dirs_exist_ok=True,
-                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "corpus", ".agent_state.json"))
+    # workdir 已在 out_dir 内(run 隔离设计),无需再快照;若 runner 被外部指定了
+    # 独立 workdir(旧用法),才复制归档
+    if os.path.dirname(os.path.abspath(workdir)) != out_dir:
+        snap = os.path.join(out_dir, "workdir")
+        shutil.copytree(workdir, snap, dirs_exist_ok=True,
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "corpus", ".agent_state.json"))
 
 
 if __name__ == "__main__":
