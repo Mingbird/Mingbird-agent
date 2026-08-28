@@ -1,0 +1,57 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import os
+
+# Define filenames
+CSV_FILE = 'aging_data.csv'
+STRENGTH_PLOT = 'fig_strength.png'
+ELONGATION_PLOT = 'fig_elongation.png'
+
+try:
+    # Load the data
+    df = pd.read_csv(CSV_FILE)
+
+    # --- Plotting ---
+    
+    # Plot 1: UTS vs Temperature
+    plt.figure(figsize=(10, 6))
+    plt.plot(df['temperature'], df['UTS'], marker='o', linestyle='-', label='UTS')
+    plt.title('Ultimate Tensile Strength vs. Temperature')
+    plt.xlabel('Temperature (C)')
+    plt.ylabel('UTS (MPa)')
+    plt.grid(True)
+    plt.legend()
+    plt.savefig(STRENGTH_PLOT)
+    plt.close()
+
+    # Plot 2: Elongation vs Temperature
+    plt.figure(figsize=(10, 6))
+    plt.plot(df['temperature'], df['elongation'], marker='o', linestyle='-', label='Elongation')
+    plt.title('Elongation vs. Temperature')
+    plt.xlabel('Temperature (C)')
+    plt.ylabel('Elongation (%)')
+    plt.grid(True)
+    plt.legend()
+    plt.savefig(ELONGATION_PLOT)
+    plt.close()
+
+    # --- Peak/Valley Identification ---
+    
+    # Find peak UTS
+    peak_uts_index = df['UTS'].idxmax()
+    peak_uts_row = df.loc[peak_uts_index]
+    
+    # Find valley UTS (for context, though the prompt focuses on peak)
+    valley_uts_index = df['UTS'].idxmin()
+    valley_uts_row = df.loc[valley_uts_index]
+
+    print("--- Peak/Valley Conditions ---")
+    print(f"Peak UTS condition: Temperature = {peak_uts_row['temperature']} C, UTS = {peak_uts_row['UTS']:.2f} MPa")
+    print(f"Valley UTS condition: Temperature = {valley_uts_row['temperature']} C, UTS = {valley_uts_row['UTS']:.2f} MPa")
+
+except FileNotFoundError:
+    print(f"Error: {CSV_FILE} not found. Please ensure the data file is in the current directory.")
+except KeyError as e:
+    print(f"Error: Missing expected column in {CSV_FILE}. Check if 'temperature', 'UTS', or 'elongation' exist. Missing: {e}")
+except Exception as e:
+    print(f"An unexpected error occurred during analysis: {e}")

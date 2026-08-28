@@ -1,0 +1,49 @@
+{
+  "id": "WF-05",
+  "domain": "data-cleaning-pipeline",
+  "version": "1.0",
+  "fixtures": [
+    "fixtures/messy_sensor_data.csv"
+  ],
+  "prompt": "You are an autonomous agent working in the current directory. FIRST call todo(action=create) with a numbered plan covering every step below (at least 9 steps). Then execute the steps one by one, creating each required file with the exact filename given. Do not fabricate content: base every claim on the provided fixture files in this directory. When all artifacts are written and verified, call finish with a short summary.\n\nClean the sensor dataset messy_sensor_data.csv (in this directory). Known issues: an impossible sentinel temperature (9999), a physically impossible value (-40.0 at room conditions), missing humidity, status='error' rows, and at least one exact duplicate row.\n\nRequired steps (plan at least 10):\n1. Plan with todo(action=create).\n2. Write profile_raw.md: total rows, distinct sensors, count of each issue type found (inspect the data; do not guess).\n3. Write clean_data.py implementing rules: drop exact duplicate rows; drop rows with status != ok; treat temperature outside [-30, 60] as invalid and drop; drop rows with any missing field; document each rule as a comment.\n4. Run it to produce clean_data.csv (same header).\n5. Write validation_report.md: rows in -> rows dropped per rule -> rows out (numbers must add up).\n6. Produce sensor_summary.csv: sensor_id, n_readings, mean_temp, min_temp, max_temp (rounded to 2 decimals), from the CLEAN data.\n7. Sanity-check: no sensor in summary has mean_temp outside [-30, 60]; write the check result into validation_report.md.\n8. Verify clean_data.csv has no duplicates/sentinels (re-scan), then finish.",
+  "required_plan_steps_min": 9,
+  "plan_steps": [
+    "Create todo plan",
+    "Profile the raw CSV (rows, columns, issues)",
+    "Define cleaning rules (duplicates, sentinels, missing, outliers, duplicates-by-key)",
+    "Implement clean_data.py",
+    "Run pipeline to produce clean_data.csv",
+    "Write validation_report.md (rows in/out, issues fixed per rule)",
+    "Compute per-sensor summary into sensor_summary.csv",
+    "Cross-check summary against clean data",
+    "Verify artifacts"
+  ],
+  "milestones": [
+    {
+      "artifact": "profile_raw.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "clean_data.py",
+      "check": "python_compiles"
+    }
+  ],
+  "final_artifacts": [
+    {
+      "artifact": "clean_data.csv",
+      "check": "exists"
+    },
+    {
+      "artifact": "sensor_summary.csv",
+      "check": "exists"
+    },
+    {
+      "artifact": "validation_report.md",
+      "check": "exists"
+    }
+  ],
+  "judge_rubric": "rubrics/wf05.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

@@ -1,0 +1,57 @@
+{
+  "id": "WF-07",
+  "domain": "web-research-technology-selection",
+  "version": "1.0",
+  "fixtures": [],
+  "prompt": "You are an autonomous agent working in the current directory. FIRST call todo(action=create) with a numbered plan covering every step below (at least 10 steps). Then execute the steps one by one, creating each required file with the exact filename given. Do not fabricate content: base every claim on the provided fixture files in this directory. When all artifacts are written and verified, call finish with a short summary.\n\nResearch task (use web_search/web_fetch or MCP search tools): recommend a self-hosted vector database for a small team building an offline-first RAG application.\n\nRequired steps (plan at least 11):\n1. Plan with todo(action=create).\n2. Write criteria.md: at least 5 weighted criteria (license, resource footprint, hybrid search, ecosystem, ops complexity) with justification.\n3. Search the web and write candidates.md listing at least 5 candidate projects with one-line description and source URL each.\n4. Shortlist 3 candidates in shortlist.md with the reason for shortlisting/exclusion.\n5. For each shortlisted candidate, fetch its primary docs/GitHub page and extract: license, language, minimum RAM, hybrid search support (yes/no), last release date.\n6. Write comparison_matrix.md: criteria as rows, candidates as columns, cells filled with sourced facts.\n7. Write recommendation.md (250-400 words): scored decision, trade-offs, and what would change the choice. Every factual claim must have a URL.\n8. List all consulted URLs in sources.md (>=5 unique URLs).\n9. Verify all files exist, then finish.",
+  "required_plan_steps_min": 10,
+  "plan_steps": [
+    "Create todo plan",
+    "Define selection criteria (5+)",
+    "Search for candidates (>=5)",
+    "Shortlist 3 with source URLs",
+    "Fetch and read primary pages",
+    "Build comparison matrix (criteria x products)",
+    "Score against criteria",
+    "Write recommendation with trade-offs",
+    "List all source URLs",
+    "Verify artifacts"
+  ],
+  "milestones": [
+    {
+      "artifact": "criteria.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "candidates.md",
+      "check": "min_urls",
+      "params": {
+        "min_urls": 5
+      }
+    }
+  ],
+  "final_artifacts": [
+    {
+      "artifact": "comparison_matrix.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "recommendation.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 220
+      }
+    },
+    {
+      "artifact": "sources.md",
+      "check": "min_urls",
+      "params": {
+        "min_urls": 5
+      }
+    }
+  ],
+  "judge_rubric": "rubrics/wf07.md",
+  "max_wall_minutes": 60,
+  "notes": "Web-dependent: grade on artifact structure and internal consistency, not on which product wins.",
+  "extra_judge_note": ""
+}

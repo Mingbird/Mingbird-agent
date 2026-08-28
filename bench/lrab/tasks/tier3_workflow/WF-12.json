@@ -1,0 +1,56 @@
+{
+  "id": "WF-12",
+  "domain": "course-curriculum-design",
+  "version": "1.0",
+  "fixtures": [],
+  "prompt": "You are an autonomous agent working in the current directory. FIRST call todo(action=create) with a numbered plan covering every step below (at least 9 steps). Then execute the steps one by one, creating each required file with the exact filename given. Do not fabricate content: base every claim on the provided fixture files in this directory. When all artifacts are written and verified, call finish with a short summary.\n\nDesign a complete university course: \"Practical AI Agents for Materials Researchers\" (8 weeks, 2h lecture + 2h lab per week, audience: materials science MSc students with basic Python).\n\nRequired steps (plan at least 9):\n1. Plan with todo(action=create).\n2. Write course_overview.md: audience, prerequisites, 5 course-level learning outcomes (measurable verbs).\n3. Write week_by_week.md: for each of the 8 weeks — topic, 3 lecture bullets, lab goal, and the learning outcome it maps to. Include local LLM + agent concepts (ollama, tool calling, evaluation) and materials use cases.\n4. Write lecture_outlines/week1.md and week2.md: slide-by-slide outline (>=10 slides each).\n5. Write labs/lab1.md: a 2-hour lab where students build a minimal tool-calling agent against a local model; include starter code sketch and expected deliverable.\n6. Write exam_blueprint.md: table mapping question types (10 MC, 4 short answer, 1 project) to learning outcomes and Bloom levels.\n7. Write prerequisites_and_resources.md: software to install, reading list (>=5 real resources).\n8. Verify all files exist and outcomes are consistently referenced, then finish.",
+  "required_plan_steps_min": 9,
+  "plan_steps": [
+    "Create todo plan",
+    "Define audience and prerequisites",
+    "Design 8-week module map",
+    "Write learning outcomes per week",
+    "Create lecture outline for weeks 1-3",
+    "Design lab exercises with starter code sketch",
+    "Write exam blueprint (question types x outcomes)",
+    "Write prerequisites_and_resources.md",
+    "Verify artifacts"
+  ],
+  "milestones": [
+    {
+      "artifact": "course_overview.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "week_by_week.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "Week 8",
+          "week 8"
+        ]
+      }
+    }
+  ],
+  "final_artifacts": [
+    {
+      "artifact": "exam_blueprint.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "labs/lab1.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "prerequisites_and_resources.md",
+      "check": "min_urls",
+      "params": {
+        "min_urls": 5
+      }
+    }
+  ],
+  "judge_rubric": "rubrics/wf12.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}
