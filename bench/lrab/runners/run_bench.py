@@ -58,10 +58,12 @@ def run_opencode(task, workdir, model, timeout_min):
     # 会与基准配置合并, 工具数爆炸压垮小模型 — 这是公平性的关键)
     env["XDG_CONFIG_HOME"] = os.path.join(os.path.dirname(os.path.dirname(workdir)), "oc_xdg")
     os.makedirs(env["XDG_CONFIG_HOME"], exist_ok=True)
-    # --auto: 非交互自动批准; --dir: 明确工作目录; 配合 config 里 permission=allow
+    # --auto: 非交互自动批准; --dir: 明确工作目录; 配合 config 里 permission=allow。
+    # 注意: 不用 --format json — 实测它会吞掉 position 参数里的 prompt(模型收到空任务),
+    # 非 JSON 模式 prompt 正常传递。
     proc = subprocess.run(
         [oc_cmd, "run", "--model", f"ollama/{model}", "--auto", "--dir", workdir,
-         "--format", "json", task["prompt"]],
+         task["prompt"]],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
         timeout=timeout_min * 60, cwd=workdir, env=env)
     return proc, time.time() - t0
