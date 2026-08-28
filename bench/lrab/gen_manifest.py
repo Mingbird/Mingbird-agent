@@ -22,14 +22,28 @@ ROOTS = {
 
 def classify(run_id, root_key):
     """Best-effort status from run-id + which archive root it lives in.
-    Policy: only eval_results/ runs are canonical-publishable; dev results/ are
-    pre-fix/dev runs excluded from the published matrix (unless explicitly marked)."""
+    Policy: only eval_results/ runs with a scored, non-failure result are
+    canonical-publishable; everything else (dev results/, verify/smoke, failures)
+    is excluded from the published matrix. Canonical is decided by score content,
+    not run-id prefix (fixes self-review P0-3: goose runs were mislabeled, and the
+    opencode-e2b fix2 run was excluded while the broken 0.0 run was canonical)."""
     if root_key == "dev":
         return "pre-fix", "dev/pre-isolation run, excluded from published matrix"
-    # eval_results/ root: smoke/verify/m1 prefixes are still dev runs
     low = run_id.lower()
-    if low.startswith(("smoke", "verify", "m1_", "oc_", "am_", "goose")):
+    # verify_*_fix* 是修复后 adapter 的合法重跑(如 opencode-e2b 0.429), 视为矩阵 run
+    if "fix" in low:
+        return "canonical", "matrix run (post-fix rerun)"
+    if low.startswith(("smoke", "m1_", "oc_", "am_")):
         return "pre-fix", "dev smoke run in eval archive, excluded from published matrix"
+    return "canonical", "matrix run"
+
+def classify_score(s):
+    """Re-classify a run from its score.json content. Returns (status, note)."""
+    fm = s.get("failure_mode", "completed")
+    if fm in ("timeout", "stall", "crash", "no_artifacts", "early_finish"):
+        return "failed", f"failure_mode={fm}, excluded from published matrix"
+    if s.get("total") is None or s.get("total") < 0:
+        return "invalid", "missing/invalid total"
     return "canonical", "matrix run"
 
 def scan(root, root_key):
@@ -58,6 +72,9 @@ def scan(root, root_key):
         else:
             entry.update({"scored": False, "note": "no score.json (incomplete run)"})
         st, note = classify(d, root_key)
+        # 已评分的 run: 用 score 内容精确判定(失败模式 → failed; 正常 → canonical)
+        if entry.get("scored") and st == "canonical":
+            st, note = classify_score(entry)
         entry["status"] = st
         if st != "canonical" and "note" not in entry:
             entry["note"] = note

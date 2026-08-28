@@ -110,7 +110,9 @@ def main():
             if not ollama_up():
                 print("  [probe] ollama down, waiting 60s...", flush=True)
                 wait_ollama(max_wait=60)
-            run_id = f"{ag.replace('-','')}_{tk.replace('-','')}_{md.split(':')[0].replace('-','')}_m{attempt}_{time.strftime('%m%d_%H%M%S')}"
+            # run_id 用完整模型标识(冒号转下划线), 避免 gemma4:12b/e2b 同形(自省P0-3)
+            md_slug = md.replace(':', '_').replace('-', '')
+            run_id = f"{ag.replace('-','')}_{tk.replace('-','')}_{md_slug}_m{attempt}_{time.strftime('%m%d_%H%M%S')}"
             cmd = [sys.executable, os.path.join(HERE, "run_bench.py"),
                    "--agent", ag, "--task", tp, "--model", md,
                    "--results", a.results, "--timeout-min", str(a.timeout_min),

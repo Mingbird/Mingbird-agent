@@ -1,7 +1,9 @@
 # LRAB 矩阵结果（论文数据源）
 
 > 数据日期: 2026-08-28。所有 run 在 `~/dev/hummingbird/eval_results/`，MANIFEST 在 `bench/lrab/MANIFEST.json`。
-> 公平性协议: 4 agent 同模型同 num_ctx=32K，DuckDuckGo 搜索同源，temp=0（goose 无温度旋钮按默认）。
+> 公平性协议: DuckDuckGo 搜索同源，temp=0（goose 无温度旋钮按默认）。
+> **num_ctx 披露（自省 P0-1 修正）**: 蜂鸟=32768（AGENT_CTX），opencode=32768（config 钉死），agent-mini=32768（provider patch）。
+> goose 无 ctx 配置项，走 ollama 默认（预计 4K）——唯一 ctx 差异源，单独披露。
 > **注意**: 第一批 8 格用了旧任务提示（含 todo() 工具名），opencode-e2b 因此得假 0 分；
 > 已修提示 + 修 opencode `--format json` 吞 prompt bug，opencode-e2b 重跑为 0.429。
 

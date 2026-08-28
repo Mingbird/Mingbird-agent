@@ -39,6 +39,8 @@ def run_hummingbird(task, workdir, model, timeout_min):
     env.pop("AGENT_STREAM", None)
     # 基准隔离: 干净实例(仅 tavily MCP, 无私人 skills)
     env["HUMMINGBIRD_HOME"] = os.path.expanduser("~/.hummingbird_bench")
+    # 公平性: 与其他 agent 对齐 num_ctx=32768(自省P0-1, 原默认16384)
+    env["AGENT_CTX"] = os.environ.get("AGENT_CTX", "32768")
     t0 = time.time()
     proc = subprocess.run(
         [sys.executable, os.path.join(HB_ROOT, "ollama_agent.py"), model, taskfile, workdir],
@@ -78,13 +80,21 @@ def _win_path(p):
 def run_agent_mini(task, workdir, model, timeout_min):
     # agent-mini 的模型只能经 config.json 切换: 运行前写入
     cfg_path = os.path.expanduser("~/.agent-mini/config.json")
+    # 自省P1-8: 备份用户真机配置, 跑完还原(基准隔离, 不污染日常使用)
+    backup = None
+    if os.path.exists(cfg_path):
+        try:
+            backup = open(cfg_path, encoding="utf-8").read()
+        except Exception:
+            backup = None
     try:
-        cfg = json.load(open(cfg_path, encoding="utf-8"))
+        cfg = json.loads(backup) if backup else {}
     except Exception:
         cfg = {}
     cfg.setdefault("provider", "ollama")
     cfg.setdefault("providers", {}).setdefault("ollama", {})["baseUrl"] = "http://localhost:11434"
     cfg["providers"]["ollama"]["model"] = model
+    cfg["providers"]["ollama"]["num_ctx"] = 32768  # 自省P0-1: 与其他 agent 对齐
     cfg.setdefault("agent", {})["temperature"] = 0.0
     # workspace 指向隔离实例(防止写个人记忆/技能),并覆盖为 Windows 原生路径
     cfg["workspace"] = _win_path(workdir)
@@ -93,11 +103,22 @@ def run_agent_mini(task, workdir, model, timeout_min):
     os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
     with open(cfg_path, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
+    env = dict(os.environ)
+    env["AGENT_MINI_CTX"] = "32768"
     t0 = time.time()
-    proc = subprocess.run(
-        ["agent-mini", "chat", "--workspace", _win_path(workdir), "-m", task["prompt"]],
-        capture_output=True, text=True, encoding="utf-8", errors="replace",
-        timeout=timeout_min * 60, cwd=workdir)
+    try:
+        proc = subprocess.run(
+            ["agent-mini", "chat", "--workspace", _win_path(workdir), "-m", task["prompt"]],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=timeout_min * 60, cwd=workdir, env=env)
+    finally:
+        # 还原用户配置
+        if backup is not None:
+            try:
+                with open(cfg_path, "w", encoding="utf-8") as f:
+                    f.write(backup)
+            except Exception:
+                pass
     return proc, time.time() - t0
 
 
@@ -203,12 +224,19 @@ def main():
                        judge_model=a.judge or "ornith-1.5:35b")
     # 失败模式分类: 依据 exit code + 是否产出关键产物
     failure_mode = "completed"
+    transcript = (proc.stdout or "") + (proc.stderr or "")
     if proc.returncode != 0:
         failure_mode = "crash" if wall < 60 else "error"
-    elif score.get("total", 0) == 0 and not os.listdir(workdir):
-        failure_mode = "no_artifacts"
-    elif wall < 30 and score.get("total", 0) == 0:
-        failure_mode = "early_finish"
+    elif score.get("total", 0) == 0:
+        # 0 分时区分: 无产物 / 读任务后停滞(stall) / 秒退(early_finish)
+        artifacts = [f for f in os.listdir(workdir) if f != "task_input.txt" and f != "aging_data.csv"]
+        if not artifacts:
+            if "task_input" in transcript and "Read" in transcript:
+                failure_mode = "stall"   # 读了任务文件但无后续动作
+            elif wall < 30:
+                failure_mode = "early_finish"
+            else:
+                failure_mode = "no_artifacts"
     score.update({
         "agent": a.agent, "model": a.model, "wall_seconds": round(wall, 1),
         "exit_code": proc.returncode, "run_id": run_id, "failure_mode": failure_mode,
