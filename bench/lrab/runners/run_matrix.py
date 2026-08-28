@@ -95,8 +95,21 @@ def main():
             print("Ollama still down, aborting."); sys.exit(2)
     print("Ollama up.", flush=True)
 
-    manifest = {"cells": [], "summary": {}}
-    attempt_stats = {}
+    # process-scoped keep-awake: a multi-hour serial matrix must not be
+    # interrupted by idle sleep/hibernate (2026-08-28: a 2h hibernate killed
+    # a 13-cell batch mid-run). Non-persistent — dies with this process.
+    ka = subprocess.Popen([sys.executable, os.path.join(HERE, "keep_awake.py")],
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print(f"keep-awake pid={ka.pid}", flush=True)
+
+    try:
+        _run_cells(a, cells, attempt_stats, manifest)
+    finally:
+        ka.terminate()
+        print("keep-awake released.", flush=True)
+
+
+def _run_cells(a, cells, attempt_stats, manifest):
     for ag, md, tk, tp in cells:
         key = f"{ag}:{md}:{tk}"
         if a.start and key < a.start:
@@ -140,7 +153,7 @@ def main():
         if not ok:
             print(f"  !! cell NOT completed after {a.retries+1} attempts", flush=True)
         attempt_stats[key] = {"attempts": len(cell_attempts), "ok": ok}
-        manifest["cells"].append({"agent": ag, "model": md, "task": tk,
+        manifest.setdefault("cells", []).append({"agent": ag, "model": md, "task": tk,
                                   "attempts": cell_attempts, "ok": ok})
 
     manifest["summary"] = {
