@@ -29,54 +29,83 @@ def _read(path):
 
 
 def check_one(check, workdir, artifact):
-    """Return (ok: bool, detail: str) for a single check against an artifact."""
+    """Return (score 0..1, detail: str) for a single check against an artifact.
+    Partial credit: min_words within 15% of target gets 0.5 (avoids 1-word cliffs)."""
     p = os.path.join(workdir, artifact)
     kind = check["check"]
     params = check.get("params", {}) or {}
     if kind == "exists":
-        return os.path.exists(p), "exists" if os.path.exists(p) else "missing"
+        return (1.0 if os.path.exists(p) else 0.0), ("exists" if os.path.exists(p) else "missing")
     if not os.path.exists(p):
-        return False, "missing"
+        return 0.0, "missing"
     if kind == "contains_any":
         text = _read(p)
         hits = [s for s in params.get("any_of", []) if s in text]
-        return bool(hits), f"matched {hits[:3]}" if hits else "no expected strings found"
+        return (1.0 if hits else 0.0), (f"matched {hits[:3]}" if hits else "no expected strings found")
     if kind == "not_contains":
         text = _read(p)
         bad = [s for s in params.get("none_of", []) if s in text]
-        return not bad, f"still contains {bad[:3]}" if bad else "clean"
+        return (0.0 if bad else 1.0), (f"still contains {bad[:3]}" if bad else "clean")
     if kind == "min_words":
         n = len(_read(p).split())
-        return n >= params.get("min_words", 0), f"{n} words (need {params.get('min_words')})"
+        need = params.get("min_words", 0)
+        if n >= need:
+            return 1.0, f"{n} words (need {need})"
+        # 软目标: 差 15% 以内给部分分(避免 1 词翻盘)
+        if need > 0 and n >= need * 0.85:
+            return 0.5, f"{n} words (need {need}, within 15%)"
+        return 0.0, f"{n} words (need {need})"
     if kind == "structure":
         text = _read(p).lower()
         missing = [s for s in params.get("required_sections", []) if s.lower() not in text]
-        return not missing, f"missing sections {missing}" if missing else "all sections present"
+        return (0.0 if missing else 1.0), (f"missing sections {missing}" if missing else "all sections present")
     if kind == "python_compiles":
         try:
             py_compile.compile(p, doraise=True)
-            return True, "compiles"
+            return 1.0, "compiles"
         except Exception as e:
-            return False, f"syntax error: {str(e)[:120]}"
+            return 0.0, f"syntax error: {str(e)[:120]}"
     if kind == "file_min_bytes":
         size = os.path.getsize(p) if os.path.exists(p) else 0
-        return size >= params.get("min_bytes", 1), f"{size} bytes"
+        return (1.0 if size >= params.get("min_bytes", 1) else 0.0), f"{size} bytes"
     if kind == "min_urls":
         n = len(re.findall(r"https?://", _read(p)))
-        return n >= params.get("min_urls", 1), f"{n} urls (need {params.get('min_urls')})"
-    return False, f"unknown check kind {kind}"
+        return (1.0 if n >= params.get("min_urls", 1) else 0.0), f"{n} urls (need {params.get('min_urls')})"
+    if kind == "image_valid":
+        # 真伪校验: PNG 签名 + IEND + PIL 可解码 + 最小分辨率(自省P0-6, 防手拼字节伪造图)
+        try:
+            data = open(p, "rb").read()
+            if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+                return 0.0, "not a PNG (bad signature)"
+            if b"IEND" not in data:
+                return 0.0, "PNG truncated (no IEND)"
+            from PIL import Image
+            import io
+            img = Image.open(io.BytesIO(data))
+            img.load()
+            min_w = params.get("min_width", 1)
+            min_h = params.get("min_height", 1)
+            w, h = img.size
+            if w < min_w or h < min_h:
+                return 0.0, f"image too small {w}x{h} (need {min_w}x{min_h})"
+            return 1.0, f"valid PNG {w}x{h}"
+        except Exception as e:
+            return 0.0, f"invalid image: {str(e)[:80]}"
+    return 0.0, f"unknown check kind {kind}"
 
 
 def score_group(workdir, group):
-    """group: list of {artifact, check, params}. Returns (score 0..1, details)."""
+    """group: list of {artifact, check, params}. Returns (score 0..1, details).
+    Partial credit: check_one returns a score 0..1; 'ok' mirrors score>=0.5 for display."""
     if not group:
         return 1.0, []
     details, total = [], 0.0
     for entry in group:
         artifact = entry["artifact"]
-        ok, detail = check_one(entry, workdir, artifact)
-        total += 1.0 if ok else 0.0
-        details.append({"artifact": artifact, "check": entry["check"], "ok": ok, "detail": detail})
+        sc, detail = check_one(entry, workdir, artifact)
+        total += sc
+        details.append({"artifact": artifact, "check": entry["check"],
+                        "ok": sc >= 0.5, "score": round(sc, 3), "detail": detail})
     return total / len(group), details
 
 

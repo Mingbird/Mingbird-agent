@@ -31,16 +31,18 @@
   "final_artifacts": [
     {
       "artifact": "fig_strength.png",
-      "check": "file_min_bytes",
+      "check": "image_valid",
       "params": {
-        "min_bytes": 20000
+        "min_width": 200,
+        "min_height": 100
       }
     },
     {
       "artifact": "fig_elongation.png",
-      "check": "file_min_bytes",
+      "check": "image_valid",
       "params": {
-        "min_bytes": 20000
+        "min_width": 200,
+        "min_height": 100
       }
     },
     {
