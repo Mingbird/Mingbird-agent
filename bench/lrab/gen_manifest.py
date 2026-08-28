@@ -38,9 +38,13 @@ def classify(run_id, root_key):
     return "canonical", "matrix run"
 
 def classify_score(s):
-    """Re-classify a run from its score.json content. Returns (status, note)."""
+    """Re-classify a run from its score.json content. Returns (status, note).
+
+    timeout/stall/crash = environment or budget artifact → excluded from the
+    published matrix. no_artifacts / early_finish / low score = genuine
+    capability outcomes → canonical WITH their (possibly zero) score."""
     fm = s.get("failure_mode", "completed")
-    if fm in ("timeout", "stall", "crash", "no_artifacts", "early_finish"):
+    if fm in ("timeout", "stall", "crash", "error"):
         return "failed", f"failure_mode={fm}, excluded from published matrix"
     if s.get("total") is None or s.get("total") < 0:
         return "invalid", "missing/invalid total"
@@ -54,8 +58,8 @@ def scan(root, root_key):
         p = os.path.join(root, d)
         if not os.path.isdir(p):
             continue
-        if d.startswith("prematrix_archive") or d.startswith("_archive"):
-            continue  # bulk-archived old-config runs, not individual run dirs
+        if d.startswith("prematrix_archive") or d.startswith("_archive") or d == "oc_xdg":
+            continue  # archives / runner scratch dirs, not individual run dirs
         score_path = os.path.join(p, "score.json")
         entry = {"run_id": d, "dir": d}
         if os.path.exists(score_path):
