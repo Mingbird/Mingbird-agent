@@ -41,7 +41,7 @@
       }
     }
   ],
-  "judge_rubric": "rubrics/wf09.md",
+  "judge_rubric": "rubrics/WF-09.md",
   "max_wall_minutes": 60,
   "notes": "",
   "extra_judge_note": ""

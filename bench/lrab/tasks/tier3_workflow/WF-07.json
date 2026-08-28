@@ -50,7 +50,7 @@
       }
     }
   ],
-  "judge_rubric": "rubrics/wf07.md",
+  "judge_rubric": "rubrics/WF-07.md",
   "max_wall_minutes": 60,
   "notes": "Web-dependent: grade on artifact structure and internal consistency, not on which product wins.",
   "extra_judge_note": ""

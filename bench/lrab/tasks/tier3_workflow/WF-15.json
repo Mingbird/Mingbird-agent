@@ -49,7 +49,7 @@
       "check": "python_compiles"
     }
   ],
-  "judge_rubric": "rubrics/wf15.md",
+  "judge_rubric": "rubrics/WF-15.md",
   "max_wall_minutes": 60,
   "notes": "Planted property: raw data does NOT reproduce a clean 152 kJ/mol (onset ordering vs temperature is non-monotonic by design). The audit must detect and report the deviation — agents that 'confirm' the claim without recomputing fail the judge.",
   "extra_judge_note": ""

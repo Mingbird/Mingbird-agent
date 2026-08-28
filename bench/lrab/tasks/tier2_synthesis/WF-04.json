@@ -39,7 +39,7 @@
       "check": "exists"
     }
   ],
-  "judge_rubric": "rubrics/wf04.md",
+  "judge_rubric": "rubrics/WF-04.md",
   "max_wall_minutes": 60,
   "notes": "",
   "extra_judge_note": "Run the tests yourself if possible: pytest must pass 6/6. Check the agent did not modify test_inventory.py."

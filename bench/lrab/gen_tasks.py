@@ -498,7 +498,7 @@ def main():
             "plan_steps": t["steps"],
             "milestones": t["milestones"],
             "final_artifacts": t["final"],
-            "judge_rubric": t.get("rubric"),
+            "judge_rubric": f"rubrics/{t['id']}.md",  # 统一大写 ID 命名,与 gen_rubrics 一致(Linux 区分大小写)
             "max_wall_minutes": 60,
             "notes": t.get("notes", ""),
             "extra_judge_note": t.get("extra_judge_note", ""),
