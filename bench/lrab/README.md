@@ -76,6 +76,7 @@ All runs sequential (single GPU, exclusive). Transcript, workdir snapshot, and p
 
 ## Fairness disclosures (published with results)
 
+- **Web-search capability parity (verified 2026-08-28):** all four agents get DuckDuckGo web search — Hummingbird/opencode/goose via a `ddg-search` MCP server; agent-mini via its **built-in** `web_search`/`web_fetch` tools which query the same DuckDuckGo html/lite endpoints (it has no MCP client). Same free source, no paid API, no other network tools. Each agent's tooling is otherwise its *default* set (agent-mini exposes only its ~8 built-in tools; Hummingbird exposes its flat-prefill category-routed tools) — this is the deliberate "runtime is the only variable" design, disclosed for HN/JOSS.
 - Each agent's default settings that we could not or did not pin (e.g. goose temperature) are explicitly listed.
 - **All agents run at temperature 0** where the runtime exposes it (Hummingbird, opencode, agent-mini, goose all pinned/configured to temp=0) for determinism. Note: agent-mini's *default* is 0.7 but the runner pins 0.0 (its config is per-run isolated); goose exposes no temperature knob in this mode and runs at its default — this is the one uncontrolled variable, disclosed.
 - Single run per cell (temp=0 deterministic); multi-seed noted as future work.
