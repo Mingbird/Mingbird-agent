@@ -229,7 +229,12 @@ def main():
         failure_mode = "crash" if wall < 60 else "error"
     elif score.get("total", 0) == 0:
         # 0 分时区分: 无产物 / 读任务后停滞(stall) / 秒退(early_finish)
-        artifacts = [f for f in os.listdir(workdir) if f != "task_input.txt" and f != "aging_data.csv"]
+        # 只交了计划(plan.md/todo.json)就退 = early_finish——模型"叙述下一步"而不执行,
+        # harness 视其为最终回答(agent-mini-35b 2026-08-29 实例), 不是 completed
+        artifacts = [f for f in os.listdir(workdir)
+                     if f not in ("task_input.txt", "aging_data.csv")
+                     and not f.startswith(".") and f != "__pycache__"]
+        plan_only = artifacts and all(f in ("plan.md", "todo.json") for f in artifacts)
         if not artifacts:
             if "task_input" in transcript and "Read" in transcript:
                 failure_mode = "stall"   # 读了任务文件但无后续动作
@@ -237,6 +242,8 @@ def main():
                 failure_mode = "early_finish"
             else:
                 failure_mode = "no_artifacts"
+        elif plan_only:
+            failure_mode = "early_finish"
     score.update({
         "agent": a.agent, "model": a.model, "wall_seconds": round(wall, 1),
         "exit_code": proc.returncode, "run_id": run_id, "failure_mode": failure_mode,
