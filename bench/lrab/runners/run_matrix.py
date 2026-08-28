@@ -102,6 +102,8 @@ def main():
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print(f"keep-awake pid={ka.pid}", flush=True)
 
+    attempt_stats = {}
+    manifest = {"cells": [], "summary": {}}
     try:
         _run_cells(a, cells, attempt_stats, manifest)
     finally:
