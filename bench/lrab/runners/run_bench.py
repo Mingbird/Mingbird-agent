@@ -172,7 +172,19 @@ def main():
     prepare_workdir(task, workdir)
 
     print(f"[{run_id}] agent={a.agent} model={a.model} task={task['id']}", flush=True)
-    proc, wall = RUNNERS[a.agent](task, workdir, a.model, a.timeout_min)
+    try:
+        proc, wall = RUNNERS[a.agent](task, workdir, a.model, a.timeout_min)
+    except subprocess.TimeoutExpired:
+        # 超时: 记为 timeout, 不判分(避免把环境失败当能力 0 分)
+        failure = {"task_id": task["id"], "agent": a.agent, "model": a.model,
+                   "wall_seconds": a.timeout_min * 60, "exit_code": None, "run_id": run_id,
+                   "failure_mode": "timeout",
+                   "failure_note": f"agent exceeded {a.timeout_min} min wall budget"}
+        with open(os.path.join(out_dir, "score.json"), "w", encoding="utf-8") as f:
+            json.dump(failure, f, ensure_ascii=False, indent=2)
+        print(json.dumps({k: failure[k] for k in ("task_id", "agent", "model",
+                                                  "wall_seconds", "failure_mode")}), flush=True)
+        return
     print(f"[{run_id}] agent finished exit={proc.returncode} wall={wall:.0f}s", flush=True)
 
     with open(os.path.join(out_dir, "transcript.txt"), "w", encoding="utf-8") as f:
@@ -187,9 +199,17 @@ def main():
     from score_task import score_task
     score = score_task(a.task, workdir, judge=bool(a.judge),
                        judge_model=a.judge or "ornith-1.5:35b")
+    # 失败模式分类: 依据 exit code + 是否产出关键产物
+    failure_mode = "completed"
+    if proc.returncode != 0:
+        failure_mode = "crash" if wall < 60 else "error"
+    elif score.get("total", 0) == 0 and not os.listdir(workdir):
+        failure_mode = "no_artifacts"
+    elif wall < 30 and score.get("total", 0) == 0:
+        failure_mode = "early_finish"
     score.update({
         "agent": a.agent, "model": a.model, "wall_seconds": round(wall, 1),
-        "exit_code": proc.returncode, "run_id": run_id,
+        "exit_code": proc.returncode, "run_id": run_id, "failure_mode": failure_mode,
     })
     with open(os.path.join(out_dir, "score.json"), "w", encoding="utf-8") as f:
         json.dump(score, f, ensure_ascii=False, indent=2)

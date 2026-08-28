@@ -77,8 +77,8 @@ All runs sequential (single GPU, exclusive). Transcript, workdir snapshot, and p
 ## Fairness disclosures (published with results)
 
 - Each agent's default settings that we could not or did not pin (e.g. goose temperature) are explicitly listed.
-- temp=0 for Hummingbird; other agents run at their defaults (documented; one uncontrolled variable per agent, following the atomic-agent GAIA precedent).
-- Single run per cell (temp=0 deterministic for HB); multi-seed noted as future work.
+- **All agents run at temperature 0** where the runtime exposes it (Hummingbird, opencode, agent-mini, goose all pinned/configured to temp=0) for determinism. Note: agent-mini's *default* is 0.7 but the runner pins 0.0 (its config is per-run isolated); goose exposes no temperature knob in this mode and runs at its default — this is the one uncontrolled variable, disclosed.
+- Single run per cell (temp=0 deterministic); multi-seed noted as future work.
 - Judge model is fixed across all cells and never the model-under-test (when MUT = 35B, judge = a distinct smaller model; disclosed).
 
 ## Reproduction
