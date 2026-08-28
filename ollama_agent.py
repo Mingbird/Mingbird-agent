@@ -966,6 +966,18 @@ def _gate_check(name, args, workdir):
 
 def run_tool(name, args, workdir):
     try:
+        # 工具名别名:小模型常输出业界通名(write_file/list_directory 等),
+        # 自动映射到蜂鸟内置工具,而非拒绝("工具已禁用"会让小模型陷入死循环)。
+        _TOOL_ALIASES = {
+            "write_file": "create_file", "save_file": "create_file",
+            "read_text_file": "read_file", "cat": "read_file",
+            "list_directory": "list_dir", "ls": "list_dir",
+            "append_to_file": "append_file", "edit": "edit_file",
+            "search_code": "search_files", "grep": "search_files",
+            "delete": "delete_file", "bash": "run_bash", "shell": "run_bash",
+        }
+        if name in _TOOL_ALIASES:
+            name = _TOOL_ALIASES[name]
         gate = _gate_check(name, args, workdir)
         if gate:
             return gate
@@ -1068,7 +1080,14 @@ def run_tool(name, args, workdir):
         if name=="todo":
             act = args.get("action","list")
             if act=="create":
-                save_todo(workdir,[{"item":i,"done":False} for i in args.get("items",[])])
+                # 参数宽容:小模型常用 plan/steps/items 等别名,或传整个字符串。
+                items = args.get("items") or args.get("plan") or args.get("steps") or []
+                if isinstance(items, str):
+                    items = [ln.strip(" -0123456789.") for ln in items.splitlines() if ln.strip()]
+                items = [str(i) for i in items if str(i).strip()]
+                if not items:
+                    return "[todo create: no items found. Pass items as a list of strings, e.g. items=[\"step 1\", \"step 2\"]]"
+                save_todo(workdir,[{"item":i,"done":False} for i in items])
                 return load_todo_str(workdir)
             if act=="update":
                 t=load_todo(workdir)
@@ -1334,9 +1353,18 @@ _FAIL_MARKERS = ("[edit failed", "[tool error", "[not found", "[web_search error
                  "did not match", "fatal:", "unknown option")
 _TASK_HINTS = ("写","建","改","创建","修改","删","删除","运行","执行","实现","编写","重构","修复",
                "生成","统计","翻译","总结","对比","测试","调试","安装","下载","部署","搭建","配置",
-               "启动","停止","整理","转换","爬取","优化","检查","分析","设计","代码","程序","脚本","帮我做")
+               "启动","停止","整理","转换","爬取","优化","检查","分析","设计","代码","程序","脚本","帮我做",
+               # English imperative/task verbs (benchmark + international users)
+               "write ", "create ", "build ", "implement", "fix ", "debug", "analyze", "analyse",
+               "clean ", "optimize", "optimise", "refactor", "generate", "design ", "audit ",
+               "review ", "compute", "convert", "export", "import ", "plot ", "profile ",
+               "implement ", "produce ", "research ", "search for", "find all", "list all",
+               "step 1", "required steps", "plan at least", "todo(action")
 _QA_HINTS = ("什么","怎么","为什么","如何","解释","说明","介绍","区别","原理","能否","可以吗","能不能",
-             "吗","呢","?","？","你好","hi","hello","在吗","谢谢","再见","早安","晚安","你是谁")
+             "吗","呢","?","？","你好","hi","hello","在吗","谢谢","再见","早安","晚安","你是谁",
+             # English question patterns
+             "what is ", "what are ", "how do i", "how does ", "why is ", "why does ",
+             "can you explain", "tell me about", "who is ", "when was ")
 _MUTATE = ("create_file","edit_file","append_file","delete_file","run_bash")
 
 def _is_qa(messages):
@@ -1635,6 +1663,17 @@ def agent_loop(model, messages, workdir, session):
                     except: args={}
                 # 禁用工具必须拒绝执行(模型可能幻觉调用已被禁用的工具)
                 # MCP 扁平工具("服务器.工具名")不在 _active_tools 里,需放行(run_tool 会路由)
+                # 别名优先:write_file/list_directory 等业界通名映射为内置工具,直接放行
+                _alias = {"write_file": "create_file", "save_file": "create_file",
+                          "read_text_file": "read_file", "cat": "read_file",
+                          "list_directory": "list_dir", "ls": "list_dir",
+                          "append_to_file": "append_file", "edit": "edit_file",
+                          "search_code": "search_files", "grep": "search_files",
+                          "delete": "delete_file", "bash": "run_bash", "shell": "run_bash"}
+                if name in _alias:
+                    print(f"[{i}] ⚡ 别名映射: {name} -> {_alias[name]}", flush=True)
+                    name = _alias[name]
+                    fn["name"] = name
                 if name not in [t["function"]["name"] for t in _active_tools] and not is_mcp_tool(name):
                     res = f"[tool {name} 已被禁用,请改用其他工具;若是搜索/抓取请直接写报告]"
                 elif name not in ("finish", "todo") and last_sig == (name, json.dumps(args, sort_keys=True, ensure_ascii=False)) and dup_warns < 3:
