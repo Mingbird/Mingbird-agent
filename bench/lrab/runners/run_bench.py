@@ -47,20 +47,34 @@ def run_hummingbird(task, workdir, model, timeout_min):
 
 def run_opencode(task, workdir, model, timeout_min):
     t0 = time.time()
+    oc_cmd = shutil.which("opencode") or os.path.expandvars(
+        r"%LOCALAPPDATA%\MyAgents\nodejs\opencode.cmd")
     proc = subprocess.run(
-        ["opencode", "run", "--model", f"ollama/{model}", task["prompt"]],
+        [oc_cmd, "run", "--model", f"ollama/{model}", task["prompt"]],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
         timeout=timeout_min * 60, cwd=workdir)
     return proc, time.time() - t0
 
 
 def run_agent_mini(task, workdir, model, timeout_min):
-    model_tag = model.split("/")[-1]
+    # agent-mini 的模型只能经 config.json 切换: 运行前写入
+    cfg_path = os.path.expanduser("~/.agent-mini/config.json")
+    try:
+        cfg = json.load(open(cfg_path, encoding="utf-8"))
+    except Exception:
+        cfg = {}
+    cfg.setdefault("provider", "ollama")
+    cfg.setdefault("providers", {}).setdefault("ollama", {})["baseUrl"] = "http://localhost:11434"
+    cfg["providers"]["ollama"]["model"] = model
+    cfg.setdefault("agent", {})["temperature"] = 0.0
+    os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2)
     t0 = time.time()
     proc = subprocess.run(
-        ["agent-mini", "--model", model_tag, task["prompt"]],
+        ["agent-mini", "chat", "--workspace", workdir, "-m", task["prompt"]],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
-        timeout=timeout_min * 60, cwd=workdir, shell=True)
+        timeout=timeout_min * 60, cwd=workdir)
     return proc, time.time() - t0
 
 
@@ -69,10 +83,11 @@ def run_goose(task, workdir, model, timeout_min):
     env = dict(os.environ)
     env["GOOSE_PROVIDER"] = "ollama"
     env["GOOSE_MODEL"] = model
+    goose_exe = os.path.expanduser("~/myagents-bin/goose/goose-package/goose.exe")
     proc = subprocess.run(
-        ["goose", "run", "--no-session", task["prompt"]],
+        [goose_exe, "run", "--text", task["prompt"]],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
-        timeout=timeout_min * 60, cwd=workdir, env=env, shell=True)
+        timeout=timeout_min * 60, cwd=workdir, env=env)
     return proc, time.time() - t0
 
 
@@ -84,24 +99,55 @@ RUNNERS = {
 }
 
 
+def wait_for_quiet(workdir, quiet_secs=20, max_wait=180):
+    """等 workdir 文件集合+大小稳定(被测 agent 可能留下后台子进程继续写盘)。
+    连续 quiet_secs 秒无变化即返回;最长等 max_wait 秒。"""
+    import time as _t
+
+    def _state():
+        st = []
+        for root, _, files in os.walk(workdir):
+            for f in files:
+                try:
+                    p = os.path.join(root, f)
+                    st.append((p, os.path.getsize(p)))
+                except OSError:
+                    pass
+        return sorted(st)
+
+    deadline = _t.time() + max_wait
+    last, since = _state(), _t.time()
+    while _t.time() < deadline:
+        _t.sleep(5)
+        cur = _state()
+        if cur != last:
+            last, since = cur, _t.time()
+        elif _t.time() - since >= quiet_secs:
+            return True
+    return False
+
+
 def main():
+    # 隔离与归档: 每 run 一个唯一目录(agent_model_task_时间戳), workdir 和产物同放,
+    # 归档到 ~/dev/hummingbird/eval_results/ (持久, 论文/HN 数据源, 不互相污染)
     ap = argparse.ArgumentParser()
     ap.add_argument("--agent", required=True, choices=sorted(RUNNERS))
     ap.add_argument("--task", required=True)
     ap.add_argument("--model", default="ornith-1.5:35b")
-    ap.add_argument("--workdir", required=True)
-    ap.add_argument("--results", default=os.path.join(LRAB, "results"))
+    ap.add_argument("--results", default=os.path.expanduser("~/dev/hummingbird/eval_results"))
     ap.add_argument("--timeout-min", type=int, default=60)
     ap.add_argument("--judge", default="", help="judge model; empty = deterministic only")
-    ap.add_argument("--run-id", default="")
+    ap.add_argument("--run-id", default="", help="auto: agent_model_task_timestamp")
     a = ap.parse_args()
 
     with open(a.task, encoding="utf-8") as f:
         task = json.load(f)
-    run_id = a.run_id or f"{a.agent}_{task['id']}_{time.strftime('%Y%m%d_%H%M%S')}"
+    # 隔离: run-id 强制含时间戳; workdir 在 run 目录内(每 run 完全独立, 互不污染)
+    run_id = a.run_id or f"{a.agent}_{task['id'].replace('-', '')}_{model.split(':')[0].replace('-','')}_{time.strftime('%m%d_%H%M%S')}"
     out_dir = os.path.join(a.results, run_id)
     os.makedirs(out_dir, exist_ok=True)
-    workdir = prepare_workdir(task, a.workdir)
+    workdir = os.path.join(out_dir, "workdir")
+    prepare_workdir(task, workdir)
 
     print(f"[{run_id}] agent={a.agent} model={a.model} task={task['id']}", flush=True)
     proc, wall = RUNNERS[a.agent](task, workdir, a.model, a.timeout_min)
@@ -111,6 +157,9 @@ def main():
         f.write(proc.stdout or "")
         if proc.stderr:
             f.write("\n--- STDERR ---\n" + proc.stderr)
+
+    # 等后台子进程写盘完成(agent 主进程退出 ≠ 其派生进程退出),再判分
+    wait_for_quiet(workdir)
 
     sys.path.insert(0, os.path.join(LRAB, "scoring"))
     from score_task import score_task
@@ -124,7 +173,7 @@ def main():
         json.dump(score, f, ensure_ascii=False, indent=2)
     print(json.dumps({k: score[k] for k in ("task_id", "agent", "model", "milestone_score",
                                             "final_score", "total", "wall_seconds")}, ensure_ascii=False))
-    # snapshot workdir artifacts for the archive
+    # snapshot workdir artifacts into the archive (exclude pyc/cache noise)
     snap = os.path.join(out_dir, "workdir")
     shutil.copytree(workdir, snap, dirs_exist_ok=True,
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "corpus", ".agent_state.json"))
