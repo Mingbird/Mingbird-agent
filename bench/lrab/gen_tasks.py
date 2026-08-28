@@ -8,10 +8,11 @@ OUT = os.path.join(BASE, "tasks")
 
 COMMON = (
     "You are an autonomous agent working in the current directory. "
-    "FIRST call todo(action=create) with a numbered plan covering every step below (at least {nsteps} steps). "
+    "FIRST create a numbered plan covering every step below (at least {nsteps} steps). "
+    "Use your available planning/todo tool if you have one; otherwise write the plan to plan.md. "
     "Then execute the steps one by one, creating each required file with the exact filename given. "
     "Do not fabricate content: base every claim on the provided fixture files in this directory. "
-    "When all artifacts are written and verified, call finish with a short summary."
+    "When all artifacts are written and verified, finish with a short summary (use your available finish/done mechanism or just report completion)."
 )
 
 TASKS = [
@@ -27,7 +28,7 @@ TASKS = [
         "prompt": """You are a materials researcher. Using papers_db.jsonl in this directory, produce a mini literature review on "aging treatment of titanium alloys".
 
 Required steps (plan at least 9):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Read papers_db.jsonl and identify ALL papers whose abstract concerns aging/precipitation of titanium alloys (expect 6 or more).
 3. Write shortlist.md listing each selected paper as: id, title, first author, year, DOI.
 4. Write data_table.md with a comparison table: paper id | alloy | aging temp (C) | UTS (MPa) | elongation (%), using only values present in the fixture.
@@ -57,7 +58,7 @@ Required steps (plan at least 9):
         "prompt": """You are a peer reviewer and then the author. The manuscript draft_paper.md contains at least 4 distinct problems (data inconsistencies, a dangling citation, a missing figure, an overclaim, and/or schedule inconsistencies).
 
 Required steps (plan at least 9):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Read draft_paper.md carefully, cross-checking every number in the text against Table 1 and every citation against the reference list.
 3. Write review_round1.md: numbered issues, each with (a) location, (b) problem, (c) severity [high/medium/low], (d) suggested fix. Find at least 4 issues.
 4. For each issue write a concrete revision decision in revision_plan.md.
@@ -89,7 +90,7 @@ Required steps (plan at least 9):
 Feature: `timetrack export --format csv --since YYYY-MM-DD` writes a CSV report of all finished entries (project,start,end,hours,note) to stdout or a file. `hours` is rounded to 2 decimals. `--since` filters by start date. Empty result produces a header-only CSV.
 
 Required steps (plan at least 9):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Read timetrack.py and understand its storage format and command pattern.
 3. Write design_notes.md: CSV column order, rounding rule, edge cases (no entries, running timer excluded).
 4. Implement cmd_export in timetrack.py and register it in argparse.
@@ -119,7 +120,7 @@ Required steps (plan at least 9):
         "prompt": """The project in this directory (inventory.py, test_inventory.py) has failing tests. test_inventory.py is the specification and MUST NOT be modified.
 
 Required steps (plan at least 9):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Copy inventory.py and test_inventory.py into the current working directory if not already here.
 3. Run python -m pytest test_inventory.py -q and record which tests fail and why.
 4. Read inventory.py and write bug_report.md: one section per bug (symptom from test output, root cause in code, planned fix). Expect at least 4 distinct bugs.
@@ -153,7 +154,7 @@ Required steps (plan at least 9):
         "prompt": """Clean the sensor dataset messy_sensor_data.csv (in this directory). Known issues: an impossible sentinel temperature (9999), a physically impossible value (-40.0 at room conditions), missing humidity, status='error' rows, and at least one exact duplicate row.
 
 Required steps (plan at least 10):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Write profile_raw.md: total rows, distinct sensors, count of each issue type found (inspect the data; do not guess).
 3. Write clean_data.py implementing rules: drop exact duplicate rows; drop rows with status != ok; treat temperature outside [-30, 60] as invalid and drop; drop rows with any missing field; document each rule as a comment.
 4. Run it to produce clean_data.csv (same header).
@@ -184,7 +185,7 @@ Required steps (plan at least 10):
         "prompt": """Analyze aging_data.csv (Ti-6Al-4V aging dataset: temperature, time, UTS, elongation, hardness, alpha fraction).
 
 Required steps (plan at least 10):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Read the CSV and write descriptive_stats.md: for UTS and elongation give count/mean/min/max.
 3. Identify the peak UTS condition and note the 620C/4h row: does UTS behave monotonically with temperature? Flag any anomaly in anomalies.md.
 4. Write analysis.py that: loads the CSV, plots UTS vs temperature and elongation vs temperature (labeled axes, units, title), saves fig_strength.png and fig_elongation.png, and prints peak/valley conditions to stdout.
@@ -216,7 +217,7 @@ Required steps (plan at least 10):
         "prompt": """Research task (use web_search/web_fetch or MCP search tools): recommend a self-hosted vector database for a small team building an offline-first RAG application.
 
 Required steps (plan at least 11):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Write criteria.md: at least 5 weighted criteria (license, resource footprint, hybrid search, ecosystem, ops complexity) with justification.
 3. Search the web and write candidates.md listing at least 5 candidate projects with one-line description and source URL each.
 4. Shortlist 3 candidates in shortlist.md with the reason for shortlisting/exclusion.
@@ -249,7 +250,7 @@ Required steps (plan at least 11):
         "prompt": """Implement the SensorHub v2 ingestion API from api_requirements.md (in this directory).
 
 Required steps (plan at least 10):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Read api_requirements.md and write design_notes.md: data model, validation order, idempotency mechanism, error payload shape.
 3. Write openapi.yaml (OpenAPI 3.1): the two /v2/readings operations and GET /v2/stats, with schemas for Reading, BatchRequest, BatchResult, and a Problem schema.
 4. Implement a runnable mock (Python, any framework, in-memory store) in app.py: implement validation (range checks, duplicate detection within batch, X-Batch-Id idempotency) exactly as the requirements state.
@@ -279,7 +280,7 @@ Required steps (plan at least 10):
         "prompt": """Optimize legacy_slow_code.py (in this directory) for speed WITHOUT changing its behavior.
 
 Required steps (plan at least 10):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Read legacy_slow_code.py and write hotspots.md: the 4 intended hot spots and why each is slow.
 3. Write make_corpus.py: generate a deterministic test corpus (>=50 .txt files, >=200 lines each, seeded random English-like text) into corpus/ so timings are measurable.
 4. Copy the original to reference_impl.py. Run it on a reduced corpus and save its outputs (top_terms list and dedupe_lines list) to reference_outputs.json.
@@ -309,7 +310,7 @@ Required steps (plan at least 10):
         "prompt": """Write a complete user manual for the timetrack.py CLI (in this directory) by reading the source AND actually running the commands.
 
 Required steps (plan at least 9):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Read timetrack.py and write command_inventory.md: every subcommand, its arguments, and what it does.
 3. Actually run: python timetrack.py start --note "manual test" demo-project; then stop; then report. Capture real outputs.
 4. Write user_manual.md with sections: Introduction, Installation, Getting started, Commands (start/stop/report, each with syntax table, options, one real captured example), Data storage (where entries.json lives and its format), Troubleshooting (already-running error, empty report).
@@ -337,7 +338,7 @@ Required steps (plan at least 9):
         "prompt": """A materials research group (8-15 researchers, mixed OS, intermittent lab network, one compliance-constrained member) must choose a lab information platform. Product briefs are in product_briefs.md.
 
 Required steps (plan at least 10):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Read product_briefs.md and write criteria.md: 6 weighted criteria (weights sum to 100) derived from the group's stated constraints.
 3. Score each product (A/B/C) per criterion with a 1-5 scale and one-line justification each, in scoring.md.
 4. Compute weighted totals and write comparison_matrix.md (criteria as rows, products as columns, totals row).
@@ -368,7 +369,7 @@ Required steps (plan at least 10):
         "prompt": """Design a complete university course: "Practical AI Agents for Materials Researchers" (8 weeks, 2h lecture + 2h lab per week, audience: materials science MSc students with basic Python).
 
 Required steps (plan at least 9):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Write course_overview.md: audience, prerequisites, 5 course-level learning outcomes (measurable verbs).
 3. Write week_by_week.md: for each of the 8 weeks — topic, 3 lecture bullets, lab goal, and the learning outcome it maps to. Include local LLM + agent concepts (ollama, tool calling, evaluation) and materials use cases.
 4. Write lecture_outlines/week1.md and week2.md: slide-by-slide outline (>=10 slides each).
@@ -399,7 +400,7 @@ Required steps (plan at least 9):
         "prompt": """Audit privacy_audit_source.py (a payment module) for privacy and compliance problems.
 
 Required steps (plan at least 10):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Read the file and write pii_inventory.md: every piece of PII handled, where it is stored, logged, or transmitted.
 3. Identify at least 6 distinct findings (plaintext storage, logging of card/SSN, unencrypted transfer, missing retention, unauthorized export, no access control) and write audit_report.md: each finding with (a) code location, (b) GDPR article or PCI DSS requirement implicated, (c) severity (critical/high/medium), (d) evidence (quoted line).
 4. Write remediation_plan.md: per finding, the concrete fix and its priority order.
@@ -430,7 +431,7 @@ Required steps (plan at least 10):
         "prompt": """Produce a v2.0 release plan for HummingNote from requirements_doc.md (in this directory). Team: 3 devs, 1 QA (60 tester-hours per RC), part-time designer. 12 weeks. Public beta at week 10. B-101 data loss must ship.
 
 Required steps (plan at least 10):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Read requirements_doc.md and write effort_estimates.md: for each must-have feature and carried bug, an estimate in person-weeks with a one-line breakdown and stated assumptions.
 3. Write dependency_map.md: what blocks what (e.g. E2EE threat model before release; schema migration before sync).
 4. Write risk_matrix.md: at least 5 risks with probability (H/M/L) x impact (H/M/L) and the resulting priority.
@@ -460,7 +461,7 @@ Required steps (plan at least 10):
         "prompt": """Audit the reproducibility of an aging-kinetics paper. experiment_description.md describes the claimed procedure and result (activation energy 152 kJ/mol). raw_measurements.csv contains the underlying resistivity series for five temperatures. Auxiliary expectations are stated in the description.
 
 Required steps (plan at least 10):
-1. Plan with todo(action=create).
+1. Create your plan (todo tool if available, otherwise plan.md).
 2. Read both files; write data_inventory.md: series per temperature, time range, sampling interval.
 3. Write a quick visual/numeric check (values.py) that shows whether each series has the described slight decrease then rise; record the minimum-resistivity time per series in data_inventory.md.
 4. Implement onset_finder.py: tangent-intersection onset time t0 for a given series (fit two lines: pre-minimum and post-minimum segments; intersect). Document the method in the file.
