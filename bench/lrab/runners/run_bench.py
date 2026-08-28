@@ -52,13 +52,25 @@ def run_opencode(task, workdir, model, timeout_min):
     oc_cmd = shutil.which("opencode") or os.path.expandvars(
         r"%LOCALAPPDATA%\MyAgents\nodejs\opencode.cmd")
     env = dict(os.environ)
-    # 基准隔离: 干净配置(仅 tavily MCP, 无私人 skills)
+    # 基准隔离: 干净配置(仅 DDG MCP, 无私人 skills)
     env["OPENCODE_CONFIG"] = os.path.expanduser("~/.hummingbird_bench/opencode-config/opencode.json")
+    # XDG_CONFIG_HOME 指向空目录: 屏蔽全局 ~/.config/opencode(否则其 7 个学术 MCP
+    # 会与基准配置合并, 工具数爆炸压垮小模型 — 这是公平性的关键)
+    env["XDG_CONFIG_HOME"] = os.path.join(os.path.dirname(os.path.dirname(workdir)), "oc_xdg")
+    os.makedirs(env["XDG_CONFIG_HOME"], exist_ok=True)
+    # --auto: 非交互自动批准; --dir: 明确工作目录; 配合 config 里 permission=allow
     proc = subprocess.run(
-        [oc_cmd, "run", "--model", f"ollama/{model}", task["prompt"]],
+        [oc_cmd, "run", "--model", f"ollama/{model}", "--auto", "--dir", workdir,
+         "--format", "json", task["prompt"]],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
         timeout=timeout_min * 60, cwd=workdir, env=env)
     return proc, time.time() - t0
+
+
+def _win_path(p):
+    """转为 Windows 原生绝对路径(Git Bash 的 /c/... 或 C:/... 都统一成 C:\\...)。"""
+    p = os.path.abspath(p)
+    return os.path.normpath(p)
 
 
 def run_agent_mini(task, workdir, model, timeout_min):
@@ -72,12 +84,16 @@ def run_agent_mini(task, workdir, model, timeout_min):
     cfg.setdefault("providers", {}).setdefault("ollama", {})["baseUrl"] = "http://localhost:11434"
     cfg["providers"]["ollama"]["model"] = model
     cfg.setdefault("agent", {})["temperature"] = 0.0
+    # workspace 指向隔离实例(防止写个人记忆/技能),并覆盖为 Windows 原生路径
+    cfg["workspace"] = _win_path(workdir)
+    cfg.setdefault("memory", {})["enabled"] = False
+    cfg["tools"]["restrictToWorkspace"] = True
     os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
     with open(cfg_path, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
     t0 = time.time()
     proc = subprocess.run(
-        ["agent-mini", "chat", "--workspace", workdir, "-m", task["prompt"]],
+        ["agent-mini", "chat", "--workspace", _win_path(workdir), "-m", task["prompt"]],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
         timeout=timeout_min * 60, cwd=workdir)
     return proc, time.time() - t0
@@ -89,8 +105,9 @@ def run_goose(task, workdir, model, timeout_min):
     env["GOOSE_PROVIDER"] = "ollama"
     env["GOOSE_MODEL"] = model
     goose_exe = os.path.expanduser("~/myagents-bin/goose/goose-package/goose.exe")
+    # -q: 只输出模型响应(安静); --path: 明确工作目录(否则默认主目录,产物写错地方)
     proc = subprocess.run(
-        [goose_exe, "run", "--text", task["prompt"]],
+        [goose_exe, "run", "-q", "--path", workdir, "-t", task["prompt"]],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
         timeout=timeout_min * 60, cwd=workdir, env=env)
     return proc, time.time() - t0
@@ -179,9 +196,11 @@ def main():
     print(json.dumps({k: score[k] for k in ("task_id", "agent", "model", "milestone_score",
                                             "final_score", "total", "wall_seconds")}, ensure_ascii=False))
     # workdir 已在 out_dir 内(run 隔离设计),无需再快照;若 runner 被外部指定了
-    # 独立 workdir(旧用法),才复制归档
-    if os.path.dirname(os.path.abspath(workdir)) != out_dir:
-        snap = os.path.join(out_dir, "workdir")
+    # 独立 workdir(旧用法),才复制归档。统一 normcase+abspath 防 Windows 分隔符误判
+    wd_norm = os.path.normcase(os.path.abspath(workdir))
+    out_norm = os.path.normcase(os.path.abspath(out_dir))
+    if os.path.dirname(wd_norm) != out_norm and wd_norm != out_norm:
+        snap = os.path.join(out_dir, "workdir_snapshot")
         shutil.copytree(workdir, snap, dirs_exist_ok=True,
                         ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "corpus", ".agent_state.json"))
 

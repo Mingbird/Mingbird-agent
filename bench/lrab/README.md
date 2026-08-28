@@ -65,12 +65,12 @@
 
 Each runner implements: `run(task_json, workdir, model, timeout_min) -> RunResult{exit_code, transcript_path, wall_seconds, token_usage?}`.
 
-| Runner | Invocation |
-|---|---|
-| Hummingbird | `python ollama_agent.py <model> task_input.txt <workdir>` |
-| opencode | `opencode run --model <ollama/model> "<prompt>"` (cwd = workdir) |
-| agent-mini | `agent-mini "<prompt>"` (cwd = workdir) |
-| goose | `goose run "<prompt>"` (cwd = workdir) |
+| Runner | Invocation | Isolation notes |
+|---|---|---|
+| Hummingbird | `python ollama_agent.py <model> task_input.txt <workdir>` | `HUMMINGBIRD_HOME=~/.hummingbird_bench` clean instance (DDG MCP only, no personal skills) |
+| opencode | `opencode run --model <ollama/model> --auto --dir <workdir>` | `OPENCODE_CONFIG=~/.hummingbird_bench/opencode-config/opencode.json` **+ `XDG_CONFIG_HOME` pointed at empty dir**. Critical: opencode *merges* MCP from global `~/.config/opencode/opencode.json` (7 academic MCPs) with the project config; without XDG isolation the tool count explodes to 60+ and crashes small models. Config includes `"permission": "allow"` so tools execute without prompts. |
+| agent-mini | `agent-mini chat --workspace <win-abs-path> -m "<prompt>"` | **Windows absolute path required** — Git Bash `/c/...` or relative paths resolve to `$TEMP/lrab_*` and artifacts go astray. Config also pins `workspace`, disables memory, restricts tools to workspace. |
+| goose | `goose run -q --path <workdir> -t "<prompt>"` | `-q` quiet (else verbose non-model output), `--path` required (else defaults to home dir, artifacts go astray). `GOOSE_PROVIDER=ollama GOOSE_MODEL=<model>` env. |
 
 All runs sequential (single GPU, exclusive). Transcript, workdir snapshot, and per-task JSON results archived under `results/<run-id>/`.
 

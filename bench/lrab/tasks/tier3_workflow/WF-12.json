@@ -49,7 +49,7 @@
       }
     }
   ],
-  "judge_rubric": "rubrics/wf12.md",
+  "judge_rubric": "rubrics/WF-12.md",
   "max_wall_minutes": 60,
   "notes": "",
   "extra_judge_note": ""

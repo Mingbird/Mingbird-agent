@@ -59,7 +59,7 @@
       "check": "exists"
     }
   ],
-  "judge_rubric": "rubrics/wf01.md",
+  "judge_rubric": "rubrics/WF-01.md",
   "max_wall_minutes": 60,
   "notes": "",
   "extra_judge_note": ""
