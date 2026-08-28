@@ -31,9 +31,9 @@ def classify(run_id, root_key):
         return "pre-fix", "dev/pre-isolation run, excluded from published matrix"
     low = run_id.lower()
     # verify_*_fix* 是修复后 adapter 的合法重跑(如 opencode-e2b 0.429), 视为矩阵 run
-    if "fix" in low:
+    if "fix" in low and low.startswith("verify_"):
         return "canonical", "matrix run (post-fix rerun)"
-    if low.startswith(("smoke", "m1_", "oc_", "am_")):
+    if low.startswith(("smoke", "verify", "m1_", "oc_", "am_")):
         return "pre-fix", "dev smoke run in eval archive, excluded from published matrix"
     return "canonical", "matrix run"
 

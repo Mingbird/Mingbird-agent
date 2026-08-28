@@ -39,9 +39,10 @@
     },
     {
       "artifact": "fig_arrhenius.png",
-      "check": "file_min_bytes",
+      "check": "image_valid",
       "params": {
-        "min_bytes": 15000
+        "min_width": 200,
+        "min_height": 100
       }
     },
     {

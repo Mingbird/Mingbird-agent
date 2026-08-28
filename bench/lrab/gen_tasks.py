@@ -198,8 +198,8 @@ Required steps (plan at least 10):
             {"artifact": "analysis.py", "check": "python_compiles"},
         ],
         "final": [
-            {"artifact": "fig_strength.png", "check": "file_min_bytes", "params": {"min_bytes": 20000}},
-            {"artifact": "fig_elongation.png", "check": "file_min_bytes", "params": {"min_bytes": 20000}},
+            {"artifact": "fig_strength.png", "check": "image_valid", "params": {"min_width": 200, "min_height": 100}},
+            {"artifact": "fig_elongation.png", "check": "image_valid", "params": {"min_width": 200, "min_height": 100}},
             {"artifact": "analysis.md", "check": "min_words", "params": {"min_words": 280}},
         ],
         "rubric": "rubrics/wf06.md",
@@ -476,7 +476,7 @@ Required steps (plan at least 10):
         ],
         "final": [
             {"artifact": "audit_report.md", "check": "min_words", "params": {"min_words": 300}},
-            {"artifact": "fig_arrhenius.png", "check": "file_min_bytes", "params": {"min_bytes": 15000}},
+            {"artifact": "fig_arrhenius.png", "check": "image_valid", "params": {"min_width": 200, "min_height": 100}},
             {"artifact": "arrhenius_fit.py", "check": "python_compiles"},
         ],
         "rubric": "rubrics/wf15.md",
