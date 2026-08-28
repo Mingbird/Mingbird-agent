@@ -1,0 +1,56 @@
+{
+  "id": "WF-15",
+  "domain": "experiment-reproducibility-audit",
+  "version": "1.0",
+  "fixtures": [
+    "fixtures/experiment_description.md",
+    "fixtures/raw_measurements.csv"
+  ],
+  "prompt": "You are an autonomous agent working in the current directory. FIRST call todo(action=create) with a numbered plan covering every step below (at least 9 steps). Then execute the steps one by one, creating each required file with the exact filename given. Do not fabricate content: base every claim on the provided fixture files in this directory. When all artifacts are written and verified, call finish with a short summary.\n\nAudit the reproducibility of an aging-kinetics paper. experiment_description.md describes the claimed procedure and result (activation energy 152 kJ/mol). raw_measurements.csv contains the underlying resistivity series for five temperatures. Auxiliary expectations are stated in the description.\n\nRequired steps (plan at least 10):\n1. Plan with todo(action=create).\n2. Read both files; write data_inventory.md: series per temperature, time range, sampling interval.\n3. Write a quick visual/numeric check (values.py) that shows whether each series has the described slight decrease then rise; record the minimum-resistivity time per series in data_inventory.md.\n4. Implement onset_finder.py: tangent-intersection onset time t0 for a given series (fit two lines: pre-minimum and post-minimum segments; intersect). Document the method in the file.\n5. Compute t0 for all five series; write onsets.csv (temperature, t0_min).\n6. Implement arrhenius_fit.py: fit ln(1/t0) = ln(A) - Ea/R * (1/T) using least squares; output Ea in kJ/mol and R^2; run it on onsets.csv.\n7. Write audit_report.md: recomputed Ea vs claimed 152 kJ/mol, per-question answers to the four audit questions in the description, and a verdict (reproduced / partially reproduced / not reproduced) with justification.\n8. Include the fitted plot as fig_arrhenius.png (labeled axes).\n9. Verify all artifacts exist and numbers in audit_report.md match script outputs, then finish.",
+  "required_plan_steps_min": 9,
+  "plan_steps": [
+    "Create todo plan",
+    "Read the paper description and raw data",
+    "Plot/inspect each series (two-stage behavior check)",
+    "Implement tangent-intersection onset finder (onset_finder.py)",
+    "Compute t0 for all five series",
+    "Fit Arrhenius ln(1/t0) vs 1/T, compute activation energy",
+    "Compare with the claimed 152 kJ/mol",
+    "Write audit_report.md (recomputed numbers, deviations)",
+    "State verdict on reproducibility"
+  ],
+  "milestones": [
+    {
+      "artifact": "data_inventory.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "onsets.csv",
+      "check": "exists"
+    }
+  ],
+  "final_artifacts": [
+    {
+      "artifact": "audit_report.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 300
+      }
+    },
+    {
+      "artifact": "fig_arrhenius.png",
+      "check": "file_min_bytes",
+      "params": {
+        "min_bytes": 15000
+      }
+    },
+    {
+      "artifact": "arrhenius_fit.py",
+      "check": "python_compiles"
+    }
+  ],
+  "judge_rubric": "rubrics/wf15.md",
+  "max_wall_minutes": 60,
+  "notes": "Planted property: raw data does NOT reproduce a clean 152 kJ/mol (onset ordering vs temperature is non-monotonic by design). The audit must detect and report the deviation — agents that 'confirm' the claim without recomputing fail the judge.",
+  "extra_judge_note": ""
+}

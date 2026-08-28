@@ -1,0 +1,58 @@
+{
+  "id": "WF-02",
+  "domain": "peer-review-revision-loop",
+  "version": "1.0",
+  "fixtures": [
+    "fixtures/draft_paper.md"
+  ],
+  "prompt": "You are an autonomous agent working in the current directory. FIRST call todo(action=create) with a numbered plan covering every step below (at least 9 steps). Then execute the steps one by one, creating each required file with the exact filename given. Do not fabricate content: base every claim on the provided fixture files in this directory. When all artifacts are written and verified, call finish with a short summary.\n\nYou are a peer reviewer and then the author. The manuscript draft_paper.md contains at least 4 distinct problems (data inconsistencies, a dangling citation, a missing figure, an overclaim, and/or schedule inconsistencies).\n\nRequired steps (plan at least 9):\n1. Plan with todo(action=create).\n2. Read draft_paper.md carefully, cross-checking every number in the text against Table 1 and every citation against the reference list.\n3. Write review_round1.md: numbered issues, each with (a) location, (b) problem, (c) severity [high/medium/low], (d) suggested fix. Find at least 4 issues.\n4. For each issue write a concrete revision decision in revision_plan.md.\n5. Apply all revisions and write revised_paper.md (full corrected manuscript, same structure).\n6. Write change_log.md: one line per issue, \"issue N -> what changed where\".\n7. Re-check revised_paper.md: no dangling citations, all numbers consistent with Table 1, no overclaim wording (\"prove\" -> \"suggest\").\n8. Verify all files exist and are consistent with each other, then finish.",
+  "required_plan_steps_min": 9,
+  "plan_steps": [
+    "Create todo plan",
+    "Read draft thoroughly",
+    "Catalog issues (data/reference/figure/overclaim)",
+    "Write review_round1.md",
+    "Plan revisions per issue",
+    "Write revised_paper.md",
+    "Write change_log.md mapping issue->fix",
+    "Verify consistency of revision",
+    "Re-verify artifacts"
+  ],
+  "milestones": [
+    {
+      "artifact": "review_round1.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "1080",
+          "1105",
+          "[5]"
+        ]
+      }
+    },
+    {
+      "artifact": "revision_plan.md",
+      "check": "exists"
+    }
+  ],
+  "final_artifacts": [
+    {
+      "artifact": "revised_paper.md",
+      "check": "not_contains",
+      "params": {
+        "none_of": [
+          "proves",
+          "[5]"
+        ]
+      }
+    },
+    {
+      "artifact": "change_log.md",
+      "check": "exists"
+    }
+  ],
+  "judge_rubric": "rubrics/wf02.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

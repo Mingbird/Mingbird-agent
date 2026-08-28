@@ -1,0 +1,46 @@
+{
+  "task_id": "WF-06",
+  "domain": "statistical-analysis-visualization",
+  "milestone_score": 0.0,
+  "final_score": 0.0,
+  "milestone_details": [
+    {
+      "artifact": "anomalies.md",
+      "check": "exists",
+      "ok": false,
+      "detail": "missing"
+    },
+    {
+      "artifact": "analysis.py",
+      "check": "python_compiles",
+      "ok": false,
+      "detail": "missing"
+    }
+  ],
+  "final_details": [
+    {
+      "artifact": "fig_strength.png",
+      "check": "file_min_bytes",
+      "ok": false,
+      "detail": "missing"
+    },
+    {
+      "artifact": "fig_elongation.png",
+      "check": "file_min_bytes",
+      "ok": false,
+      "detail": "missing"
+    },
+    {
+      "artifact": "analysis.md",
+      "check": "min_words",
+      "ok": false,
+      "detail": "missing"
+    }
+  ],
+  "total": 0.0,
+  "agent": "hummingbird",
+  "model": "gemma4:e2b",
+  "wall_seconds": 67.6,
+  "exit_code": 0,
+  "run_id": "smoke3_hb_e2b_WF06"
+}

@@ -1,0 +1,48 @@
+{
+  "id": "WF-14",
+  "domain": "release-planning",
+  "version": "1.0",
+  "fixtures": [
+    "fixtures/requirements_doc.md"
+  ],
+  "prompt": "You are an autonomous agent working in the current directory. FIRST call todo(action=create) with a numbered plan covering every step below (at least 9 steps). Then execute the steps one by one, creating each required file with the exact filename given. Do not fabricate content: base every claim on the provided fixture files in this directory. When all artifacts are written and verified, call finish with a short summary.\n\nProduce a v2.0 release plan for HummingNote from requirements_doc.md (in this directory). Team: 3 devs, 1 QA (60 tester-hours per RC), part-time designer. 12 weeks. Public beta at week 10. B-101 data loss must ship.\n\nRequired steps (plan at least 10):\n1. Plan with todo(action=create).\n2. Read requirements_doc.md and write effort_estimates.md: for each must-have feature and carried bug, an estimate in person-weeks with a one-line breakdown and stated assumptions.\n3. Write dependency_map.md: what blocks what (e.g. E2EE threat model before release; schema migration before sync).\n4. Write risk_matrix.md: at least 5 risks with probability (H/M/L) x impact (H/M/L) and the resulting priority.\n5. Write mitigations.md: concrete mitigation for each high-priority risk.\n6. Write release_plan.md: 12-week schedule (weekly resolution) showing feature work, QA windows, the week-10 beta gate, and which items ship if the beta slips.\n7. Include a cut-list: what is dropped first if effort estimates overrun by 30%.\n8. Verify: every must-have feature and B-101 appears in the plan; QA hours fit within 60 per RC; note the verification in release_plan.md, then finish.",
+  "required_plan_steps_min": 9,
+  "plan_steps": [
+    "Create todo plan",
+    "Read requirements and constraints",
+    "Estimate effort per must/should feature",
+    "Sequence work respecting dependencies (B-101 before beta)",
+    "Allocate team capacity across 12 weeks",
+    "Write risk_matrix.md (probability x impact)",
+    "Write mitigation plan for top risks",
+    "Produce release_plan.md with milestones and beta gate",
+    "Verify plan covers all committed items"
+  ],
+  "milestones": [
+    {
+      "artifact": "effort_estimates.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "risk_matrix.md",
+      "check": "exists"
+    }
+  ],
+  "final_artifacts": [
+    {
+      "artifact": "release_plan.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 400
+      }
+    },
+    {
+      "artifact": "mitigations.md",
+      "check": "exists"
+    }
+  ],
+  "judge_rubric": "rubrics/wf14.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

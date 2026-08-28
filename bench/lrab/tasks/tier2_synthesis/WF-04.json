@@ -1,0 +1,46 @@
+{
+  "id": "WF-04",
+  "domain": "bug-localization-and-fix",
+  "version": "1.0",
+  "fixtures": [
+    "fixtures/buggy_project/inventory.py",
+    "fixtures/buggy_project/test_inventory.py"
+  ],
+  "prompt": "You are an autonomous agent working in the current directory. FIRST call todo(action=create) with a numbered plan covering every step below (at least 9 steps). Then execute the steps one by one, creating each required file with the exact filename given. Do not fabricate content: base every claim on the provided fixture files in this directory. When all artifacts are written and verified, call finish with a short summary.\n\nThe project in this directory (inventory.py, test_inventory.py) has failing tests. test_inventory.py is the specification and MUST NOT be modified.\n\nRequired steps (plan at least 9):\n1. Plan with todo(action=create).\n2. Copy inventory.py and test_inventory.py into the current working directory if not already here.\n3. Run python -m pytest test_inventory.py -q and record which tests fail and why.\n4. Read inventory.py and write bug_report.md: one section per bug (symptom from test output, root cause in code, planned fix). Expect at least 4 distinct bugs.\n5. Fix inventory.py so every test passes. Keep the public function signatures unchanged. Do not edit test_inventory.py.\n6. Re-run python -m pytest test_inventory.py -q until fully green.\n7. Write fix_summary.md: bug -> one-line description of the actual change.\n8. Run a final full pytest with -q and paste the tail into fix_summary.md.\n9. Verify all files exist and tests are green, then finish.",
+  "required_plan_steps_min": 9,
+  "plan_steps": [
+    "Create todo plan",
+    "Copy fixtures into workdir",
+    "Run failing tests to see failures",
+    "Diagnose BUG-1 (duplicate SKU)",
+    "Diagnose BUG-2 (zero/negative qty)",
+    "Diagnose BUG-3 (total_value)",
+    "Diagnose BUG-4 (case-sensitive search)",
+    "Fix inventory.py for all bugs",
+    "Run tests until green"
+  ],
+  "milestones": [
+    {
+      "artifact": "bug_report.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "fix_summary.md",
+      "check": "exists"
+    }
+  ],
+  "final_artifacts": [
+    {
+      "artifact": "inventory.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "test_inventory.py",
+      "check": "exists"
+    }
+  ],
+  "judge_rubric": "rubrics/wf04.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": "Run the tests yourself if possible: pytest must pass 6/6. Check the agent did not modify test_inventory.py."
+}

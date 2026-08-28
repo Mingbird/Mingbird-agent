@@ -1,0 +1,51 @@
+{
+  "id": "WF-03",
+  "domain": "software-feature-implementation",
+  "version": "1.0",
+  "fixtures": [
+    "fixtures/app_source/timetrack.py"
+  ],
+  "prompt": "You are an autonomous agent working in the current directory. FIRST call todo(action=create) with a numbered plan covering every step below (at least 9 steps). Then execute the steps one by one, creating each required file with the exact filename given. Do not fabricate content: base every claim on the provided fixture files in this directory. When all artifacts are written and verified, call finish with a short summary.\n\nImplement a new feature in the time-tracker program timetrack.py (in this directory).\n\nFeature: `timetrack export --format csv --since YYYY-MM-DD` writes a CSV report of all finished entries (project,start,end,hours,note) to stdout or a file. `hours` is rounded to 2 decimals. `--since` filters by start date. Empty result produces a header-only CSV.\n\nRequired steps (plan at least 9):\n1. Plan with todo(action=create).\n2. Read timetrack.py and understand its storage format and command pattern.\n3. Write design_notes.md: CSV column order, rounding rule, edge cases (no entries, running timer excluded).\n4. Implement cmd_export in timetrack.py and register it in argparse.\n5. Write test_export.py with at least 4 pytest tests (normal export, --since filter, empty state header-only, running timer excluded).\n6. Run the tests (python -m pytest test_export.py -q) and fix until green.\n7. Also run any other test files to confirm no regression.\n8. Write EXPORT.md with a usage example (real command + real output).\n9. Verify timetrack.py still compiles (python -m py_compile timetrack.py) and all files exist, then finish.",
+  "required_plan_steps_min": 9,
+  "plan_steps": [
+    "Create todo plan",
+    "Read timetrack.py to understand structure",
+    "Design export format (CSV)",
+    "Implement cmd_export",
+    "Wire into argparse",
+    "Write test_export.py",
+    "Run tests and fix failures",
+    "Verify edge case (empty entries)",
+    "Write usage example in EXPORT.md"
+  ],
+  "milestones": [
+    {
+      "artifact": "design_notes.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "test_export.py",
+      "check": "exists"
+    }
+  ],
+  "final_artifacts": [
+    {
+      "artifact": "EXPORT.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "timetrack.py",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "cmd_export",
+          "export"
+        ]
+      }
+    }
+  ],
+  "judge_rubric": "rubrics/wf03.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

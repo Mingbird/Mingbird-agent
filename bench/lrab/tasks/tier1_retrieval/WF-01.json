@@ -1,0 +1,66 @@
+{
+  "id": "WF-01",
+  "domain": "materials-literature-review",
+  "version": "1.0",
+  "fixtures": [
+    "fixtures/papers_db.jsonl"
+  ],
+  "prompt": "You are an autonomous agent working in the current directory. FIRST call todo(action=create) with a numbered plan covering every step below (at least 9 steps). Then execute the steps one by one, creating each required file with the exact filename given. Do not fabricate content: base every claim on the provided fixture files in this directory. When all artifacts are written and verified, call finish with a short summary.\n\nYou are a materials researcher. Using papers_db.jsonl in this directory, produce a mini literature review on \"aging treatment of titanium alloys\".\n\nRequired steps (plan at least 9):\n1. Plan with todo(action=create).\n2. Read papers_db.jsonl and identify ALL papers whose abstract concerns aging/precipitation of titanium alloys (expect 6 or more).\n3. Write shortlist.md listing each selected paper as: id, title, first author, year, DOI.\n4. Write data_table.md with a comparison table: paper id | alloy | aging temp (C) | UTS (MPa) | elongation (%), using only values present in the fixture.\n5. Note any data contradiction between papers (e.g., different strength trends at similar temperatures) in contradictions.md.\n6. Write review_report.md (400-600 words) with sections: Abstract, Comparison, Mechanisms, Open questions, References.\n7. Cite papers as [S001]-style ids in the text; every cited id must exist in papers_db.jsonl.\n8. Write references.md mapping each [Sn] marker to its full citation line.\n9. Verify all 4 files exist (list them), then finish.",
+  "required_plan_steps_min": 9,
+  "plan_steps": [
+    "Create todo plan",
+    "Load and scan papers_db.jsonl",
+    "Select aging-related papers (>=6)",
+    "Extract per-paper metadata",
+    "Build comparison table",
+    "Identify data contradictions",
+    "Draft review body with [n] citations",
+    "Write references section",
+    "Verify all artifacts exist"
+  ],
+  "milestones": [
+    {
+      "artifact": "shortlist.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "S001",
+          "S002",
+          "S003"
+        ]
+      }
+    },
+    {
+      "artifact": "data_table.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "Ti-6Al-4V",
+          "Ti-5553",
+          "aging"
+        ]
+      }
+    }
+  ],
+  "final_artifacts": [
+    {
+      "artifact": "review_report.md",
+      "check": "structure",
+      "params": {
+        "required_sections": [
+          "Abstract",
+          "References"
+        ],
+        "min_words": 350
+      }
+    },
+    {
+      "artifact": "references.md",
+      "check": "exists"
+    }
+  ],
+  "judge_rubric": "rubrics/wf01.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

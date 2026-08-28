@@ -1,0 +1,34 @@
+[
+  {
+    "item": "1. Read aging_data.csv to understand the dataset structure.",
+    "done": false
+  },
+  {
+    "item": "2. Calculate descriptive statistics (count, mean, min, max) for UTS and elongation from aging_data.csv and write the results to descriptive_stats.md.",
+    "done": false
+  },
+  {
+    "item": "3. Analyze the relationship between UTS and temperature to identify the peak UTS condition and check for monotonicity. Flag any anomalies related to the 620C/4h row in anomalies.md.",
+    "done": false
+  },
+  {
+    "item": "4. Write the Python script analysis.py to load the data, perform the required plots (UTS vs T, elongation vs T), save them as fig_strength.png and fig_elongation.png, and print peak/valley conditions to stdout.",
+    "done": false
+  },
+  {
+    "item": "5. Execute analysis.py to generate the plots and print results. Verify that fig_strength.png and fig_elongation.png exist and have a size greater than 20KB.",
+    "done": false
+  },
+  {
+    "item": "6. Write the comprehensive analysis.md (300-500 words) discussing the trend, the strength-ductility trade-off, the 620C anomaly discussion, and one actionable recommendation, ensuring at least 3 concrete data points are included.",
+    "done": false
+  },
+  {
+    "item": "7. Verify all generated artifacts (descriptive_stats.md, anomalies.md, analysis.py, analysis.md, fig_strength.png, fig_elongation.png) exist and check their sizes.",
+    "done": false
+  },
+  {
+    "item": "8. Call finish with a summary of the completed analysis.",
+    "done": false
+  }
+]
