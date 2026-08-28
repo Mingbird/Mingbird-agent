@@ -21,13 +21,12 @@
 第 2 格（蜂鸟 12b）超时 2 次后进入第 3 格（蜂鸟 4b，20:03 启动）时休眠中断。
 **剩余 15 格未跑**。
 
-## 三、重启后恢复步骤
+## 三、重启后恢复步骤（2026-08-28 22:21 已执行）
 
-1. **确认 ollama 正常**（休眠可能让 ollama 状态损坏）：
-   ```bash
-   curl http://127.0.0.1:11434/api/tags
-   ```
-   若异常，重启 ollama 服务（OLLAMA_VULKAN=1 + OLLAMA_IGPU_ENABLE=1）。
+1. ✅ **ollama 正常**：重启后 Vulkan 挂上 26.2 GiB（server.log 确认）。
+2. ✅ **无残留进程**（重启清空）。
+3. ✅ **keep-awake 已启动**（`runners/keep_awake.py`，SetThreadExecutionState 进程级防休眠，
+   不改系统设置，进程退出自动恢复）——防止上次 2 小时空闲休眠再次打断矩阵。
 
 2. **清理残留进程**（休眠可能留下僵尸 python/goose/node）：
    ```bash

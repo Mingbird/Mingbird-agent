@@ -54,6 +54,8 @@ def scan(root, root_key):
         p = os.path.join(root, d)
         if not os.path.isdir(p):
             continue
+        if d.startswith("prematrix_archive") or d.startswith("_archive"):
+            continue  # bulk-archived old-config runs, not individual run dirs
         score_path = os.path.join(p, "score.json")
         entry = {"run_id": d, "dir": d}
         if os.path.exists(score_path):
