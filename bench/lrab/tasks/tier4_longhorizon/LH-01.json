@@ -1,0 +1,83 @@
+{
+ "id": "LH-01",
+ "domain": "long-horizon-dependency-chain",
+ "version": "1.0",
+ "fixtures": [
+  "fixtures/alloy_multibatch.csv"
+ ],
+ "prompt": "You are an autonomous agent working in the current directory. FIRST create a numbered plan covering every step below. Use your available planning/todo tool if you have one; otherwise write the plan to plan.md. Then execute the steps one by one, creating each required file with the exact filename given. Long task: work through ALL steps persistently, do not stop early. Do not fabricate content: every number you report must be computed from the provided fixture files. When all artifacts are written and verified, finish with a short summary.\n\nAnalyze alloy_multibatch.csv (8 alloy batches, 625 rows each).\n\nRequired steps (plan at least 15):\n1. Create your plan (todo tool if available, otherwise plan.md).\n2. Inspect alloy_multibatch.csv (5000 rows, 8 batches B01..B08).\n3. Write slice_aggregate.py: per-batch count/mean/max of UTS, elongation, hardness.\n4. Run slice_aggregate.py and write slice_stats_B01.md (exact peak UTS value required).\n5. Run slice_aggregate.py and write slice_stats_B02.md (exact peak UTS value required).\n6. Run slice_aggregate.py and write slice_stats_B03.md (exact peak UTS value required).\n7. Run slice_aggregate.py and write slice_stats_B04.md (exact peak UTS value required).\n8. Run slice_aggregate.py and write slice_stats_B05.md (exact peak UTS value required).\n9. Run slice_aggregate.py and write slice_stats_B06.md (exact peak UTS value required).\n10. Run slice_aggregate.py and write slice_stats_B07.md (exact peak UTS value required).\n11. Run slice_aggregate.py and write slice_stats_B08.md (exact peak UTS value required).\n12. Write cross_validation.json: per-batch peak UTS and the batch ranking by peak UTS.\n13. Identify the anomalous batch/condition (a non-monotonic UTS dip) and record it.\n14. Write master_report.md (400+ words): batch ranking, spread, anomaly discussion, recommendation.\n15. Re-check master_report.md against slice_stats files and write revision_notes.md listing any corrections.",
+ "required_plan_steps_min": 15,
+ "plan_steps": [
+  "Create your plan (todo tool if available, otherwise plan.md).",
+  "Inspect alloy_multibatch.csv (5000 rows, 8 batches B01..B08).",
+  "Write slice_aggregate.py: per-batch count/mean/max of UTS, elongation, hardness.",
+  "Run slice_aggregate.py and write slice_stats_B01.md (exact peak UTS value required).",
+  "Run slice_aggregate.py and write slice_stats_B02.md (exact peak UTS value required).",
+  "Run slice_aggregate.py and write slice_stats_B03.md (exact peak UTS value required).",
+  "Run slice_aggregate.py and write slice_stats_B04.md (exact peak UTS value required).",
+  "Run slice_aggregate.py and write slice_stats_B05.md (exact peak UTS value required).",
+  "Run slice_aggregate.py and write slice_stats_B06.md (exact peak UTS value required).",
+  "Run slice_aggregate.py and write slice_stats_B07.md (exact peak UTS value required).",
+  "Run slice_aggregate.py and write slice_stats_B08.md (exact peak UTS value required).",
+  "Write cross_validation.json: per-batch peak UTS and the batch ranking by peak UTS.",
+  "Identify the anomalous batch/condition (a non-monotonic UTS dip) and record it.",
+  "Write master_report.md (400+ words): batch ranking, spread, anomaly discussion, recommendation.",
+  "Re-check master_report.md against slice_stats files and write revision_notes.md listing any corrections."
+ ],
+ "milestones": [
+  {
+   "artifact": "slice_stats_B01.md",
+   "check": "exists"
+  },
+  {
+   "artifact": "slice_stats_B02.md",
+   "check": "exists"
+  },
+  {
+   "artifact": "slice_stats_B03.md",
+   "check": "exists"
+  },
+  {
+   "artifact": "slice_stats_B04.md",
+   "check": "exists"
+  }
+ ],
+ "final_artifacts": [
+  {
+   "artifact": "slice_aggregate.py",
+   "check": "python_compiles"
+  },
+  {
+   "artifact": "cross_validation.json",
+   "check": "exists"
+  },
+  {
+   "artifact": "master_report.md",
+   "check": "min_words",
+   "params": {
+    "min_words": 400
+   }
+  },
+  {
+   "artifact": "master_report.md",
+   "check": "contains_any",
+   "params": {
+    "any_of": [
+     "1230",
+     "1230.2",
+     "1260",
+     "1260.1"
+    ]
+   }
+  },
+  {
+   "artifact": "revision_notes.md",
+   "check": "exists"
+  }
+ ],
+ "judge_rubric": "rubrics/LH-01.md",
+ "max_wall_minutes": 90,
+ "resume_test": false,
+ "notes": "Deep dependency chain: 8 slice stats feed cross-validation feed report feed revision.",
+ "extra_judge_note": ""
+}

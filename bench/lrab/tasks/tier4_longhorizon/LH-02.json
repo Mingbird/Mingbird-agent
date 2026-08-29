@@ -1,0 +1,82 @@
+{
+ "id": "LH-02",
+ "domain": "long-horizon-context-pressure",
+ "version": "1.0",
+ "fixtures": [
+  "fixtures/process_corpus.txt"
+ ],
+ "prompt": "You are an autonomous agent working in the current directory. FIRST create a numbered plan covering every step below. Use your available planning/todo tool if you have one; otherwise write the plan to plan.md. Then execute the steps one by one, creating each required file with the exact filename given. Long task: work through ALL steps persistently, do not stop early. Do not fabricate content: every number you report must be computed from the provided fixture files. When all artifacts are written and verified, finish with a short summary.\n\nProcess process_corpus.txt (601KB — far larger than your context window).\n\nRequired steps (plan at least 9):\n1. Create your plan (todo tool if available, otherwise plan.md).\n2. Check process_corpus.txt size — it is far too large to read whole; plan a script-based approach.\n3. Write build_index.py: stream the file line by line (do NOT load it whole into chat context).\n4. Compute per-line word counts and per-topic line counts via the script.\n5. Write freq_index.json: top-8 words with exact counts, plus total word count.\n6. Detect duplicate sentences (exact repeat) and count them via the script.\n7. Write dedup_report.md (150+ words): duplicate count, method, examples.\n8. Write corpus_summary.md with sections 'topic' and 'duplicate': lines per topic, totals.\n9. Re-run build_index.py to confirm the numbers in your reports match freq_index.json.",
+ "required_plan_steps_min": 9,
+ "plan_steps": [
+  "Create your plan (todo tool if available, otherwise plan.md).",
+  "Check process_corpus.txt size — it is far too large to read whole; plan a script-based approach.",
+  "Write build_index.py: stream the file line by line (do NOT load it whole into chat context).",
+  "Compute per-line word counts and per-topic line counts via the script.",
+  "Write freq_index.json: top-8 words with exact counts, plus total word count.",
+  "Detect duplicate sentences (exact repeat) and count them via the script.",
+  "Write dedup_report.md (150+ words): duplicate count, method, examples.",
+  "Write corpus_summary.md with sections 'topic' and 'duplicate': lines per topic, totals.",
+  "Re-run build_index.py to confirm the numbers in your reports match freq_index.json."
+ ],
+ "milestones": [
+  {
+   "artifact": "freq_index.json",
+   "check": "exists"
+  }
+ ],
+ "final_artifacts": [
+  {
+   "artifact": "build_index.py",
+   "check": "python_compiles"
+  },
+  {
+   "artifact": "freq_index.json",
+   "check": "exists"
+  },
+  {
+   "artifact": "freq_index.json",
+   "check": "contains_any",
+   "params": {
+    "any_of": [
+     "stress",
+     "grain",
+     "time",
+     "test"
+    ]
+   }
+  },
+  {
+   "artifact": "dedup_report.md",
+   "check": "min_words",
+   "params": {
+    "min_words": 150
+   }
+  },
+  {
+   "artifact": "corpus_summary.md",
+   "check": "contains_any",
+   "params": {
+    "any_of": [
+     "71867",
+     "71867.0",
+     "71,867"
+    ]
+   }
+  },
+  {
+   "artifact": "corpus_summary.md",
+   "check": "structure",
+   "params": {
+    "required_sections": [
+     "topic",
+     "duplicate"
+    ]
+   }
+  }
+ ],
+ "judge_rubric": "rubrics/LH-02.md",
+ "max_wall_minutes": 90,
+ "resume_test": false,
+ "notes": "400KB corpus: read-all strategies blow context; only script-based processing survives.",
+ "extra_judge_note": ""
+}

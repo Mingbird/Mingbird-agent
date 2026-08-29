@@ -1,0 +1,11 @@
+{
+  "source": { "type": "time" },
+  "detector": {
+    "type": "command",
+    "command": {
+      "executable": "node",
+      "args": ["C:\\Users\\99491\\dev\\hummingbird\\bench\\lrab\\runners\\check_lrab_batch.mjs", "--fixture", "C:\\Users\\99491\\dev\\hummingbird\\bench\\lrab\\triggers\\fixture-stalled.json"]
+    },
+    "timeoutMs": 60000
+  }
+}
