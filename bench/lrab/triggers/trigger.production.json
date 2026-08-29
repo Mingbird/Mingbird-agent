@@ -1,0 +1,11 @@
+{
+  "source": { "type": "time" },
+  "detector": {
+    "type": "command",
+    "command": {
+      "executable": "node",
+      "args": ["C:\\Users\\99491\\dev\\hummingbird\\bench\\lrab\\runners\\check_lrab_batch.mjs"]
+    },
+    "timeoutMs": 60000
+  }
+}
