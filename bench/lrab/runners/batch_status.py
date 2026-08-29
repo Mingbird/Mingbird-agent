@@ -65,19 +65,37 @@ def ollama_active():
         return False, []
 
 
+def load_watch_config():
+    """Optional batch_watch.json next to this probe selects the ACTIVE batch:
+    {"patterns": [...], "target": N}. Every watcher (detector, 3h audit) then
+    follows a new batch by editing that one file instead of code. Falls back
+    to the canonical 64-cell batch (0829 + goose 0830 tail)."""
+    cfg = Path(__file__).resolve().parent / "batch_watch.json"
+    try:
+        c = json.loads(cfg.read_text(encoding="utf-8"))
+        return list(c.get("patterns") or []), int(c.get("target", 64))
+    except Exception:
+        return [
+            "*_WF01_*_0829_*", "*_WF03_*_0829_*",
+            "*_WF09_*_0829_*", "*_WF15_*_0829_*",
+            "goose_WF01_*_0830_*", "goose_WF03_*_0830_*",
+            "goose_WF09_*_0830_*", "goose_WF15_*_0830_*",
+        ], 64
+
+
 def main():
-    # default: the 64-cell canonical batch (tasks WF-01/03/09/15, launched
-    # 2026-08-29 09:17, ran past midnight -> goose tail cells stamped 0830).
-    # Pinned per agent+date so later same-day reruns never pollute the count.
-    # Comma-separated patterns can be passed to track a different batch.
+    # CLI args win: argv[1] = comma patterns, argv[2] = target.
+    # Without args, follow batch_watch.json (active batch) or the canonical default.
     arg = sys.argv[1] if len(sys.argv) > 1 else None
-    patterns = arg.split(",") if arg else [
-        "*_WF01_*_0829_*", "*_WF03_*_0829_*",
-        "*_WF09_*_0829_*", "*_WF15_*_0829_*",
-        "goose_WF01_*_0830_*", "goose_WF03_*_0830_*",
-        "goose_WF09_*_0830_*", "goose_WF15_*_0830_*",
-    ]
-    target = int(sys.argv[2]) if len(sys.argv) > 2 else 64
+    target = int(sys.argv[2]) if len(sys.argv) > 2 else None
+    if arg:
+        patterns = arg.split(",")
+    else:
+        patterns, cfg_target = load_watch_config()
+        if target is None:
+            target = cfg_target
+    if target is None:
+        target = 64
     total, done, newest, age = batch_cells(patterns)
     loaded, models = ollama_active()
     if done >= target:

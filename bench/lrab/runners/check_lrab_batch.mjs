@@ -1,4 +1,5 @@
-// MyAgents command Detector: LRAB 64-cell batch watcher.
+// MyAgents command Detector: LRAB active-batch watcher (target batch is
+// selected by batch_watch.json next to batch_status.py).
 // quiet  -> verdict "running" (or an episode already activated)
 // activate -> verdict "complete" (once) or "stalled"/"idle" (once per episode)
 //
@@ -56,8 +57,8 @@ if (verdict === "running") {
       nextCheckpoint: { schemaVersion: 1, value: { completeActivated: true, cellsDone: done } },
     },
     handoff: {
-      summary: `LRAB 64 格批次已完成（${done}/${target}）`,
-      text: `批次判定 complete（${done}/${target} 格有 score.json）。请汇总成绩并报告用户。`,
+      summary: `LRAB 批次已完成（${done}/${target}）`,
+      text: `批次判定 complete（${done}/${target} 格有 score.json）。请按 triggers/task-action.md 汇总成绩并报告用户。`,
       data: s,
     },
   }));

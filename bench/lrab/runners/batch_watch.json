@@ -1,0 +1,10 @@
+{
+  "patterns": [
+    "hummingbird_WF01_*_0830_*",
+    "hummingbird_WF03_*_0830_*",
+    "hummingbird_WF09_*_0830_*",
+    "hummingbird_WF15_*_0830_*"
+  ],
+  "target": 16,
+  "note": "active batch = hummingbird AFTER rerun (improved harness: finish gate + small-model degradation), launched 2026-08-30 ~03:10. BEFORE data lives in BATCH64_SUMMARY.md (canonical 0829/0830)."
+}
