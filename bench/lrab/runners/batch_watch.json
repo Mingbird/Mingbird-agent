@@ -1,9 +1,9 @@
 {
   "patterns": [
     "opencode_LH0*_083[01]_*",
-    "agent-mini_LH0*_083[01]_*",
+    "agentmini_LH0*_083[01]_*",
     "goose_LH0*_083[01]_*"
   ],
   "target": 36,
-  "note": "LRAB-H competitor waves launched 2026-08-30 19:01 (opencode -> agent-mini -> goose, each LH-01/02/03 x 4 models, 90min budget, LH-03 kill-resume at 50%; 36 cells serial). Hummingbird wave done 18:57 (12/12; 35b 0.980 / 12b 0.552 with LH03 double-timeout / 4b 0.377 / e2b 0.514). Patterns span 0830+0831 for midnight rollover."
+  "note": "LRAB-H competitor waves launched 2026-08-30 19:01 (opencode -> agent-mini -> goose, each LH-01/02/03 x 4 models, 90min budget, LH-03 kill-resume at 50%; 36 cells serial). opencode wave done 12/12 ~20:45; agent-mini wave running since 20:45 (prefix is 'agentmini' WITHOUT hyphen - first watch config used 'agent-mini_' and matched nothing, causing a false stalled alert at 21:20). Patterns span 0830+0831 for midnight rollover."
 }
