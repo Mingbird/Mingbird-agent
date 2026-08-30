@@ -1,10 +1,9 @@
 {
   "patterns": [
-    "hummingbird_WF01_*_0830_*",
-    "hummingbird_WF03_*_0830_*",
-    "hummingbird_WF09_*_0830_*",
-    "hummingbird_WF15_*_0830_*"
+    "hummingbird_LH01_*_0830_*",
+    "hummingbird_LH02_*_0830_*",
+    "hummingbird_LH03_*_0830_*"
   ],
-  "target": 16,
-  "note": "AFTER batch COMPLETED 2026-08-30 08:41 (16/16 ok), reported by main session, monitor stopped. No active batch. Results: eval_results/AFTER_SUMMARY.md vs BEFORE eval_results/BATCH64_SUMMARY.md. BEFORE manifest snapshot: eval_results/MATRIX_MANIFEST_BEFORE64_0829.json."
+  "target": 12,
+  "note": "LRAB-H hummingbird wave launched 2026-08-30 ~09:40 (LH-01/02/03 x 4 models, 90min budget, LH-03 kill-resume at 50%). Plan: competitor waves (opencode/agent-mini/goose, same 12-cell shape) after this block completes. Compare vs WF-64-layer behavior; LH-03 resume meta lives in score.json 'resume'."
 }
