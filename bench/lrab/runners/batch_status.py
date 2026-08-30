@@ -73,6 +73,8 @@ def load_watch_config():
     cfg = Path(__file__).resolve().parent / "batch_watch.json"
     try:
         c = json.loads(cfg.read_text(encoding="utf-8"))
+        global STALE_ALERT_SEC
+        STALE_ALERT_SEC = int(c.get("stale_alert_sec", STALE_ALERT_SEC))
         return list(c.get("patterns") or []), int(c.get("target", 64))
     except Exception:
         return [
