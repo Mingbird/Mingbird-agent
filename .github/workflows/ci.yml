@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: windows-latest
@@ -22,7 +26,18 @@ jobs:
           pip install pytest
           pip install requests beautifulsoup4
       - name: Run unit tests
-        run: python -m pytest tests/ -q
+        shell: bash
+        run: |
+          rc=0
+          python -m pytest tests/ -q -ra --tb=short > pytest_out.txt 2>&1 || rc=$?
+          cat pytest_out.txt
+          {
+            echo "### pytest output (${{ matrix.python-version }})"
+            echo '<pre>'
+            cat pytest_out.txt
+            echo '</pre>'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
       - name: Syntax check core modules
         run: |
           python -m py_compile ollama_agent.py
