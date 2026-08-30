@@ -6,5 +6,5 @@
     "hummingbird_WF15_*_0830_*"
   ],
   "target": 16,
-  "note": "active batch = hummingbird AFTER rerun (improved harness: finish gate + small-model degradation), launched 2026-08-30 ~03:10. BEFORE data lives in BATCH64_SUMMARY.md (canonical 0829/0830)."
+  "note": "AFTER batch COMPLETED 2026-08-30 08:41 (16/16 ok), reported by main session, monitor stopped. No active batch. Results: eval_results/AFTER_SUMMARY.md vs BEFORE eval_results/BATCH64_SUMMARY.md. BEFORE manifest snapshot: eval_results/MATRIX_MANIFEST_BEFORE64_0829.json."
 }
