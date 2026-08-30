@@ -91,7 +91,7 @@ def _cmd_agent_mini(task, workdir, model):
     # workspace 指向隔离实例(防止写个人记忆/技能),并覆盖为 Windows 原生路径
     cfg["workspace"] = _win_path(workdir)
     cfg.setdefault("memory", {})["enabled"] = False
-    cfg["tools"]["restrictToWorkspace"] = True
+    cfg.setdefault("tools", {})["restrictToWorkspace"] = True
     os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
     with open(cfg_path, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
