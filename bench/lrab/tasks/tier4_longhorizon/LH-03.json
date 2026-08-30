@@ -15,7 +15,7 @@
   "fixtures/buggy_pipeline_pkg/m10.py",
   "fixtures/buggy_pipeline_pkg/test_suite.py"
  ],
- "prompt": "You are an autonomous agent working in the current directory. FIRST create a numbered plan covering every step below. Use your available planning/todo tool if you have one; otherwise write the plan to plan.md. Then execute the steps one by one, creating each required file with the exact filename given. Long task: work through ALL steps persistently, do not stop early. Do not fabricate content: every number you report must be computed from the provided fixture files. When all artifacts are written and verified, finish with a short summary.\n\nFix the 10-module signal pipeline in buggy_pipeline_pkg/ (each module m01.py..m10.py has exactly one bug). Work strictly module by module.\n\nRequired steps (plan at least 15):\n1. Create your plan (todo tool if available, otherwise plan.md).\n2. List the 10 modules (m01.py..m10.py) and test_suite.py; read test_suite.py first.\n3. Run python test_suite.py to get the baseline failure list.\n4. Module m01 (calc_mean): diagnose, fix, re-run test_suite.py, write fix_log_m01.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n5. Module m02 (calc_median): diagnose, fix, re-run test_suite.py, write fix_log_m02.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n6. Module m03 (calc_variance): diagnose, fix, re-run test_suite.py, write fix_log_m03.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n7. Module m04 (calc_slope): diagnose, fix, re-run test_suite.py, write fix_log_m04.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n8. Module m05 (calc_interp): diagnose, fix, re-run test_suite.py, write fix_log_m05.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n9. Module m06 (calc_smooth): diagnose, fix, re-run test_suite.py, write fix_log_m06.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n10. Module m07 (calc_normalize): diagnose, fix, re-run test_suite.py, write fix_log_m07.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n11. Module m08 (calc_integrate): diagnose, fix, re-run test_suite.py, write fix_log_m08.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n12. Module m09 (calc_roots): diagnose, fix, re-run test_suite.py, write fix_log_m09.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n13. Module m10 (calc_fit): diagnose, fix, re-run test_suite.py, write fix_log_m10.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n14. Write fix_log.md (300+ words): all fixes with root causes.\n15. Run the full test suite one final time; record the result.\n16. Write integration_report.md with sections 'all tests' and 'regression'.",
+ "prompt": "You are an autonomous agent working in the current directory. FIRST create a numbered plan covering every step below. Use your available planning/todo tool if you have one; otherwise write the plan to plan.md. Then execute the steps one by one, creating each required file with the exact filename given. Long task: work through ALL steps persistently, do not stop early. Do not fabricate content: every number you report must be computed from the provided fixture files. When all artifacts are written and verified, finish with a short summary.\n\nFix the 10-module signal pipeline (modules m01.py..m10.py and test_suite.py are in the current directory; each module has exactly one bug). Work strictly module by module.\n\nRequired steps (plan at least 15):\n1. Create your plan (todo tool if available, otherwise plan.md).\n2. List the 10 modules (m01.py..m10.py) and test_suite.py; read test_suite.py first.\n3. Run python test_suite.py to get the baseline failure list.\n4. Module m01 (calc_mean): diagnose, fix, re-run test_suite.py, write fix_log_m01.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n5. Module m02 (calc_median): diagnose, fix, re-run test_suite.py, write fix_log_m02.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n6. Module m03 (calc_variance): diagnose, fix, re-run test_suite.py, write fix_log_m03.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n7. Module m04 (calc_slope): diagnose, fix, re-run test_suite.py, write fix_log_m04.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n8. Module m05 (calc_interp): diagnose, fix, re-run test_suite.py, write fix_log_m05.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n9. Module m06 (calc_smooth): diagnose, fix, re-run test_suite.py, write fix_log_m06.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n10. Module m07 (calc_normalize): diagnose, fix, re-run test_suite.py, write fix_log_m07.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n11. Module m08 (calc_integrate): diagnose, fix, re-run test_suite.py, write fix_log_m08.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n12. Module m09 (calc_roots): diagnose, fix, re-run test_suite.py, write fix_log_m09.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n13. Module m10 (calc_fit): diagnose, fix, re-run test_suite.py, write fix_log_m10.md (bug, root cause, fix). Do the modules strictly in order m01..m10.\n14. Write fix_log.md (300+ words): all fixes with root causes.\n15. Run the full test suite one final time; record the result.\n16. Write integration_report.md with sections 'all tests' and 'regression'.",
  "required_plan_steps_min": 15,
  "plan_steps": [
   "Create your plan (todo tool if available, otherwise plan.md).",
@@ -46,6 +46,34 @@
   },
   {
    "artifact": "fix_log_m03.md",
+   "check": "exists"
+  },
+  {
+   "artifact": "fix_log_m04.md",
+   "check": "exists"
+  },
+  {
+   "artifact": "fix_log_m05.md",
+   "check": "exists"
+  },
+  {
+   "artifact": "fix_log_m06.md",
+   "check": "exists"
+  },
+  {
+   "artifact": "fix_log_m07.md",
+   "check": "exists"
+  },
+  {
+   "artifact": "fix_log_m08.md",
+   "check": "exists"
+  },
+  {
+   "artifact": "fix_log_m09.md",
+   "check": "exists"
+  },
+  {
+   "artifact": "fix_log_m10.md",
    "check": "exists"
   }
  ],
@@ -89,6 +117,15 @@
   {
    "artifact": "m10.py",
    "check": "python_compiles"
+  },
+  {
+   "artifact": "test_suite.py",
+   "check": "script_pass",
+   "params": {
+    "command": "python test_suite.py",
+    "expect_stdout": "10 passed, 0 failed",
+    "timeout_s": 120
+   }
   },
   {
    "artifact": "fix_log.md",

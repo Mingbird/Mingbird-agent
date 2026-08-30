@@ -42,6 +42,7 @@ def gen_lh01():
     batches = [f"B{i:02d}" for i in range(1, 9)]
     rows = []
     peak = {}
+    anom = {"batch": "B06", "temp": None}      # injected dip: B06 @ base_t+150
     for b in batches:
         base_t = rng.choice([400, 425, 450, 475, 500, 525])
         slope = rng.uniform(0.8, 1.6)          # UTS per degree above base
@@ -51,8 +52,9 @@ def gen_lh01():
             t = base_t + (i % 10) * 25
             h = 2 + (i % 8)
             uts = min(cap, 900 + slope * (t - base_t) + rng.gauss(0, 18))
-            if b == "B06" and t == base_t + 150:
+            if b == anom["batch"] and t == base_t + 150:
                 uts -= 90                       # injected anomaly dip (mid-range, off-trend)
+                anom["temp"] = t
             el = max(2, 18 - (t - 400) / 40 + rng.gauss(0, 1.2))
             hv = 280 + (uts - 900) / 6 + rng.gauss(0, 6)
             rows.append((b, t, h, round(uts, 1), round(el, 1), round(hv, 1)))
@@ -64,14 +66,24 @@ def gen_lh01():
             f.write(",".join(str(x) for x in r) + "\n")
 
     slice_files = [f"slice_stats_{b}.md" for b in batches]
-    milestones = [{"artifact": s, "check": "exists"} for s in slice_files[:4]]
+    # 判分加厚(P0):每个 slice 文件必须含本批真实峰值(此前 4 个 exists 会让
+    # "建 4 个空文件+糊报告"接近满分)。里程碑 = 8 × 内容校验。
+    milestones = [{"artifact": s, "check": "contains_any",
+                   "params": {"any_of": num_variants(peak[b])}}
+                  for s, b in zip(slice_files, batches)]
     final = [
         {"artifact": "slice_aggregate.py", "check": "python_compiles"},
-        {"artifact": "cross_validation.json", "check": "exists"},
+        {"artifact": "cross_validation.json", "check": "contains_groups",
+         "params": {"groups": [num_variants(peak[b]) for b in batches],
+                    "min_ratio": 1.0}},
+        # 排名顺序对 JSON 键序脆弱(键通常按批号序插入,先于 ranking 数组出现),
+        # 确定性侧只查值齐全;排序正确性交给 judge rubric。
         {"artifact": "master_report.md", "check": "min_words", "params": {"min_words": 400}},
-        {"artifact": "master_report.md", "check": "contains_any",
-         "params": {"any_of": sum([num_variants(peak[b]) for b in ("B02", "B07")], [])}},
+        {"artifact": "master_report.md", "check": "contains_groups",
+         "params": {"groups": [[anom["batch"]], [str(anom["temp"])]],
+                    "min_ratio": 1.0}},
         {"artifact": "revision_notes.md", "check": "exists"},
+        {"artifact": "revision_notes.md", "check": "min_words", "params": {"min_words": 20}},
     ]
     steps = ["Create your plan (todo tool if available, otherwise plan.md).",
              "Inspect alloy_multibatch.csv (5000 rows, 8 batches B01..B08).",
@@ -95,7 +107,9 @@ def gen_lh01():
         "notes": "Deep dependency chain: 8 slice stats feed cross-validation feed report feed revision.",
         "extra_judge_note": "",
     }
-    truth = {"peak_uts_per_batch": peak}
+    ranking = [b for b, _ in sorted(peak.items(), key=lambda kv: -kv[1])]
+    truth = {"peak_uts_per_batch": peak, "ranking": ranking,
+             "anomaly": {"batch": anom["batch"], "temp_C": anom["temp"], "dip_MPa": 90}}
     return task, truth
 
 
@@ -137,8 +151,11 @@ def gen_lh02():
     final = [
         {"artifact": "build_index.py", "check": "python_compiles"},
         {"artifact": "freq_index.json", "check": "exists"},
-        {"artifact": "freq_index.json", "check": "contains_any",
-         "params": {"any_of": [w for w, _ in top8[:4]]}},
+        # 加厚:top-8 全部词 + 每词精确计数(此前 any-of 前 4 词,不带计数也能满分)
+        {"artifact": "freq_index.json", "check": "contains_groups",
+         "params": {"groups": [[w] for w, _ in top8], "min_ratio": 1.0}},
+        {"artifact": "freq_index.json", "check": "contains_groups",
+         "params": {"groups": [[str(c), f"{c:,}"] for _, c in top8], "min_ratio": 1.0}},
         {"artifact": "dedup_report.md", "check": "min_words", "params": {"min_words": 150}},
         {"artifact": "corpus_summary.md", "check": "contains_any",
          "params": {"any_of": num_variants(total_words) + [f"{total_words:,}"]}},
@@ -162,7 +179,8 @@ def gen_lh02():
                   "Required steps (plan at least 9):\n" +
                   "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps)),
         "required_plan_steps_min": 9, "plan_steps": steps,
-        "milestones": [{"artifact": "freq_index.json", "check": "exists"}],
+        "milestones": [{"artifact": "freq_index.json", "check": "contains_groups",
+                        "params": {"groups": [[w] for w, _ in top8[:4]], "min_ratio": 1.0}}],
         "final_artifacts": final, "judge_rubric": "rubrics/LH-02.md",
         "max_wall_minutes": 90, "resume_test": False,
         "notes": "400KB corpus: read-all strategies blow context; only script-based processing survives.",
@@ -262,8 +280,14 @@ def gen_lh03():
     truth = {"modules": [m for m, _, _ in modules], "functions": [fn for _, fn, _ in modules],
              "bugs": bugs}
     per_module_logs = [f"fix_log_{m}.md" for m, _, _ in modules]
+    # 加厚:里程碑 = 全部 10 个模块日志(逐模块推进的证据),不再只查前 3。
     final = [{"artifact": f"{m}.py", "check": "python_compiles"} for m, _, _ in modules]
     final += [
+        # 端到端验证:修复必须让测试套件真绿("10 passed, 0 failed"),
+        # 不是"改到能编译"。这是 LH-03 与真实调试工作对齐的核心判据。
+        {"artifact": "test_suite.py", "check": "script_pass",
+         "params": {"command": "python test_suite.py",
+                    "expect_stdout": "10 passed, 0 failed", "timeout_s": 120}},
         {"artifact": "fix_log.md", "check": "min_words", "params": {"min_words": 300}},
         {"artifact": "fix_log.md", "check": "contains_any",
          "params": {"any_of": [fn for _, fn, _ in modules[:5]]}},
@@ -282,12 +306,13 @@ def gen_lh03():
         "id": "LH-03", "domain": "long-horizon-endurance-resume", "version": "1.0",
         "fixtures": [f"fixtures/buggy_pipeline_pkg/{m}.py" for m, _, _ in modules] +
                     ["fixtures/buggy_pipeline_pkg/test_suite.py"],
-        "prompt": PROMPT_HEAD + "\n\nFix the 10-module signal pipeline in buggy_pipeline_pkg/ "
-                  "(each module m01.py..m10.py has exactly one bug). Work strictly module by module.\n\n"
+        "prompt": PROMPT_HEAD + "\n\nFix the 10-module signal pipeline "
+                  "(modules m01.py..m10.py and test_suite.py are in the current directory; "
+                  "each module has exactly one bug). Work strictly module by module.\n\n"
                   "Required steps (plan at least 15):\n" +
                   "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps)),
         "required_plan_steps_min": 15, "plan_steps": steps,
-        "milestones": [{"artifact": f"fix_log_{m}.md", "check": "exists"} for m, _, _ in modules[:3]],
+        "milestones": [{"artifact": f"fix_log_{m}.md", "check": "exists"} for m, _, _ in modules],
         "final_artifacts": final, "judge_rubric": "rubrics/LH-03.md",
         "max_wall_minutes": 90, "resume_test": True, "kill_at_pct": 50,
         "notes": "Endurance (~40 tool calls) + resume: runner kills at 50% budget and relaunches; "
@@ -295,6 +320,93 @@ def gen_lh03():
         "extra_judge_note": "",
     }
     return task, truth
+
+
+# Real judge rubrics (English, paper artifact). Regeneration rewrites these files,
+# so the text lives here as the single source of truth. Rubrics embed ground truth
+# by design: workdirs contain only fixtures, agents never see tasks/ or rubrics/.
+RUBRIC_TEXT = {
+    "LH-01": """# Judge rubric — LH-01 (deep dependency chain)
+
+Deterministic checks already verify: 8 slice_stats files each contain the true
+peak UTS of their batch; cross_validation.json contains all 8 peak values; the
+report names batch B06 at 675 C; length floors. Grade the REST on 0-10:
+
+1. **Ranking correctness (0-4).** Correct ranking by peak UTS is
+   B08 (1302.3) > B01 (1263.1) > B07 (1260.1) > B05 (1241.4) > B03 (1231.5) >
+   B02 (1230.2) > B04 (1139.4) > B06 (1124.0).
+   4 = exact order stated unambiguously; 3 = correct set/leaders but one adjacent
+   swap among the tight middle (B03/B02 differ by 1.3 MPa); 1-2 = partially
+   correct, leaders right; 0 = wrong leaders or no ranking. The B03/B02 near-tie
+   is intentional: only an agent that actually computed both peaks can order them.
+2. **Anomaly analysis (0-2).** 2 = identifies B06's dip at 675 C as off-trend
+   (mid-range collapse, ~90 MPa below the batch trend) and discusses plausible
+   cause; 1 = names B06 but no mechanism; 0 = wrong batch.
+3. **Spread & recommendation (0-2).** 2 = quantifies inter-batch spread (range
+   ~178 MPa, B06 low outlier) and gives a material-process recommendation tied to
+   the data; 1 = generic statements; 0 = none.
+4. **Revision notes substance (0-2).** 2 = revision_notes.md reflects a real
+   cross-check (lists concrete corrections or explicit confirmations per file);
+   1 = boilerplate; 0 = empty/stub.
+
+Deduction (up to -2): numbers present in cross_validation.json but inconsistent
+with the slice files, or a report that fabricates values not derivable from the
+fixture.""",
+    "LH-02": """# Judge rubric — LH-02 (context pressure)
+
+Deterministic checks already verify: freq_index.json contains the top-8 words
+(stress 3726, grain 3717, time 3662, test 3635, the 3610, fraction 3609,
+structure 3609, rate 3599) with exact counts; total word count; report sections
+and length. Grade the REST on 0-10:
+
+1. **Dedup correctness (0-4).** Ground truth: exactly 5 duplicate lines (inserted
+   adjacent copies at positions 137, 1954, 3707, 5222, 5888 of the stream).
+   4 = count 5 with a correct exact-match method described; 3 = count 5, method
+   vague; 2 = count 4 or 6 with a plausible near-miss explanation (e.g. newline
+   handling); 0 = wrong count with no method. Reporting a dedup count of 0 or a
+   round number like 10 is strong evidence the step was fabricated.
+2. **Per-topic line counts (0-2).** Ground truth: 10 topics at 600 or 601 lines
+   (diffusion/creep 600, fatigue/welding/corrosion/recrystallization/segregation
+   601, twinning/annealing 600, precipitation 600). 2 = table matches exactly;
+   1 = approximately right (±5) or partial table; 0 = fabricated.
+3. **Script-based evidence (0-2).** 2 = build_index.py streams the file (readline
+   / chunked iteration, no whole-file read into a single string that then enters
+   chat context); 1 = script exists but loads whole file; 0 = no script, numbers
+   asserted without a path to compute them.
+4. **Summary quality (0-2).** 2 = corpus_summary.md cross-consistent with
+   freq_index.json (totals agree) and dedup_report.md gives concrete duplicate
+   examples; 1 = minor inconsistencies; 0 = internally contradictory.
+
+Deduction (up to -2): any top-8 word or count in prose that contradicts
+freq_index.json.""",
+    "LH-03": """# Judge rubric — LH-03 (endurance + resume)
+
+Deterministic checks already verify: 10 fix_log_mXX.md exist; all modules
+compile; `python test_suite.py` prints "10 passed, 0 failed" (the hard gate);
+fix_log.md length and function-name coverage. Grade the REST on 0-10:
+
+1. **Root-cause quality (0-4).** Ground truth bugs: m01 divisor off by one
+   (len+1); m02 median wrong for even n (needs mean of middle two); m03
+   population variance instead of sample (n-1); m04 slope not least-squares;
+   m05 trailing None appended; m06 smoothing window steps back `factor` instead
+   of 1; m07 multiply by max instead of divide; m08 integer division `//`;
+   m09 off-by-one 1-based index; m10 returns a slice instead of the intercept.
+   4 = at least 8 logs state the actual root cause (not just "fixed it");
+   2-3 = half correct or generic ("off-by-one error" with no specifics);
+   0-1 = logs contradict the real bugs (hallucinated causes).
+2. **Fix provenance (0-3).** 3 = each fix_log_mXX.md shows diagnose -> edit ->
+   re-run evidence for its module in order; 1-2 = logs written retroactively in
+   one batch (all identical templates, no per-module failure output); 0 = logs
+   independent of actual test output.
+3. **Integration report (0-2).** 2 = 'all tests' section quotes the final suite
+   output verbatim and 'regression' section addresses whether fixes broke other
+   modules; 1 = one section substantive; 0 = stub.
+4. **Process discipline (0-1).** 1 = modules fixed strictly in order m01..m10
+   as instructed; 0 = random order or parallel rewrite of all files at once.
+
+Deduction (up to -2): test suite green but any module "fixed" by weakening the
+test file (test_suite.py edits are forbidden — the suite is the oracle).""",
+}
 
 
 def main():
@@ -306,7 +418,7 @@ def main():
         p = os.path.join(TASKS, f"{tid}.json")
         json.dump(task, open(p, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
         with open(os.path.join(RUBRICS, f"{tid}.md"), "w", encoding="utf-8") as f:
-            f.write(f"# Judge rubric — {tid}\n\nDeterministic checks only; rubric reserved for LLM-judge mode.\n")
+            f.write(RUBRIC_TEXT[tid])
         out[tid] = {"task": p, "truth": truth}
         print(f"{tid}: task written, truth keys={list(truth)}")
     print(json.dumps({k: v["truth"] for k, v in out.items()}, ensure_ascii=False, indent=1)[:1500])

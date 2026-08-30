@@ -27,19 +27,83 @@
  "milestones": [
   {
    "artifact": "slice_stats_B01.md",
-   "check": "exists"
+   "check": "contains_any",
+   "params": {
+    "any_of": [
+     "1263",
+     "1263.1"
+    ]
+   }
   },
   {
    "artifact": "slice_stats_B02.md",
-   "check": "exists"
+   "check": "contains_any",
+   "params": {
+    "any_of": [
+     "1230",
+     "1230.2"
+    ]
+   }
   },
   {
    "artifact": "slice_stats_B03.md",
-   "check": "exists"
+   "check": "contains_any",
+   "params": {
+    "any_of": [
+     "1231.5",
+     "1232"
+    ]
+   }
   },
   {
    "artifact": "slice_stats_B04.md",
-   "check": "exists"
+   "check": "contains_any",
+   "params": {
+    "any_of": [
+     "1139",
+     "1139.4"
+    ]
+   }
+  },
+  {
+   "artifact": "slice_stats_B05.md",
+   "check": "contains_any",
+   "params": {
+    "any_of": [
+     "1241",
+     "1241.4"
+    ]
+   }
+  },
+  {
+   "artifact": "slice_stats_B06.md",
+   "check": "contains_any",
+   "params": {
+    "any_of": [
+     "1124",
+     "1124.0"
+    ]
+   }
+  },
+  {
+   "artifact": "slice_stats_B07.md",
+   "check": "contains_any",
+   "params": {
+    "any_of": [
+     "1260",
+     "1260.1"
+    ]
+   }
+  },
+  {
+   "artifact": "slice_stats_B08.md",
+   "check": "contains_any",
+   "params": {
+    "any_of": [
+     "1302",
+     "1302.3"
+    ]
+   }
   }
  ],
  "final_artifacts": [
@@ -49,7 +113,44 @@
   },
   {
    "artifact": "cross_validation.json",
-   "check": "exists"
+   "check": "contains_groups",
+   "params": {
+    "groups": [
+     [
+      "1263",
+      "1263.1"
+     ],
+     [
+      "1230",
+      "1230.2"
+     ],
+     [
+      "1231.5",
+      "1232"
+     ],
+     [
+      "1139",
+      "1139.4"
+     ],
+     [
+      "1241",
+      "1241.4"
+     ],
+     [
+      "1124",
+      "1124.0"
+     ],
+     [
+      "1260",
+      "1260.1"
+     ],
+     [
+      "1302",
+      "1302.3"
+     ]
+    ],
+    "min_ratio": 1.0
+   }
   },
   {
    "artifact": "master_report.md",
@@ -60,19 +161,29 @@
   },
   {
    "artifact": "master_report.md",
-   "check": "contains_any",
+   "check": "contains_groups",
    "params": {
-    "any_of": [
-     "1230",
-     "1230.2",
-     "1260",
-     "1260.1"
-    ]
+    "groups": [
+     [
+      "B06"
+     ],
+     [
+      "675"
+     ]
+    ],
+    "min_ratio": 1.0
    }
   },
   {
    "artifact": "revision_notes.md",
    "check": "exists"
+  },
+  {
+   "artifact": "revision_notes.md",
+   "check": "min_words",
+   "params": {
+    "min_words": 20
+   }
   }
  ],
  "judge_rubric": "rubrics/LH-01.md",
