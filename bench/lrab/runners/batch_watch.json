@@ -1,9 +1,9 @@
 {
   "patterns": [
-    "hummingbird_LH01_*_0830_*",
-    "hummingbird_LH02_*_0830_*",
-    "hummingbird_LH03_*_0830_*"
+    "opencode_LH0*_083[01]_*",
+    "agent-mini_LH0*_083[01]_*",
+    "goose_LH0*_083[01]_*"
   ],
-  "target": 12,
-  "note": "LRAB-H hummingbird wave launched 2026-08-30 ~09:40 (LH-01/02/03 x 4 models, 90min budget, LH-03 kill-resume at 50%). Plan: competitor waves (opencode/agent-mini/goose, same 12-cell shape) after this block completes. Compare vs WF-64-layer behavior; LH-03 resume meta lives in score.json 'resume'."
+  "target": 36,
+  "note": "LRAB-H competitor waves launched 2026-08-30 19:01 (opencode -> agent-mini -> goose, each LH-01/02/03 x 4 models, 90min budget, LH-03 kill-resume at 50%; 36 cells serial). Hummingbird wave done 18:57 (12/12; 35b 0.980 / 12b 0.552 with LH03 double-timeout / 4b 0.377 / e2b 0.514). Patterns span 0830+0831 for midnight rollover."
 }
