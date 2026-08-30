@@ -54,12 +54,35 @@ def list_tasks(tasks_dir):
     return dict(sorted(out.items()))
 
 
+class _Tee:
+    """Duplicate stdout to a log file: a multi-hour matrix that dies with its
+    console must still leave an attributable trace (2026-08-30 stall had none)."""
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, s):
+        for st in self.streams:
+            try:
+                st.write(s)
+            except Exception:
+                pass
+
+    def flush(self):
+        for st in self.streams:
+            try:
+                st.flush()
+            except Exception:
+                pass
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--agents", default="hummingbird,opencode,agent-mini,goose")
     ap.add_argument("--models", default="ornith-1.5:35b,gemma4:12b,qwen3.5:4b,gemma4:e2b")
     ap.add_argument("--tasks-dir", default=os.path.join(LRAB, "tasks"))
     ap.add_argument("--tasks", default="", help="comma list of task ids to subset (default: all)")
+    ap.add_argument("--include-tier4", action="store_true",
+                    help="include tier4_longhorizon tasks in a default (no --tasks) run")
     ap.add_argument("--results", default=os.path.expanduser("~/dev/hummingbird/eval_results"))
     ap.add_argument("--timeout-min", type=int, default=45)
     ap.add_argument("--judge", default="", help="judge model (empty = deterministic only, faster)")
@@ -71,11 +94,20 @@ def main():
     agents = [x.strip() for x in a.agents.split(",") if x.strip()]
     models = [x.strip() for x in a.models.split(",") if x.strip()]
     all_tasks = list_tasks(a.tasks_dir)
+    # Scope guard: tier4_longhorizon is a different protocol (2x budget + kill/
+    # resume phases). Default matrices must not silently sweep it in.
+    tier4 = {t: p for t, p in all_tasks.items()
+             if f"{os.sep}tier4{os.sep}" in p or f"{os.sep}tier4_longhorizon{os.sep}" in p}
     if a.tasks:
         subset = [x.strip() for x in a.tasks.split(",") if x.strip()]
         tasks = {t: p for t, p in all_tasks.items() if t in subset}
-    else:
+    elif a.include_tier4 or not tier4:
         tasks = all_tasks
+    else:
+        tasks = {t: p for t, p in all_tasks.items() if t not in tier4}
+        print(f"scope guard: excluded {len(tier4)} long-horizon task(s) "
+              f"({', '.join(sorted(tier4))}) — pass --tasks LH-01,... or --include-tier4 to run them",
+              flush=True)
     if not tasks:
         print("no tasks found"); sys.exit(1)
 
@@ -87,6 +119,13 @@ def main():
             print(f"  would run: {ag:12s} {md:20s} {tk}")
         print("  ... (dry-run, not executing)")
         return
+
+    # persist stdout from the first line on (children inherit the tee)
+    log_dir = os.path.join(a.results, "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, f"matrix_{time.strftime('%m%d_%H%M%S')}.log")
+    sys.stdout = _Tee(sys.__stdout__, open(log_path, "w", encoding="utf-8", buffering=1))
+    print(f"matrix log: {log_path}", flush=True)
 
     # Ollama up before starting
     if not ollama_up():
@@ -164,10 +203,18 @@ def _run_cells(a, cells, attempt_stats, manifest):
         "failed": sum(1 for c in manifest["cells"] if not c["ok"]),
     }
     man_path = os.path.join(a.results, "MATRIX_MANIFEST.json")
+    manifest_json = json.dumps(manifest, ensure_ascii=False, indent=2)
     with open(man_path, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, ensure_ascii=False, indent=2)
+        f.write(manifest_json)
+    # History copy: MATRIX_MANIFEST.json is overwritten every batch, which once
+    # nearly destroyed the BEFORE-64 manifest mid-batch (2026-08-30 05:10 audit).
+    # Timestamped copies make every batch's manifest permanently recoverable.
+    hist_path = os.path.join(a.results, f"MATRIX_MANIFEST_{time.strftime('%m%d_%H%M%S')}.json")
+    with open(hist_path, "w", encoding="utf-8") as f:
+        f.write(manifest_json)
     print(f"\n=== matrix done: {manifest['summary']} ===")
     print(f"manifest: {man_path}")
+    print(f"manifest history copy: {hist_path}")
 
 
 if __name__ == "__main__":

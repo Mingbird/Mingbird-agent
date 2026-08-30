@@ -21,7 +21,24 @@
  "milestones": [
   {
    "artifact": "freq_index.json",
-   "check": "exists"
+   "check": "contains_groups",
+   "params": {
+    "groups": [
+     [
+      "stress"
+     ],
+     [
+      "grain"
+     ],
+     [
+      "time"
+     ],
+     [
+      "test"
+     ]
+    ],
+    "min_ratio": 1.0
+   }
   }
  ],
  "final_artifacts": [
@@ -35,14 +52,76 @@
   },
   {
    "artifact": "freq_index.json",
-   "check": "contains_any",
+   "check": "contains_groups",
    "params": {
-    "any_of": [
-     "stress",
-     "grain",
-     "time",
-     "test"
-    ]
+    "groups": [
+     [
+      "stress"
+     ],
+     [
+      "grain"
+     ],
+     [
+      "time"
+     ],
+     [
+      "test"
+     ],
+     [
+      "the"
+     ],
+     [
+      "fraction"
+     ],
+     [
+      "structure"
+     ],
+     [
+      "rate"
+     ]
+    ],
+    "min_ratio": 1.0
+   }
+  },
+  {
+   "artifact": "freq_index.json",
+   "check": "contains_groups",
+   "params": {
+    "groups": [
+     [
+      "3726",
+      "3,726"
+     ],
+     [
+      "3717",
+      "3,717"
+     ],
+     [
+      "3662",
+      "3,662"
+     ],
+     [
+      "3635",
+      "3,635"
+     ],
+     [
+      "3610",
+      "3,610"
+     ],
+     [
+      "3609",
+      "3,609"
+     ],
+     [
+      "3609",
+      "3,609"
+     ],
+     [
+      "3599",
+      "3,599"
+     ]
+    ],
+    "min_ratio": 1.0
    }
   },
   {

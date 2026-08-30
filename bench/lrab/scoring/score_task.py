@@ -5,10 +5,15 @@
 Checks (from task JSON):
   exists          -> artifact exists
   contains_any    -> file contains any of the strings
+  contains_groups -> N groups of format-variants; group hit if any variant present;
+                     score = hit_groups/N, capped below 1.0 unless ratio >= min_ratio
+  contains_ordered-> strings appear in the given relative order (first-occurrence
+                     positions strictly increasing; other text may sit between)
   not_contains    -> file contains none of the strings
   min_words       -> word count >= min_words
   structure       -> all required_sections appear as markdown headings
   python_compiles -> py_compile succeeds
+  script_pass     -> run a command in the workdir, substring must appear in stdout
   file_min_bytes  -> size >= min_bytes
   min_urls        -> count of http(s):// URLs >= min_urls
 
@@ -42,6 +47,35 @@ def check_one(check, workdir, artifact):
         text = _read(p)
         hits = [s for s in params.get("any_of", []) if s in text]
         return (1.0 if hits else 0.0), (f"matched {hits[:3]}" if hits else "no expected strings found")
+    if kind == "contains_groups":
+        # N 组格式变体,组内任一命中即该组得分;总分组数比例给分,
+        # 达到 min_ratio 才给满分(梯度分暴露"跳步",不是全有全无)。
+        text = _read(p)
+        groups = params.get("groups", [])
+        if not groups:
+            return 0.0, "no groups configured"
+        hit = sum(1 for g in groups if any(s in text for s in g))
+        ratio = hit / len(groups)
+        min_ratio = float(params.get("min_ratio", 1.0))
+        sc = 1.0 if ratio >= min_ratio else round(min(ratio, 0.999), 3)
+        miss = [g[0] for g in groups if not any(s in text for s in g)]
+        return sc, (f"{hit}/{len(groups)} groups (min_ratio {min_ratio})"
+                    + (f"; missing e.g. {miss[:3]}" if miss else ""))
+    if kind == "contains_ordered":
+        # 相对顺序:各串首次出现位置严格递增(中间可有其他文本),对分隔符鲁棒。
+        text = _read(p)
+        ordered = params.get("ordered", [])
+        if not ordered:
+            return 0.0, "no ordered list configured"
+        pos, last, ok = [], -1, True
+        for s in ordered:
+            i = text.find(s, last + 1)
+            if i < 0:
+                ok = False
+                break
+            pos.append(i)
+            last = i
+        return (1.0 if ok else 0.0), ("order matched" if ok else f"order broken at '{ordered[len(pos)] if len(pos) < len(ordered) else '?'}'")
     if kind == "not_contains":
         text = _read(p)
         bad = [s for s in params.get("none_of", []) if s in text]
@@ -65,6 +99,27 @@ def check_one(check, workdir, artifact):
             return 1.0, "compiles"
         except Exception as e:
             return 0.0, f"syntax error: {str(e)[:120]}"
+    if kind == "script_pass":
+        # 在 workdir 里跑一条命令,stdout 含 expect 子串即过(LH-03: python test_suite.py
+        # 须打 "10 passed, 0 failed" —— 模块真被修好,而不是只改到"能编译")。
+        import subprocess as _sp
+        cmd = params.get("command", "")
+        expect = params.get("expect_stdout", "")
+        if not cmd:
+            return 0.0, "no command configured"
+        try:
+            r = _sp.run(cmd, shell=True, capture_output=True, text=True,
+                        timeout=int(params.get("timeout_s", 120)), cwd=workdir,
+                        encoding="utf-8", errors="replace")
+            out = (r.stdout or "") + (r.stderr or "")
+            if expect and expect in out:
+                return 1.0, f"exit={r.returncode}, expected output present"
+            if not expect and r.returncode == 0:
+                return 1.0, "exit=0"
+            tail = " | ".join((r.stdout or "").strip().splitlines()[-1:])[:100]
+            return 0.0, f"exit={r.returncode}, expected '{expect}' not in output (tail: {tail})"
+        except Exception as e:
+            return 0.0, f"script failed: {str(e)[:100]}"
     if kind == "file_min_bytes":
         size = os.path.getsize(p) if os.path.exists(p) else 0
         return (1.0 if size >= params.get("min_bytes", 1) else 0.0), f"{size} bytes"
