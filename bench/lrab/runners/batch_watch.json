@@ -1,10 +1,5 @@
 {
-  "patterns": [
-    "opencode_LH0*_083[01]_*",
-    "agentmini_LH0*_083[01]_*",
-    "goose_LH0*_083[01]_*"
-  ],
-  "target": 36,
-  "stale_alert_sec": 3600,
-  "note": "LRAB-H competitor waves launched 2026-08-30 19:01 (opencode -> agent-mini -> goose, each LH-01/02/03 x 4 models, 90min budget, LH-03 kill-resume at 50%; 36 cells serial). opencode wave done 12/12 ~20:45; agent-mini wave running since 20:45 (prefix is 'agentmini' WITHOUT hyphen - first watch config used 'agent-mini_' and matched nothing, causing a false stalled alert at 21:20). Patterns span 0830+0831 for midnight rollover."
+  "patterns": ["*_WF02_*", "*_WF04_*", "*_WF05_*", "*_WF07_*", "*_WF08_*"],
+  "target": 80,
+  "note": "288-matrix batch 1 launched 2026-08-31 ~13:00: WF-02/04/05/07/08 x 4 agents x 4 models = 80 cells, 40min budget, run_matrix default (all agents, tier4 excluded). These 5 tasks have ZERO prior dirs in eval_results, so date-free patterns are safe. LH layer (48 cells) fully done 2026-08-31 12:50; see RESULTS.md. Batch 2 (WF-10/11/12/13/14) queued after this completes."
 }

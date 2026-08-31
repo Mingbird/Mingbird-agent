@@ -50,13 +50,13 @@ def load_scores(patterns=None):
     slug2model = {slug(m): m for m in MODELS}
     rows = {}
     for key, d in latest.items():
-        m = re.match(r"^(?P<agent>.+)_(?P<task>WF\d{2})_(?P<model>.+)$", key)
+        m = re.match(r"^(?P<agent>.+)_(?P<task>[A-Z]{2}\d{2})_(?P<model>.+)$", key)
         if not m or m["model"] not in slug2model:
             continue
         agent = "agent-mini" if m["agent"] == "agentmini" else m["agent"]
         if agent not in AGENTS:
             continue
-        task = f"WF-{m['task'][2:]}"
+        task = f"{m['task'][:2]}-{m['task'][2:]}"
         model = slug2model[m["model"]]
         sj = d / "score.json"
         if not sj.exists():
@@ -85,6 +85,8 @@ def main():
     patterns = patterns.split(",") if patterns else None
     agents = opt("--agents")
     agents = agents.split(",") if agents else AGENTS
+    tasks_arg = opt("--tasks")
+    tasks = tasks_arg.split(",") if tasks_arg else TASKS
     rows = load_scores(patterns)
     out = opt("--out", "BATCH64_SUMMARY.md")
     title = opt("--title", "LRAB 64-cell batch summary (2026-08-29/30, tasks WF-01/03/09/15 x 4 agents x 4 models)")
@@ -96,7 +98,7 @@ def main():
     model_scores = defaultdict(lambda: defaultdict(list))
     retry_cells = []
     for a in agents:
-        for t in TASKS:
+        for t in tasks:
             cells = [rows.get((a, t, m)) for m in MODELS]
             line = [f"| {a} {t}"]
             for i, m in enumerate(MODELS):
@@ -125,7 +127,7 @@ def main():
         lines += ["", "## Retried cells (attempt-1 result superseded by latest attempt)", ""]
         for a, t, m, v in retry_cells:
             lines.append(f"- {a} {t} {m}: {v['attempts']} attempts -> {fmt(v)} ({v['run_id']})")
-    missing = [(a, t, m) for a in agents for t in TASKS for m in MODELS
+    missing = [(a, t, m) for a in agents for t in tasks for m in MODELS
                if (a, t, m) not in rows or rows[(a, t, m)]["fm"] == "incomplete"]
     if missing:
         lines += ["", f"## Incomplete cells ({len(missing)})"]
