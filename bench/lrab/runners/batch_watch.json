@@ -1,5 +1,5 @@
 {
   "patterns": ["*_WF02_*", "*_WF04_*", "*_WF05_*", "*_WF07_*", "*_WF08_*"],
   "target": 80,
-  "note": "288-matrix batch 1 launched 2026-08-31 ~13:00: WF-02/04/05/07/08 x 4 agents x 4 models = 80 cells, 40min budget, run_matrix default (all agents, tier4 excluded). These 5 tasks have ZERO prior dirs in eval_results, so date-free patterns are safe. LH layer (48 cells) fully done 2026-08-31 12:50; see RESULTS.md. Batch 2 (WF-10/11/12/13/14) queued after this completes."
+  "note": "288-matrix batch 1: WF-02/04/05/07/08 x 4 agents x 4 models = 80 cells, 40min budget. Anti-loop harness fix (76c4c35) verified by 4b smoke, relaunched 13:58, session-teardown killed tree 15:2x (3rd recurrence) -> RECOVERED 15:42 via DETACHED powershell Start-Process (workspace/batch1_recovery_0831.ps1, chunks A/B/C cover remaining 79 cells, log eval_results/logs/recovery_0831.log). LH layer (48) done; batch 2 (WF-10..14) + LH-after rerun queued."
 }
