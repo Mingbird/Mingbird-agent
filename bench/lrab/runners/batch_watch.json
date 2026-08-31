@@ -1,5 +1,5 @@
 {
   "patterns": ["*_WF02_*", "*_WF04_*", "*_WF05_*", "*_WF07_*", "*_WF08_*"],
   "target": 80,
-  "note": "288-matrix batch 1: WF-02/04/05/07/08 x 4 agents x 4 models = 80 cells, 40min budget. Anti-loop harness fix (76c4c35) verified by 4b smoke, relaunched 13:58, session-teardown killed tree 15:2x (3rd recurrence) -> RECOVERED 15:42 via DETACHED powershell Start-Process (workspace/batch1_recovery_0831.ps1, chunks A/B/C cover remaining 79 cells, log eval_results/logs/recovery_0831.log). LH layer (48) done; batch 2 (WF-10..14) + LH-after rerun queued."
+  "note": "288-matrix batch 1: WF-02/04/05/07/08 x 4 agents x 4 models = 80 cells, 40min budget. 17:2x REORDER (batch1_reorder_0831.ps1, ASCII-path copy at C-root, launched DETACHED): 35b cannot load+serve today (B390 UMA request-level OOM churn, weights load ~20GB then die) so chunk B = hummingbird 12b/4b/e2b (15 cells) 17:28, chunk C = competitors 12b/4b/e2b (45), guarded chunk D = 35b retry (19 cells, load-probe gate, CHUNK_D_SKIPPED.txt marker if still broken). Earlier: 13:58 batch's run_matrix SURVIVED the 15:2x teardown as orphan and ran parallel with recovery until ~16:30 (WF04-m0-154210 timeout + WF05-m0-154912 zero-score are contention artifacts; superseded by latest-attempt-wins). WF02-35b is the only valid cell done so far. LH layer (48) done; batch 2 (WF-10..14) + LH-after rerun queued."
 }
