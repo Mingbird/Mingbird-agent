@@ -788,6 +788,9 @@ def enable_advanced_tools(names):
     note = ""
     if mcp_added:
         note = f" MCP 工具已按需加载: {', '.join(mcp_added)}"
+    if not added and not mcp_added:
+        # 模型重复 enable 已可用工具时,'(none)' 会诱发死循环重试(LH-01 4b 教训)——给明确指令
+        note = " 无需再启用:你要的工具都已可用,直接调用它即可。"
     return f"[enabled tools: {', '.join(added) or '(none)'}. Now available: {', '.join(t['function']['name'] for t in _active_tools)}]{note}"
 
 def _auto_repair(path):
@@ -1535,6 +1538,8 @@ def agent_loop(model, messages, workdir, session):
     redirect_warns = 0
     last_tool = None
     last_sig = None            # 上一次工具调用签名(严格不重复同一命令)
+    same_sig_streak = 0        # 同工具+同参数连续次数(长任务批处理 args 在变,不该升级禁用)
+    last_sig_now = None        # 上一轮 (name, args) 签名,供 same_sig_streak 用
     dup_warns = 0
     tool_streak = 0
     streak_warns = 0
@@ -1731,7 +1736,8 @@ def agent_loop(model, messages, workdir, session):
                     name = _alias[name]
                     fn["name"] = name
                 if (name in _disabled_tools or name not in [t["function"]["name"] for t in _active_tools]) and not is_mcp_tool(name):
-                    res = f"[tool {name} 已被禁用,请改用其他工具;若是搜索/抓取请直接写报告]"
+                    res = (f"[tool {name} 已被禁用(连续重复调用保护)。不要尝试用其他工具绕道读同一内容:"
+                           f"直接用 create_file 写产出文件,或已有信息足够就调用 finish。]")
                 elif name not in ("finish", "todo") and last_sig == (name, json.dumps(args, sort_keys=True, ensure_ascii=False)) and dup_warns < 3:
                     # 严格不重复同一命令:完全相同签名连续调用 → 拦截并提醒换策略
                     dup_warns += 1
@@ -1854,6 +1860,12 @@ def agent_loop(model, messages, workdir, session):
                 elif fail_count.get(name):
                     fail_count[name] = 0   # 仅同工具成功清零
                 # 重复成功检测:同一工具连续调用过多次(如 web_search 反复搜)→ 提示推进
+                _sig_now = (name, json.dumps(args, sort_keys=True, ensure_ascii=False))
+                if _sig_now == last_sig_now:
+                    same_sig_streak += 1
+                else:
+                    same_sig_streak = 1
+                last_sig_now = _sig_now
                 if name == last_tool:
                     tool_streak += 1
                 else:
@@ -1862,10 +1874,12 @@ def agent_loop(model, messages, workdir, session):
                     streak_warns += 1
                     messages.append({"role":"user","content":
                         f"⚠️ 你已连续 {tool_streak} 次调用 {name}。若结果类似或没有新进展,停止重复:"
-                        f"综合已有结果推进到下一步(写文件 / 换其他工具 / 调用 finish)。"})
+                        f"综合已有结果推进到下一步(写文件 / 换其他工具 / 调用 finish)。"
+                        f"若你在做批量步骤(每次参数不同)则属正常,继续。"})
                     tool_streak = 1
-                if tool_streak >= 8 and name != "finish":
-                    # 强升级:任何工具连续 8 次 → 临时禁用,强制推进(todo/搜索/只读循环都适用)
+                if tool_streak >= 8 and same_sig_streak >= 4 and name != "finish":
+                    # 强升级:同工具连续 8 次且同参数连续 4 次才禁用——真死循环才触发;
+                    # 长任务批处理(逐文件/逐切片跑脚本)参数在变,永不命中(LH-01 4b 误伤教训)
                     _disabled_tools.add(name)
                     _active_tools = [t for t in _active_tools
                                      if t["function"]["name"] != name]
