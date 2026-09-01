@@ -45,7 +45,13 @@ function quiet(code, msg, next = cp) {
 }
 
 if (verdict === "running") {
-  quiet("batch_running", `Batch running: ${done}/${target} cells done`, { ...cp, lastSeen: verdict, cellsDone: done });
+  // Chain recovered since the last alert -> close the episode so a FUTURE
+  // stall re-fires. 2026-09-01 lesson: keeping lastEpisode across a recovery
+  // muted every tick when the chain died again with the same cells_done.
+  quiet("batch_running", `Batch running: ${done}/${target} cells done`,
+        { ...cp, lastSeen: verdict, cellsDone: done, lastEpisode: null });
+} else if (verdict === "paused") {
+  quiet("batch_paused", `Batch paused by operator: ${done}/${target} cells done`, cp);
 } else if (verdict === "complete") {
   if (cp.completeActivated) quiet("already_reported", "Batch completion already activated once");
   else console.log(JSON.stringify({
@@ -63,7 +69,13 @@ if (verdict === "running") {
     },
   }));
 } else { // stalled | idle
-  const episode = `${verdict}:${done}`;
+  // Episode identity = verdict + progress + newest artifact + age bucket.
+  // cells_done alone is not enough: a tree death leaves cells_done frozen
+  // (husk dirs carry no score.json), so a SECOND death looked identical to
+  // the first alert and was suppressed forever.
+  const leaf = String(s.newest_artifact ?? "?").split(/[\\/]/).pop();
+  const ageBucket = Math.floor((s.newest_age_sec ?? -1) / 1800);
+  const episode = `${verdict}:${done}:${leaf}:${ageBucket}`;
   if (cp.lastEpisode === episode) quiet("episode_reported", `Episode ${episode} already activated`);
   else console.log(JSON.stringify({
     protocolVersion: 1,

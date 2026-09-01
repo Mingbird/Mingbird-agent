@@ -35,9 +35,21 @@ def latest_attempt_dirs(patterns=None):
         m = re.match(r"^(.+)_m(\d+)_(\d{4}_\d{6})$", d.name)
         key = m.group(1) if m else d.name
         cells[key].append(d)
+    def order_key(d):
+        m = re.match(r"^.+_m(\d+)_(\d{4}_\d{6})$", d.name)
+        if not m:                       # legacy dirs with truncated timestamps
+            return ("", 0)
+        return (m.group(2), int(m.group(1)))   # (timestamp, attempt)
+
     out = {}
     for key, dirs in cells.items():
-        out[key] = max(dirs, key=lambda d: d.name)   # latest attempt wins
+        # Latest attempt wins = latest attempt that actually WROTE score.json,
+        # ordered by (timestamp, attempt). 2026-09-01: raw-name max() let an
+        # instant-fail husk dir (e.g. *_m1_0901_153624 from the 15:36 cascade,
+        # never executed, no score) shadow a later real m0 run and void its
+        # legitimate score. A dir without score.json never was an attempt.
+        scored = [d for d in dirs if (d / "score.json").exists()]
+        out[key] = max(scored or dirs, key=order_key)
     return out, cells
 
 
@@ -107,13 +119,20 @@ def main():
                     line.append(" | —")
                     continue
                 line.append(f" | {fmt(v)}")
-                if v["total"] is not None:
-                    agent_scores[a].append(v["total"])
-                    model_scores[a][m].append(v["total"])
+                contrib = v["total"]
+                if contrib is None and v["fm"] in ("timeout", "stall", "surrender"):
+                    # 2026-09-01 P0 fix: timeout score.json carries no "total" field
+                    # (22/22 observed), so the old `total is not None` guard silently
+                    # DROPPED every timeout cell from the means instead of counting
+                    # it as 0. Terminal failures are real zeros, never exclusions.
+                    contrib = 0.0
+                if contrib is not None:
+                    agent_scores[a].append(contrib)
+                    model_scores[a][m].append(contrib)
                 if v.get("attempts", 1) > 1:
                     retry_cells.append((a, t, m, v))
             lines.append("".join(line) + " |")
-    lines += ["", "## Means (scored cells; missing model cells excluded from that mean)",
+    lines += ["", "## Means (terminal failures count 0; only cells with no valid attempt are excluded)",
               "", "| agent | " + " | ".join(MODELS) + " | overall |",
               "|---|" + "---|" * (len(MODELS) + 1) + ""]
     for a in AGENTS:
