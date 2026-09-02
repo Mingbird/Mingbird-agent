@@ -53,14 +53,23 @@ if (verdict === "running") {
 } else if (verdict === "paused") {
   quiet("batch_paused", `Batch paused by operator: ${done}/${target} cells done`, cp);
 } else if (verdict === "complete") {
-  if (cp.completeActivated) quiet("already_reported", "Batch completion already activated once");
+  // Completion fingerprint = cells_done + newest artifact dir. 2026-09-02 lesson:
+  // a purely deterministic id (`complete-${done}`) lets ONE premature activation
+  // (old verdict logic fired while a reroll pass was still in flight) poison BOTH
+  // dedup layers — the script latch AND the platform's recentEventIds registry,
+  // which reset-checkpoint does NOT clear — so the true completion stayed silent
+  // forever. Keying the id on the completion state itself gives every distinct
+  // completion exactly one activation.
+  const completeLeaf = String(s.newest_artifact ?? "?").split(/[\\/]/).slice(-2, -1)[0] || "?";
+  const completeEvent = `lrab-batch-complete-${done}-${completeLeaf}`;
+  if (cp.completeActivated === completeEvent) quiet("already_reported", `Batch completion already activated (${completeEvent})`);
   else console.log(JSON.stringify({
     protocolVersion: 1,
     control: {
       decision: "activate",
       reason: { code: "batch_complete", message: `LRAB batch complete: ${done}/${target} cells` },
-      event: { id: `lrab-batch-complete-${done}`, kind: "lrab.batch.complete", occurredAt: new Date().toISOString() },
-      nextCheckpoint: { schemaVersion: 1, value: { completeActivated: true, cellsDone: done } },
+      event: { id: completeEvent, kind: "lrab.batch.complete", occurredAt: new Date().toISOString() },
+      nextCheckpoint: { schemaVersion: 1, value: { completeActivated: completeEvent, cellsDone: done } },
     },
     handoff: {
       summary: `LRAB 批次已完成（${done}/${target}）`,

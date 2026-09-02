@@ -79,12 +79,13 @@ def chain_procs_alive():
       >0  -> chain in flight (verdict running regardless of artifact age)
       ==0 -> tree dead before target -> stalled immediately
       -1  -> probe infrastructure error -> fall back to the age heuristic
-    Pattern must stay in sync with driver naming (batch1_resume*).
+    Pattern must stay in sync with driver naming (batch1_resume*,
+    batch1_final* post-reboot driver).
     """
     import base64
     import subprocess
     ps = ("Get-CimInstance Win32_Process -Filter \"Name='python.exe' OR Name='powershell.exe'\" | "
-          "Where-Object { $_.CommandLine -match 'run_matrix\\.py|run_bench\\.py|batch1_resume' } | "
+          "Where-Object { $_.CommandLine -match 'run_matrix\\.py|run_bench\\.py|batch1_resume|batch1_final' } | "
           "Measure-Object | Select-Object -ExpandProperty Count")
     enc = base64.b64encode(ps.encode("utf-16-le")).decode("ascii")
     try:
@@ -139,6 +140,11 @@ def main():
         pass
     if paused and done < target:
         verdict = "paused"
+    elif done >= target and procs > 0:
+        # every cell has a score but the chain is still alive -> a rerun pass
+        # (e.g. phase-S re-rolls after a crash fix) is in flight; latest
+        # attempt wins, so the batch is NOT final yet.
+        verdict = "running"
     elif done >= target:
         verdict = "complete"
     elif age is None:
