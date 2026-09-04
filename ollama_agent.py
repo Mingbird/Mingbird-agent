@@ -74,6 +74,13 @@ TEMP = float(os.environ.get("AGENT_TEMP", "0"))
 NUM_PREDICT = int(os.environ.get("AGENT_NUMPREDICT", "2048"))
 SYSTEM_FILE = os.environ.get("AGENT_SYSTEM_FILE", "")
 STREAM = os.environ.get("AGENT_STREAM") == "1"   # GUI 开流式时置 1
+# 时间预算(秒)。>0 启用"预算节奏提示"(50%/75%/90% 各注入一次收尾导向提示)。
+# 默认 0=关闭:不注入任何消息、不写任何文件,行为与未启用版本完全一致。
+# 这是 harness 能力(与 checkpoint 同类):若在公开基准批次启用,必须在 METHODS 披露。
+BUDGET_SEC = float(os.environ.get("AGENT_TIME_BUDGET_SEC", "0") or 0)
+# 小模型(≤4B)工具输出瘦身开关。agent_loop 按模型参数量置位(模块级全局,run_tool 读取)。
+# 依据:agent-mini 4b 在 LH-01/02 反常强(LH 0.93/0.94)——轻量上下文负担是小模型的杠杆。
+_SMALL_MODEL_MODE = False
 
 def _stream_tok(tok):
     """把流式 token 打成一行的 @@TOK@@ 前缀,供 GUI 实时渲染(逐 token flush)。"""
@@ -134,6 +141,10 @@ def ensure_ollama(timeout=25):
     return False
 
 def system_prompt():
+    # 子 agent 模式:换最小系统提示(子 agent 会话的局部成本,小模型短任务)。
+    # 主 agent 的 SYSTEM 不变 —— 并行派发功能对出厂 prefill 的净增 token = 0。
+    if _child_sandbox is not None:
+        return _CHILD_SYSTEM
     if SYSTEM_FILE and os.path.exists(SYSTEM_FILE):
         return read_text(SYSTEM_FILE)
     return SYSTEM
@@ -320,10 +331,18 @@ def load_todo(workdir):
     except Exception: return []
 def save_todo(workdir, t):
     json.dump(t, open(todo_file(workdir),"w",encoding="utf-8"), ensure_ascii=False, indent=2)
+def format_todo_lines(t):
+    """todo 列表 → "[x]/[ ] N. 条目" 文本(harness 回执与 GUI 计划面板共用,保证两侧一致)。"""
+    return "\n".join(f"{'[x]' if x.get('done') else '[ ]'} {i}. {x.get('item','')}"
+                     for i, x in enumerate(t, 1))
 def load_todo_str(workdir):
     t=load_todo(workdir)
     if not t: return "(todo list empty)"
-    return "\n".join(f"{'[x]' if x['done'] else '[ ]'} {i}. {x['item']}" for i,x in enumerate(t,1))
+    return format_todo_lines(t)
+def todo_progress(t):
+    """(已完成数, 总数)。todo.json 缺失/为空 → (0, 0)。"""
+    t = t or []
+    return sum(1 for x in t if x.get("done")), len(t)
 
 # ---------------- 网页 ----------------
 def web_search(query, max_results=5):
@@ -779,16 +798,23 @@ def enable_advanced_tools(names):
     avail = {t["function"]["name"]: t for t in ADVANCED_TOOLS}
     added = []
     mcp_added = []
+    unknown = []
     for n in names:
         if n in avail and n not in [t["function"]["name"] for t in _active_tools]:
             _active_tools.append(avail[n]); added.append(n)
         elif is_mcp_tool(n) and n not in mcp_added:
             # MCP 扁平工具(服务器.工具名):由 agent_loop 的 allowed_extra 负责注入
             mcp_added.append(n)
+        elif n not in avail:
+            # 回执真实化:不存在的工具名不能混进"(none) 都已可用"——那会诱发死循环重试
+            unknown.append(n)
     note = ""
     if mcp_added:
         note = f" MCP 工具已按需加载: {', '.join(mcp_added)}"
-    if not added and not mcp_added:
+    if unknown:
+        note += (f" 未知的工具名(不存在,无法启用): {', '.join(unknown)}。"
+                 f"可启用的高级工具: {', '.join(sorted(avail))}。")
+    if not added and not mcp_added and not unknown:
         # 模型重复 enable 已可用工具时,'(none)' 会诱发死循环重试(LH-01 4b 教训)——给明确指令
         note = " 无需再启用:你要的工具都已可用,直接调用它即可。"
     return f"[enabled tools: {', '.join(added) or '(none)'}. Now available: {', '.join(t['function']['name'] for t in _active_tools)}]{note}"
@@ -839,11 +865,83 @@ def _auto_repair(path):
 _allow_all = set()
 # 本进程可读写的目录白名单(工作目录;可被 AGENT_ALLOW_DIRS 环境变量扩展,冒号分隔)
 _allow_dirs = set()
+# 子 agent 沙箱(并行派发的子进程专用,AGENT_CHILD_SANDBOX=1 时由 main() 安装)。
+# 子 agent 权限严格小于主 agent:default-deny,无升级路径,带审计与危险行为熔断。
+# 详见 parallel_safety.py 与 design/2026-09-01-parallel-dispatch.md §3。
+_child_sandbox = None
+_child_cfg = None
+_CHILD_SYSTEM = """You are a sub-agent doing one small mechanical file task.
+- Work ONLY inside your current directory. Never touch paths outside it.
+- Use create_file to write the result, list_dir/read_file to inspect, todo to plan.
+- No commands, no network, no deleting, no editing other files.
+- When the output file exists and is correct, call finish(summary=files you created)."""
+
+
+def install_child_mode(workdir):
+    """并行派发的子进程入口:安装子 agent 安全模型(default-deny + 审计 + 熔断),
+    收窄工具面(命令/网络/MCP/删除/enable_tools 一律不给),换最小系统提示。
+    权限严格小于主 agent:headless 批量跑,没有人类在 loop 里,弹窗升级通道整体短路。"""
+    global _child_sandbox, _child_cfg, _active_tools, _disabled_tools
+    try:
+        import parallel_safety as PS
+        import parallel_config as PC
+    except Exception as e:
+        print(f"[child-mode] 安全模块不可用,拒绝以子 agent 身份运行: {e}", flush=True)
+        sys.exit(2)
+    _child_cfg = PC.get_parallel_config()
+    _child_cfg["child_allowed_tools"] = _child_cfg.get("child_allowed_tools") or \
+        PS.DEFAULT_CHILD_ALLOWED_TOOLS
+    if not _child_cfg.get("child_allow_commands"):
+        _child_cfg["child_allowed_tools"] = [t for t in _child_cfg["child_allowed_tools"]
+                                             if t not in ("run_bash", "run_command", "shell",
+                                                          "bash", "delete_file", "edit_file",
+                                                          "append_file", "web_search",
+                                                          "web_fetch", "web_search_multi",
+                                                          "mcp_call", "enable_tools",
+                                                          "memory_store", "memory_recall",
+                                                          "batch_tools", "search_files")]
+    _child_sandbox = PS.ChildSandbox(workdir, _child_cfg)
+    # 工具面收窄:白名单之外的(define 层面)一律不进 _active_tools
+    allow = set(_child_cfg["child_allowed_tools"])
+    _active_tools = [t for t in CORE_TOOLS + ADVANCED_TOOLS
+                     if t["function"]["name"] in allow]
+    _disabled_tools.update(n for n in (t["function"]["name"] for t in CORE_TOOLS + ADVANCED_TOOLS)
+                           if n not in allow)
+    print(f"[child-mode] 沙箱已装:工具={sorted(allow)} workdir={os.path.abspath(workdir)}",
+          flush=True)
+
+
+def child_gate(name, args, workdir):
+    """子 agent 安全闸(在 _gate_check 最前面调用)。返回拦截消息或 None(放行)。"""
+    if _child_sandbox is None:
+        return None
+    verdict, reason, target = _child_sandbox.check_tool(name, args or {})
+    if verdict == "allow":
+        return None
+    if _child_sandbox.should_terminate():
+        # ≥1 次严重拒绝(虚拟机/系统区写、不可逆命令)→ 立即终止该子 agent。
+        # 主 harness 见 exit 53 → 不重试,直接回退主模型串行。
+        print(f"[child-mode] 严重违规熔断: {reason} target={target}", flush=True)
+        sys.exit(53)
+    return (f"[子agent安全门拦截(default-deny,无升级路径): {reason}。"
+            f"目标: {str(target)[:120]}。可用工具只有 {_child_cfg['child_allowed_tools']};"
+            f"不要尝试绕道,把当前步骤改成本目录内的确定性产出。]")
+
+
+def child_system_prompt():
+    """子 agent 最小系统提示(子 agent 会话的局部成本,不计主 prefill)。"""
+    return _CHILD_SYSTEM
 
 _SYSTEM_DIRS = ("\\windows\\", "\\program files\\", "\\system32\\", "/windows/", "/program files/", "/usr", "/etc/", "/bin/", "/root")
 _DANGER_CMD = ("rm -rf", "rm -fr", "format c:", "format c:\\", "del /s /q c:", "rd /s /q c:\\", "diskpart", "mkfs", "shutdown", "taskkill /f /im",
-               "curl | bash", "curl | sh", "wget | bash", "powershell -c", "reg add", "reg delete", "netsh", "sc create", "certutil", "del c:\\*",
+               "curl | bash", "curl | sh", "wget | bash", "reg add", "reg delete", "netsh", "sc create", "certutil", "del c:\\*",
                "rm -rf /", "rm -fr /", "sudo rm")
+# powershell 不整封(大量合法查询被误伤,是 35b WF-08 转义实验循环的诱因之一),
+# 只拦高危子模式:下载执行/表达式注入/编码命令/隐藏窗口/策略改写/提权。
+_PS_HIGH_RISK = ("iex ", "iex;", "(iex", "invoke-expression", "downloadstring",
+                 "-encodedcommand", "-enc ", "net.webclient",
+                 "start-process -verb runas", "set-executionpolicy",
+                 "-w hidden", "bypass -w")
 # 敏感路径片段(命中即受保护):写一律拒绝,读也需确认。全小写匹配。
 _SENSITIVE_PATTERNS = (".ssh\\", ".aws\\", ".gnupg\\", ".env", ".pem", "id_rsa", "id_ed25519",
                        "credentials\\", "\\token", "secrets", ".wav", "gui_prefs.json",
@@ -892,6 +990,10 @@ def _ask_user_confirm(name, real_path, workdir, action="访问"):
     """越界操作征求用户同意。GUI 模式(AGENT_STREAM=1):发 @@ASK@@ 到 stdout,阻塞读 stdin 回传。
     CLI/无 stdin 模式:直接拒绝。返回 (allow:bool, allow_all:bool, msg:str)。
     注:用线程带超时读 stdin(Windows console 上 select 不可靠;GUI 提供的是 PIPE 管道)。"""
+    # 子 agent:headless 批量跑,没有人类在 loop 里 —— 弹窗升级通道整体短路为拒绝。
+    # (defense in depth:即使子进程以 AGENT_STREAM=1 启动,也不存在"允许"这条路)
+    if _child_sandbox is not None:
+        return False, False, f"[子agent安全门拦截: 子 agent 无越界权限(default-deny),{action}已拒绝。目标: {real_path}]"
     try:
         if os.environ.get("AGENT_STREAM") == "1" and sys.stdin and not sys.stdin.closed:
             req = {"tool": name, "path": real_path, "action": action,
@@ -924,6 +1026,10 @@ def _ask_user_confirm(name, real_path, workdir, action="访问"):
 def _gate_check(name, args, workdir):
     """工具安全门:拦截危险操作(删系统/危险命令) + 工作目录边界 + 敏感路径。
     返回拦截消息(字符串)或 None(放行)。"""
+    # 子 agent 安全模型优先(权限严格小于主 agent,default-deny,无升级路径)
+    _cg = child_gate(name, args, workdir)
+    if _cg:
+        return _cg
     try:
         if name == "run_bash":
             cmd = str(args.get("command", ""))
@@ -931,6 +1037,10 @@ def _gate_check(name, args, workdir):
             # 危险命令无论是否"允许全部"都拦截(不可被用户一次性放行)
             if any(d in low for d in _DANGER_CMD):
                 return f"[安全门拦截:命令含危险操作,已拒绝执行。原命令: {cmd[:80]}]"
+            # powershell 高危子模式(下载执行/脚本注入/编码命令/隐藏窗口/提权/策略改写)
+            if "powershell" in low and any(p in low for p in _PS_HIGH_RISK):
+                return (f"[安全门拦截:powershell 命令含高危操作(下载执行/脚本注入/提权),已拒绝。"
+                        f"原命令: {cmd[:80]}]")
             # 越界命令模式 → 征求同意(允许全部仅本轮豁免路径确认,不含危险命令)
             if name not in _allow_all:
                 for pat in _BASH_ESCAPE_PATTERNS:
@@ -987,6 +1097,11 @@ def run_tool(name, args, workdir):
             name = _TOOL_ALIASES[name]
         gate = _gate_check(name, args, workdir)
         if gate:
+            # 子 agent 严重违规(虚拟机/系统区写、不可逆命令)→ 立即终止该子 agent
+            # (exit 53;主 harness 见 53 不重试,直接回退主模型串行)
+            if _child_sandbox is not None and _child_sandbox.should_terminate():
+                print(f"[child-mode] 严重违规熔断(exit 53): {gate[:160]}", flush=True)
+                sys.exit(53)
             return gate
         if is_mcp_tool(name):           # MCP 打散后的扁平工具:"服务器.工具名" → 路由到 mcp_call
             server, _, tool = name.partition(".")
@@ -1069,8 +1184,15 @@ def run_tool(name, args, workdir):
             cmd = re.sub(r"\\+t", "\t", cmd)
             cmd = re.sub(r'\\+"', '"', cmd)
             cmd = re.sub(r"\\+'", "'", cmd)
-            r=subprocess.run(cmd,shell=True,capture_output=True,text=True,timeout=300,cwd=workdir)
-            out = f"[exit {r.returncode}]\nSTDOUT:\n{r.stdout[-5000:]}\nSTDERR:\n{r.stderr[-2000:]}"
+            # 子进程 UTF-8 内建(GBK 修复):交付版不依赖机器全局 hack(如 sitecustomize),
+            # python 子进程的 stdout 编码由这里统一保证,否则含非 ASCII 输出的脚本在
+            # GBK 控制台下 UnicodeEncodeError(批次 1 agent-mini 同型环境税的前车之鉴)
+            _env = dict(os.environ)
+            _env.setdefault("PYTHONUTF8", "1")
+            _env.setdefault("PYTHONIOENCODING", "utf-8")
+            r=subprocess.run(cmd,shell=True,capture_output=True,text=True,timeout=300,cwd=workdir,env=_env)
+            out = _format_bash_out(r.returncode, r.stdout or "", r.stderr or "",
+                                   small_model=_SMALL_MODEL_MODE)
             # 常见 Linux 绝对路径幻觉(/workspace /data /tmp 等),给提示
             if re.search(r"(^|\s)(cd|mkdir|ls|rm|cat|touch)\s+/(?!Users|home|[A-Za-z]:)", cmd) or "cd /workspace" in cmd:
                 out += "\n[提示: 这是 Windows,不要用 /data /tmp /workspace 等 Linux 路径。工作目录已设定,直接用相对路径或本机盘符路径。]"
@@ -1098,8 +1220,32 @@ def run_tool(name, args, workdir):
                 return load_todo_str(workdir)
             if act=="update":
                 t=load_todo(workdir)
-                if 1<=int(args.get("index",0))<=len(t):
-                    t[int(args["index"])-1]["done"]=bool(args.get("done",True)); save_todo(workdir,t)
+                if not t:
+                    return "[todo update: 计划为空。先调用 todo(action=create, items=[...]) 建计划。]"
+                done_flag = bool(args.get("done", True))
+                if args.get("all"):
+                    # 批量勾选:任务收尾时一次性同步计划,给小模型一条便宜的退出路径
+                    for x in t: x["done"]=done_flag
+                    save_todo(workdir,t)
+                    return load_todo_str(workdir)
+                idx = args.get("index", 0)
+                if isinstance(idx, (list, tuple)):
+                    idx = [i for i in idx if isinstance(i, (int, float))]
+                else:
+                    idx = [idx]
+                hit = 0
+                for i in idx:
+                    try:
+                        j = int(i)
+                    except (TypeError, ValueError):
+                        continue
+                    if 1 <= j <= len(t):
+                        t[j-1]["done"]=done_flag; hit += 1
+                save_todo(workdir,t)
+                if not hit:
+                    valid = ", ".join(str(k) for k in range(1, len(t)+1))
+                    return (f"[todo update: index 无效(计划共 {len(t)} 项,可用 index: {valid})。"
+                            f"要全部勾选请用 todo(action=update, all=true)。]")
                 return load_todo_str(workdir)
             return load_todo_str(workdir)
         if name=="skills":
@@ -1108,17 +1254,40 @@ def run_tool(name, args, workdir):
         if name=="enable_tools": return enable_advanced_tools(args.get("tools",[]))
         if name=="finish": return "[TASK_COMPLETE] " + args.get("summary","")
     except KeyError as e:
-        # 缺参数是本地小模型最常见的失败模式,给可操作的提示
+        # 缺参数是本地小模型最常见的失败模式,给可操作的提示;写类工具附最小正确示例
+        # (WF-08 e2b 取证:连续 3 次 create_file 丢 path,抽象提示不足以矫正)
         req = _REQ_ARGS.get(name, [])
         got = list(args.keys())
         missing = req if not got else [k for k in req if k not in args]
+        _ex = ""
+        if name == "create_file":
+            _ex = ' 正确示例: create_file(path="app.py", content="...文件内容...")'
+        elif name in ("edit_file", "append_file"):
+            _kv = 'old="旧文本", new="新文本"' if name == "edit_file" else 'content="追加内容"'
+            _ex = ' 正确示例: ' + name + '(path="文件名", ' + _kv + ')'
         return (f"[tool error: {name} 缺少参数 {e}。必须提供参数: {missing or req}。"
-                f"你实际传了: {got}。请 read_file 后再用完整参数重试,或改用 create_file 整写。]")
+                f"你实际传了: {got}。{_ex}请补全参数后原样重试(内容不变,只补上缺失的参数)。]")
     except Exception as e:
         return f"[tool error: {e}]"
     return "[unknown tool]"
 
 # ---------------- API 调用 ----------------
+_THINK_CAP_CACHE = {}   # model -> True/False/None(探测失败);进程内缓存,/api/show 每模型只查一次
+
+def _model_can_think(model):
+    """查模型是否具备 thinking 能力(/api/show capabilities)。探测失败返回 None(未知)。"""
+    if model not in _THINK_CAP_CACHE:
+        try:
+            req = urllib.request.Request(f"{appconfig.ollama_host()}/api/show",
+                data=json.dumps({"model": model}).encode(),
+                headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                caps = json.load(r).get("capabilities") or []
+            _THINK_CAP_CACHE[model] = "thinking" in caps
+        except Exception:
+            _THINK_CAP_CACHE[model] = None
+    return _THINK_CAP_CACHE[model]
+
 def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None, on_think=None):
     """调用 ollama /api/chat。stream=True 时逐 token 回调(on_token=回答, on_think=思考),
     返回结构与非流式一致(message.content / tool_calls / prompt_eval_count / eval_count)。"""
@@ -1127,9 +1296,35 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
                "tools": active_tool_defs() if tools is None else tools,
                "stream":stream, "options":{"num_ctx":ctx,"num_predict":NUM_PREDICT,
                                           "temperature":TEMP}}
-    if not THINK: payload["options"]["think"] = False   # 思考模型防空响应死循环
-    req = urllib.request.Request(f"{appconfig.ollama_host()}/api/chat",
-        data=json.dumps(payload).encode(), headers={"Content-Type":"application/json"})
+    # think 是 /api/chat 的顶层字段,放进 options 会被 ollama 静默丢弃(2026-09-02 运行时
+    # 复现实锤:options 形态 thinking=1102/content=0,顶层形态 content 正常)。思考烧光
+    # NUM_PREDICT 且 content 为空 = 空响应死循环的根因。仅对具备 thinking 能力的模型下发;
+    # 能力探测失败时仍下发,模型不支持会 400,由下方去参重试兜底。
+    suppress_think = (not THINK) and _model_can_think(model) is not False
+    if suppress_think:
+        payload["think"] = False
+
+    def _build_request(p):
+        return urllib.request.Request(f"{appconfig.ollama_host()}/api/chat",
+            data=json.dumps(p).encode(), headers={"Content-Type":"application/json"})
+
+    req = _build_request(payload)
+    try:
+        if stream:
+            resp = urllib.request.urlopen(req, timeout=240)
+        else:
+            return json.loads(urllib.request.urlopen(req, timeout=900).read())
+    except Exception as e:
+        import urllib.error as _ue
+        if not (suppress_think and isinstance(e, _ue.HTTPError) and e.code == 400):
+            raise
+        # 非 thinking 模型可能拒收 think 字段:去掉后重试一次
+        payload.pop("think", None)
+        req = _build_request(payload)
+        if stream:
+            resp = urllib.request.urlopen(req, timeout=240)
+        else:
+            return json.loads(urllib.request.urlopen(req, timeout=900).read())
     if stream:
         parts, thinks, tool_calls = [], [], None
         prompt_ev, eval_ev = None, None
@@ -1188,13 +1383,26 @@ def _estimate_messages_tokens(messages, tools=None):
         total += _estimate_tokens(str(t.get("function", {}).get("parameters", {})))
     return total
 
-def compact_history(model, messages, level=3):
+def _workdir_files_text(workdir, limit=30):
+    """工作目录文件清单快照(压缩重注/空轮复位共用)。失败返回 "(空)"。"""
+    try:
+        return "\n".join(sorted(os.listdir(workdir))[:limit]) or "(空)"
+    except Exception:
+        return "(空)"
+
+def compact_history(model, messages, level=3, todo_text=None, files_text=None):
     """分层压缩上下文(符合 context-rot 经验:本地模型 ~60% 就开始退化,应分级提前压缩)。
 
     level 1(轻):  丢弃/精简旧工具输出——把较早 tool 消息的长结果截断为一行标注,
                   保留结构(assistant 的决策/结论),不动 system 和最近轮次。
     level 2(中):  摘要更早的轮次为一段摘要,保留 system + 最近 5 条(比 level3 温和)。
     level 3(重):  全量摘要 + 重建工作集:system + 摘要 + 最近 3 条(原有行为)。
+
+    todo_text: 当前计划(todo)的原文。L2/L3 的摘要由小模型生成且限 150 字,计划清单
+    极易在摘要中失真/丢失——这里把 todo.json 里的实时计划原样附在摘要后,压缩不丢进度。
+    files_text: 工作目录文件清单(压缩状态重注,P3 backlog)。35b WF-08 取证实锤:压缩
+    级联后模型失去"已产出什么"的坐标,围绕已存在的文件反复空转/重建——摘要后附真实
+    文件清单,模型才知道哪些产物已在、下一步该写什么。
 
     保留原则(无论哪级):目标、已做决定、当前产物文件、未完成事项;丢弃:旧日志、
     已被替换的计划、已读过的文件全文。"""
@@ -1226,6 +1434,10 @@ def compact_history(model, messages, level=3):
                    {"role":"user","content": text}]
             r = call_chat(model, req, ctx=8000, tools=[])
             summary = r.get("message",{}).get("content","") or "(summary failed)"
+            if todo_text:
+                summary += "\n\n[当前计划(todo),以此为准继续]\n" + todo_text
+            if files_text:
+                summary += "\n\n[工作目录已有文件(已完成的产物,不要重复创建)]\n" + files_text
             out = [head, {"role":"user","content":"[先前上下文摘要] " + summary}, *tail]
             print(f"[上下文压缩 L2: {len(messages)} → {len(out)} 条消息]", flush=True)
             return out
@@ -1240,6 +1452,10 @@ def compact_history(model, messages, level=3):
                {"role":"user","content": text}]
         r = call_chat(model, req, ctx=8000, tools=[])
         summary = r.get("message",{}).get("content","") or "(summary failed)"
+        if todo_text:
+            summary += "\n\n[当前计划(todo),以此为准继续]\n" + todo_text
+        if files_text:
+            summary += "\n\n[工作目录已有文件(已完成的产物,不要重复创建)]\n" + files_text
         out = [head, {"role":"user","content":"[先前上下文摘要] " + summary}, *tail]
         print(f"[上下文压缩 L3: {len(messages)} → {len(out)} 条消息]", flush=True)
         return out
@@ -1307,8 +1523,24 @@ def main():
     session = None; interactive = False
     if "--session" in args: session = args[args.index("--session")+1]
     if "--chat" in args: interactive = True
+    # 任务时限(Task #73):--time-budget <分钟> ,也接受带单位写法(1.5h / 90m / 半小时)
+    _cli_tb = None
+    _cli_tb_given = False
+    for _k, _a in enumerate(args):
+        if _a == "--time-budget" and _k + 1 < len(args):
+            _cli_tb, _cli_tb_given = parse_duration_str(args[_k + 1]), True
+        elif _a.startswith("--time-budget="):
+            _cli_tb, _cli_tb_given = parse_duration_str(_a.split("=", 1)[1]), True
+    if _cli_tb_given:
+        if _cli_tb is None:
+            print("[time-budget] 无法解析 --time-budget 的值,已忽略(示例: 40 / 1.5h / 90m / 半小时)", flush=True)
+        else:
+            print(f"[time-budget] CLI 时限 {_fmt_hm(_cli_tb)}", flush=True)
     if "--new" in args and len(args)>=3 and os.path.exists(os.path.join(args[2],".agent_state.json")):
         os.remove(os.path.join(args[2],".agent_state.json"))
+        _meta = _elapsed_meta_path(args[2])   # 全新任务:累计用时 sidecar 一并清零
+        if os.path.exists(_meta):
+            os.remove(_meta)
 
     if interactive:
         model = args[0]; workdir = os.path.abspath(args[args.index("--chat")+1])
@@ -1320,14 +1552,24 @@ def main():
             except EOFError: break
             if user.lower() in ("exit","quit"): break
             msgs.append({"role":"user","content":user})
-            msgs = agent_loop(model, msgs, workdir, session)
+            msgs = agent_loop(model, msgs, workdir, session,
+                              budget_sec=_cli_tb * 60.0 if _cli_tb else None)
     else:
         model, taskfile, workdir = args[0], args[1], args[2]
         taskfile = os.path.abspath(taskfile)
         workdir = os.path.abspath(workdir)
         os.makedirs(workdir, exist_ok=True)
         os.chdir(workdir)
+        # 并行派发的子进程:安装子 agent 安全模型(权限严格小于主 agent,default-deny)
+        if os.environ.get("AGENT_CHILD_SANDBOX") == "1":
+            install_child_mode(workdir)
         task = read_text(taskfile)
+        # 任务时限(Task #73):提示词 > CLI > env;解析命中时明说(透明度)
+        _tb_min, _tb_src = resolve_time_budget(cli_minutes=_cli_tb, task_text=task)
+        if _tb_min:
+            print("[time-budget] " + _TB_SRC_LABEL.get(_tb_src, "{v} 分钟").format(v=f"{_tb_min:g}")
+                  + f" — {_fmt_hm(_tb_min)}", flush=True)
+        _budget_sec = _tb_min * 60.0 if _tb_min else None
         ckpt = os.path.join(workdir, ".agent_state.json")
         append_text = task if "--append" in sys.argv else None
         if "--new" in sys.argv:
@@ -1351,7 +1593,14 @@ def main():
             msgs.append({"role":"user","content":"继续之前的对话,完成或回答当前需求。"})
         else:
             msgs = [{"role":"system","content":system_prompt()},{"role":"user","content":task}]
-        agent_loop(model, msgs, workdir, session)
+        if msgs and len(msgs) == 2 and msgs[0].get("role") == "system" and msgs[1].get("role") == "user":
+            # 全新任务(非续跑):清掉上一任务遗留的 todo.json,否则 GUI 计划面板
+            # 一直显示旧任务的清单,直到模型恰好重建计划为止。
+            try:
+                if os.path.exists(todo_file(workdir)): os.remove(todo_file(workdir))
+            except Exception:
+                pass
+        agent_loop(model, msgs, workdir, session, budget_sec=_budget_sec)
 
 _FAIL_MARKERS = ("[edit failed", "[tool error", "[not found", "[web_search error",
                  "[web_fetch error", "[mcp_call error", "not found in", "error:",
@@ -1381,16 +1630,41 @@ def _hint_hit(hint, low):
         return hint in low
     return re.search(r"\b" + re.escape(hint.strip()) + r"\b", low) is not None
 
-def _is_qa(messages):
+_DISPATCH_NOTE_MARK = "[parallel-dispatch]"
+"""并行派发回执消息的标记前缀(harness 注入消息识别用,定义见 _maybe_parallel_dispatch)。"""
+
+_HARNESS_NOTE_PREFIXES = ("⚠️", "Continue:", "[已拦截", "回答已经足够", _DISPATCH_NOTE_MARK)
+"""harness 注入的用户消息统一前缀:问答判定与类别路由都跳过它们,
+只认真实用户输入(否则回执/提示文本会被当成任务描述参与路由)。"""
+
+def _has_task_progress(messages):
+    """本会话此前是否已经产生过"实际工作"(产出型工具调用)。
+    用途:进行中任务里一条短且无关键词的后续指令(如"你还有别的工具可以读这类文件
+    你找找")不应把整段续跑误判成问答——那会换上聊天提示、
+    卸掉 todo 工具、开始拦截写文件/跑命令,任务直接退化。
+    只认产出型工具(_MUTATE)与 MCP 产出型工具;read_file/list_dir/web_search
+    在问答里也可能出现,不算工作证据。"""
+    for m in messages:
+        if m.get("role") != "assistant":
+            continue
+        for tc in (m.get("tool_calls") or []):
+            n = str(((tc or {}).get("function") or {}).get("name", ""))
+            if n in _MUTATE or is_mcp_tool(n):
+                return True
+    return False
+
+def _is_qa(messages, has_progress=False):
     """判断最近一条用户消息是"问答"(问句/寒暄)还是"任务"(要动手干活)。
     问答 → 回答一次即收尾,拦写文件/跑命令;任务 → 正常用工具,绝不强制收尾。
-    跳过 harness 注入的消息,只认真正的用户输入。大小写不敏感(英文任务常以大写开头)。"""
+    跳过 harness 注入的消息,只认真正的用户输入。大小写不敏感(英文任务常以大写开头)。
+    has_progress: 会话里已经出现过产出型工具调用。此时"短且无关键词"的后续指令
+    按任务延续处理(默认兜底规则"≤40 字 → 问答"会把进行中任务的追加指令误判成寒暄)。"""
     for m in reversed(messages):
         if m.get("role") == "user":
             text = str(m.get("content","") or "").strip()
             if not text:
                 continue
-            if (text.startswith("⚠️") or text.startswith("Continue:") or text.startswith("[已拦截")
+            if (any(text.startswith(p) for p in _HARNESS_NOTE_PREFIXES)
                     or "[先前上下文摘要]" in text or "上下文已压缩" in text):
                 continue
             low = text.lower()
@@ -1400,11 +1674,20 @@ def _is_qa(messages):
             # 问句/寒暄命中 → 问答
             if any(_hint_hit(h, low) for h in _QA_HINTS):
                 return True
-            # 短消息(≤40字)无动作词 → 问答
+            # 短消息(≤40字)无动作词 → 问答;但会话已有实际工作时按任务延续
             if len(text) <= 40:
-                return True
+                return not has_progress
             return False
     return False
+
+def _task_routing_text(messages):
+    """类别路由用的任务文本 = 最近一条"真实用户输入"(跳过 harness 注入消息)。
+    并行派发回执带 _DISPATCH_NOTE_MARK 前缀,在这里被跳过 —— 否则派发完成后
+    主任务会按回执文本重新路由工具面,偏离原始任务的类别需求。"""
+    return next((str(m.get("content","")) for m in reversed(messages)
+                 if m.get("role") == "user" and not str(m.get("content","")).startswith(
+                     _HARNESS_NOTE_PREFIXES)), "")
+
 
 def _dedupe_trailing_assistant(messages):
     """修复对话结构:删除末尾连续的空 assistant 消息(保留最后一条)。
@@ -1431,6 +1714,15 @@ def _dedupe_trailing_assistant(messages):
             merged["tool_calls"] = last.get("tool_calls") or prev.get("tool_calls")
             messages[-2:] = [merged]
     return messages
+
+_THINK_BLOCK_RE = re.compile(r"<think>.*?</think>|</?think>", re.IGNORECASE | re.DOTALL)
+
+def _semantically_empty(text):
+    """content 去掉 think 标签块后无实质正文 = 语义空轮。
+    fp-0902 验证批实证(2026-09-02 WF-08 4b):think:false 下残余思考训练让模型把
+    字面 `<think>\\n\\n</think>` 当 content 输出,content.strip() 判非空 → 空轮硬复位
+    永不触发,模型以满额 NUM_PREDICT/轮烧思考直到重复探测器强制收尾(0.571)。"""
+    return not _THINK_BLOCK_RE.sub("", text or "").strip()
 
 def _similar(a, b, thresh=0.75):
     """判断两段文本是否高度相似(用于重复输出死循环检测)。"""
@@ -1472,27 +1764,37 @@ def _is_tool_error(res):
 def try_parse_tool_calls(content):
     """小模型常把工具调用写成文本 JSON 而非 tool_call(格式泄漏)。尝试解析成工具调用。
     支持: {"todo": {...}} / {"name":"todo","arguments":{...}} / [{"todo":{...}},...]
+          占位符引号函数式: finish(summary:<|"|>...<|"|>)——小模型偶发把字符串引号写成
+          tokenizer 占位符 <|"|>,打崩 ollama 原生解析后调用被当纯文本,无反馈重复到收尾
+          (e2b WF-13 实锤)。归一化成真实调用,走常规门禁(假完成/产物核对)给纠正反馈。
     返回 [(name, args), ...] 或 None。"""
     c = content.strip()
-    if not c.startswith(("{", "[")):
-        return None
-    try:
-        data = json.loads(c)
-    except Exception:
-        return None
-    items = data if isinstance(data, list) else [data]
-    if not isinstance(items, list):
-        return None
+    if c.startswith(("{", "[")):
+        try:
+            data = json.loads(c)
+        except Exception:
+            data = None
+        if data is not None:
+            items = data if isinstance(data, list) else [data]
+            if isinstance(items, list):
+                calls = []
+                for it in items:
+                    if not isinstance(it, dict):
+                        continue
+                    if "name" in it and "arguments" in it:
+                        calls.append((it["name"], it.get("arguments") or {}))
+                    elif len(it) == 1:
+                        name = next(iter(it)); v = it[name]
+                        if isinstance(v, dict):
+                            calls.append((name, v))
+                if calls:
+                    return calls
+    # 占位符引号函数式(单参数;多参数占位符形式 288 格未观测到,不扩展)。
     calls = []
-    for it in items:
-        if not isinstance(it, dict):
-            continue
-        if "name" in it and "arguments" in it:
-            calls.append((it["name"], it.get("arguments") or {}))
-        elif len(it) == 1:
-            name = next(iter(it)); v = it[name]
-            if isinstance(v, dict):
-                calls.append((name, v))
+    for m in re.finditer(
+            r"\b([a-zA-Z_][a-zA-Z0-9_.]*)\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:"
+            r"\s*<\|\"\|>(.*?)<\|\"\|>\s*\)", c, re.S):
+        calls.append((m.group(1), {m.group(2): m.group(3).strip()}))
     return calls or None
 
 _ARTIFACT_EXTS = (".md", ".txt", ".png", ".jpg", ".jpeg", ".csv", ".py", ".json", ".docx",
@@ -1505,12 +1807,12 @@ def _model_params_b(model):
     m = re.search(r"(\d+(?:\.\d+)?)b\b", str(model).lower())
     return float(m.group(1)) if m else None
 
-def _claimed_missing_files(summary, workdir):
-    """finish 产物核对:提取 summary 声称的文件名,返回工作目录中不存在的。
+def _missing_files_in_text(text, workdir):
+    """从文本中提取产物文件名,返回工作目录中不存在的。
     判定存在:按声称路径(相对 workdir)查 → 按文件名递归搜 → 现有文件名是 token
     后缀也算(兼容中文动词前缀粘连,如"生成了温度分布图.png")。"""
     toks = set()
-    for m in _FILE_TOKEN.finditer(summary or ""):
+    for m in _FILE_TOKEN.finditer(text or ""):
         tok = m.group(0).strip()
         if tok.lower().endswith(_ARTIFACT_EXTS):
             toks.add(tok)
@@ -1531,7 +1833,424 @@ def _claimed_missing_files(summary, workdir):
     return missing
 
 
-def agent_loop(model, messages, workdir, session):
+def _claimed_missing_files(summary, workdir):
+    """finish 产物核对:summary 声称的文件逐一对照 workdir,返回不存在的。"""
+    return _missing_files_in_text(summary, workdir)
+
+
+def _plan_named_missing(workdir):
+    """finish 计划完成度核对:模型自建计划(todo)里点名的产物文件,不在工作目录的列表。
+    数据源只有 agent 自产 todo.json + 文件系统,无任何测量装置信息(公平试金石)。"""
+    t = load_todo(workdir)
+    if not t:
+        return []
+    return _missing_files_in_text("\n".join(str(x.get("item", "")) for x in t), workdir)
+
+
+def _norm_p(p):
+    """路径归一(用于"同一文件"判定):反斜杠→正斜杠、去 ./、normpath、小写(Windows 不区分大小写)。"""
+    return os.path.normcase(os.path.normpath(str(p or "").replace("\\", "/").lstrip("./")))
+
+
+class _EditConvergenceGuard:
+    """Task #72 霰弹枪编辑守护:同一文件连续"成功"编辑但目标不收敛 → 注入策略提示。
+
+    证据(12b LH-03 双 timeout,m1 transcript):34 次编辑全部成功、仅 1 次失败,
+    卡在 m08"成功编辑 → 测试仍挂 → 换写法再编辑"19+ 轮燃尽 90min。现有护栏全不覆盖:
+    fail_count 只数失败;tool_streak+same_sig_streak 需同参数(这里 edit/run/read 交替);
+    ≤4B 的 edit_file 预降级与 12b 无关。
+
+    原则(吸取 LH-01 4b 误缴械教训):编辑在"成功",所以**不禁用、不限流**,只注入
+    改变策略的提示;每文件最多 2 条,第二条升级为"先根因假设后编辑"的强约束。
+    只统计 agent_loop 传入的成功编辑(res 以 "[edited" 开头),跨 read_file/run_bash 不清零。
+    """
+
+    def __init__(self, threshold=4, max_hints=2):
+        self.threshold = int(threshold)
+        self.max_hints = int(max_hints)
+        self.streak = 0
+        self.last_path = None
+        self.hints = {}          # 归一路径 -> 已注入提示次数
+
+    def observe(self, path):
+        """记录一次对 path 的成功编辑;返回提示文案(无提示返回 None)。"""
+        p = _norm_p(path)
+        if not p:
+            self.streak = 0
+            self.last_path = None
+            return None
+        if p == self.last_path:
+            self.streak += 1
+        else:
+            self.streak = 1
+            self.last_path = p
+        if self.streak < self.threshold:
+            return None
+        if self.hints.get(p, 0) >= self.max_hints:
+            return None
+        self.hints[p] = self.hints.get(p, 0) + 1
+        if self.hints[p] == 1:
+            return ("⚠️ 你已对 {p} 连续成功编辑 {n} 次,但目标仍未达成。停止继续猜测性微调:"
+                    "先完整阅读 run_bash 的失败输出定位根因(必要时临时加 print 打印中间值);"
+                    "若确认当前思路不通,可用 .bak 备份恢复,或用 create_file 重写该文件的这一部分。"
+                    ).format(p=p, n=self.streak)
+        return ("⚠️ 仍是 {p} 的同点反复修改(第 {n} 次成功编辑)。规则:这次编辑前必须先说出根因假设,"
+                "并用一次 run_bash 验证假设;禁止在没读新报错前再次 edit_file。"
+                "若连续两个假设都不成立,恢复 .bak 备份并换实现思路。"
+                ).format(p=p, n=self.streak)
+
+
+# ---- 时间预算节奏(agent_loop 注入;默认关闭) ----
+_BUDGET_MARKS = (
+    (0.50, "⏱ 时间预算:已用约 50%,剩约 {m} 分钟。先核对剩余工作量:优先完成核心产出;"
+           "若某个问题反复修不好,记录现状并跳到下一步,不要在一处死磨。"),
+    (0.75, "⏱ 时间预算:已用约 75%,剩约 {m} 分钟。停止探索性尝试:完成必须交付的产物,"
+           "并预留时间做验证(跑测试/检查文件确实存在)。"),
+    (0.90, "⏱ 时间预算:已用约 90%,即将耗尽(剩约 {m} 分钟)。立即收尾:只声称真实存在的产物文件,"
+           "然后调用 finish。不要开始新的子任务。"),
+)
+
+
+def _budget_nudge(budget_sec, elapsed_sec, fired):
+    """返回刚跨越的最高预算档提示文案(无则 None)。fired 就地更新,保证每档只注入一次。
+
+    追赶语义:kill-resume 第二阶段若第一阶段已用 80%,首轮直接补发 75% 档
+    (不把 50% 档再补一遍,避免一次注入两条)。
+    """
+    try:
+        budget_sec = float(budget_sec or 0)
+    except Exception:
+        return None
+    if budget_sec <= 0:
+        return None
+    ratio = float(elapsed_sec) / budget_sec
+    hit = None
+    for frac, tmpl in _BUDGET_MARKS:
+        if ratio >= frac and frac not in fired:
+            hit = (frac, tmpl)          # 升序遍历 → 命中最高未发档
+    if hit is None:
+        return None
+    for frac, _tmpl in _BUDGET_MARKS:
+        if ratio >= frac:
+            fired.add(frac)             # 低档一并视为已发
+    remain_min = max(0, int(round((budget_sec - float(elapsed_sec)) / 60.0)))
+    return hit[1].format(m=remain_min)
+
+
+def _elapsed_meta_path(workdir):
+    """跨进程累计用时 sidecar(kill-resume 第二阶段续接第一阶段的时钟)。"""
+    return os.path.join(workdir, ".agent_state.meta.json")
+
+
+def _load_elapsed(workdir):
+    try:
+        d = json.load(open(_elapsed_meta_path(workdir), encoding="utf-8"))
+        v = float(d.get("elapsed_sec", 0) or 0)
+        return v if v > 0 else 0.0
+    except Exception:
+        return 0.0
+
+
+def _save_elapsed(workdir, sec):
+    try:
+        json.dump({"elapsed_sec": round(float(sec), 1)},
+                  open(_elapsed_meta_path(workdir), "w", encoding="utf-8"))
+    except Exception:
+        pass
+
+
+def _format_bash_out(returncode, stdout, stderr, small_model=False):
+    """run_bash 结果格式化。小模型(≤4B)做输出瘦身:只保留末尾(测试摘要/报错在末尾),
+    显著降低长视野修复流水线里"反复跑测试"的上下文成本,并给出取全文的逃生通道。"""
+    out = f"[exit {returncode}]\nSTDOUT:\n{stdout[-5000:]}\nSTDERR:\n{stderr[-2000:]}"
+    # exit 9009 + 零输出 = Windows 找不到该命令。典型:python3 是应用执行别名桩,
+    # 静默退出 9009 且 stdout/stderr 全空——不解释就是 7 连败空转(WF-08 12b 实证:
+    # 交付物 100% 写完后死在验证步)。
+    if returncode == 9009 and not stdout.strip() and not stderr.strip():
+        out += ("\n[提示: exit 9009 = 本机找不到这个命令(无任何输出)。"
+                "Windows 上没有 python3,运行 Python 请用 python;"
+                "heredoc/cat/grep 等 bash 专用语法在此也不可用,写文件请用 create_file 工具。]")
+    if small_model and (len(stdout) > 2500 or len(stderr) > 1200):
+        out = (f"[exit {returncode}]\nSTDOUT(末尾):\n{stdout[-2500:]}\nSTDERR(末尾):\n{stderr[-1200:]}"
+               "\n[输出已瘦身(小模型上下文减负),只保留末尾的摘要/报错。"
+               "需要完整输出时:run_bash 执行 `命令 > out.txt 2>&1` 再 read_file 分段读。]")
+    return out
+
+
+# ---- 任务时限(Task #73):解析用户自述的时间预算 ----
+# 产品定位:真实用户给自己设表完全合法("本地模型慢 + 用户时间敏感"是真痛点)。
+# 比拼段(与竞品同表的基准批次)必须整体关闭:环境变量 AGENT_TIME_BUDGET_PARSE=0
+# 可禁用提示词解析(不解析则只剩显式 env/CLI,行为与未上线版本一致)。
+TIME_BUDGET_PARSE = os.environ.get("AGENT_TIME_BUDGET_PARSE", "1") != "0"
+
+_CN_NUM = {"零": 0, "一": 1, "壹": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+           "六": 6, "七": 7, "八": 8, "九": 9}
+_EN_NUM = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+           "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
+           "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
+           "nineteen": 19, "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
+           "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90}
+_EN_TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60,
+            "seventy": 70, "eighty": 80, "ninety": 90}
+_NUM_ALT = (r"(?:\d+(?:\.\d+)?"
+            r"|[一二两三四五六七八九十]{1,3}"
+            r"|(?:twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:-(?:one|two|three|four|five|six|seven|eight|nine))?"
+            r"|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|"
+            r"fifteen|sixteen|seventeen|eighteen|nineteen)")
+_HU = r"(?:小时|钟头|hours?\b|hrs?\b|h\b)"
+_MU = r"(?:分钟|minutes?\b|mins?\b)"
+# 序数/频率/相对位置的数字不是时限(第X分钟、前5分钟、每10分钟、every 10 minutes)
+_TB_SKIP_BEFORE = ("第", "最前", "最后", "前", "后", "开头", "首", "每",
+                   "per", "every", "next", "last", "first", "final")
+
+
+def _tb_compile():
+    pats = []
+    _pre = r"(?<![A-Za-z0-9.])"
+    # 复合:X个半小时 / X小时半(优先,避免"一个半小时"被拆成"半小时")
+    pats.append((re.compile(_pre + rf"(?P<n>{_NUM_ALT})\s*个?\s*半\s*{_HU}"), "half_h"))
+    pats.append((re.compile(_pre + rf"(?P<n>{_NUM_ALT})\s*个?\s*{_HU}\s*半(?![\d一-九])"), "half_h"))
+    pats.append((re.compile(_pre + rf"(?P<n>{_NUM_ALT})\s*个?\s*{_HU}"), "h"))
+    pats.append((re.compile(r"半\s*个?\s*(?:小时|钟头)"), "fixed30"))
+    pats.append((re.compile(r"half\s+an?\s+hours?\b"), "fixed30"))
+    pats.append((re.compile(r"an?\s+half\s+hours?\b"), "fixed30"))
+    pats.append((re.compile(r"\ban?\s+hours?\b"), "fixed60"))
+    pats.append((re.compile(_pre + rf"(?P<n>{_NUM_ALT})\s*{_MU}"), "m"))
+    return pats
+
+
+_TB_PATTERNS = _tb_compile()
+
+
+def _cn_num_value(s):
+    """中文数字串 → float(支持 0-99:十/二十三/四十)。非法返回 None。"""
+    s = str(s or "").strip()
+    if not s:
+        return None
+    if "十" in s:
+        a, _, b = s.partition("十")
+        if (a and a not in _CN_NUM) or (b and b not in _CN_NUM):
+            return None
+        return (_CN_NUM.get(a, 1) if a else 1) * 10 + (_CN_NUM.get(b, 0) if b else 0)
+    if len(s) == 1 and s in _CN_NUM:
+        return float(_CN_NUM[s])
+    return None
+
+
+def _tb_value(m, kind):
+    """正则命中 → 分钟数。kind: half_h/h(小时类)、fixed30/60、m(分钟类)。"""
+    if kind == "fixed30":
+        return 30.0
+    if kind == "fixed60":
+        return 60.0
+    raw = (m.group("n") or "").strip()
+    v = None
+    if raw[:1].isdigit():
+        try:
+            v = float(raw)
+        except Exception:
+            return None
+    elif raw[:1] in _CN_NUM or raw[:1] == "十":
+        v = _cn_num_value(raw)
+    else:
+        low = raw.lower()
+        if low in _EN_NUM:
+            v = float(_EN_NUM[low])
+        elif "-" in low:
+            a, _, b = low.partition("-")
+            if a in _EN_TENS and b in _EN_NUM:
+                v = float(_EN_TENS[a] + _EN_NUM[b])
+    if v is None:
+        return None
+    if kind == "h":
+        return v * 60.0
+    if kind == "half_h":
+        return (v + 0.5) * 60.0
+    return v
+
+
+def _fw_normalize(text):
+    """全角数字/句点 → 半角(１０分钟 → 10分钟),逐字符等长替换。"""
+    out = []
+    for ch in str(text or ""):
+        o = ord(ch)
+        if 0xFF10 <= o <= 0xFF19:
+            out.append(chr(o - 0xFF10 + 0x30))
+        elif ch == "．":
+            out.append(".")
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def parse_time_budget(text):
+    """从任务文本解析用户自述的时间预算,返回分钟数(float)或 None。
+
+    覆盖:40分钟 / 四十分钟 / 半小时 / 一个半小时 / 1.5小时 / 两小时 /
+    尽量在30分钟内 / within 40 minutes / 30 min / forty-five minutes /
+    half an hour / an hour / １０分钟(全角)。
+    规则:
+    - 必须带明确时间单位(中文"分"单独可能表示得分,如"得30分",不认);
+    - 取文本中最早出现的命中;重叠时取起点更早、跨度更长的复合形式
+      (如"一个半小时"整体命中 90,不拆成"半小时"30);
+    - 序数/频率/相对位置(第X分钟、前5分钟、每10分钟、every 10 minutes)、
+      路径片段、以及 <0.5 分钟或 >24 小时的值一律忽略。
+    """
+    if not text:
+        return None
+    low = _fw_normalize(text).lower()
+    cands = []
+    for pat, kind in _TB_PATTERNS:
+        for m in pat.finditer(low):
+            cands.append((m.start(), m.end(), kind, m))
+    cands.sort(key=lambda t: (t[0], -(t[1] - t[0])))
+    for s, e, kind, m in cands:
+        prev = low[max(0, s - 6):s].rstrip()
+        if prev and any(b in prev for b in _TB_SKIP_BEFORE):
+            continue                       # 序数/频率(第X分钟/前5分钟/每10分钟),不是时限
+        if s > 0 and low[s - 1] in "/\\_":
+            continue                       # 路径片段
+        v = _tb_value(m, kind)
+        if v is None or v < 0.5 or v > 1440:
+            continue
+        return round(v, 2)
+    return None
+
+
+def parse_duration_str(s):
+    """时限输入框 / --time-budget 的值 → 分钟数。纯数字按分钟;带单位/自然语言复用解析器。
+    示例: 40 → 40 / 1.5h → 90 / 90m → 90 / 1小时 → 60 / 半小时 → 30 / abc → None。"""
+    t = str(s or "").strip().lower()
+    if not t:
+        return None
+    if re.fullmatch(r"\d+(?:\.\d+)?", t):
+        v = float(t)
+        return v if 0 < v <= 1440 else None
+    v = parse_time_budget(t)
+    if v is not None:
+        return v
+    m = re.fullmatch(r"(\d+(?:\.\d+)?)\s*m", t)   # 90m(单独 "m" 在自然语言里不认,这里显式收)
+    if m:
+        return float(m.group(1))
+    return None
+
+
+def resolve_time_budget(cli_minutes=None, task_text=None, env_seconds=None):
+    """时限来源优先级:**任务提示词 > CLI > 环境变量**。返回 (分钟数|None, 来源)。
+    来源 ∈ {"prompt","cli","env","off"};提示词解析可用 AGENT_TIME_BUDGET_PARSE=0 关闭。"""
+    if TIME_BUDGET_PARSE and task_text:
+        try:
+            p = parse_time_budget(task_text)
+        except Exception:
+            p = None
+        if p:
+            return p, "prompt"
+    try:
+        c = float(cli_minutes or 0)
+    except Exception:
+        c = 0.0
+    if c > 0:
+        return c, "cli"
+    e = BUDGET_SEC if env_seconds is None else env_seconds
+    try:
+        e = float(e or 0)
+    except Exception:
+        e = 0.0
+    if e > 0:
+        return e / 60.0, "env"
+    return None, "off"
+
+
+def budget_env_value(minutes):
+    """UI/内部管道值 → AGENT_TIME_BUDGET_SEC 字符串(整秒);无时限返回 None(不设置该变量)。"""
+    try:
+        m = float(minutes or 0)
+    except Exception:
+        return None
+    if m <= 0:
+        return None
+    return str(int(round(m * 60)))
+
+
+_TB_SRC_LABEL = {
+    "prompt": "已从任务描述识别时限 {v} 分钟(提示词优先,覆盖输入框/--time-budget/环境变量)",
+    "cli": "任务时限 {v} 分钟(--time-budget)",
+    "env": "任务时限 {v} 分钟(AGENT_TIME_BUDGET_SEC)",
+}
+
+
+def _fmt_hm(minutes):
+    """分钟数 → 人类可读(40 → '40 分钟' / 90 → '90 分钟(1.5 小时)')。"""
+    v = float(minutes or 0)
+    txt = f"{v:g} 分钟"
+    if v >= 60 and abs(v / 60.0 - round(v / 60.0, 2)) < 1e-9:
+        txt += f"({v / 60.0:g} 小时)"
+    return txt
+
+
+def _maybe_parallel_dispatch(model, messages, workdir, session):
+    """并行派发 hook(harness 层,零 prefill 税):任务量大 + 有一批简单条目 + 硬件放得下
+    小模型时,把那批简单条目派给 headless 子 agent 并行做。
+
+    - 模型不需要预先知道子 agent 机制存在:系统提示一字不改,触发判定全在这里(代码层);
+      派发发生后才注入一条运行中消息(动态成本,非 prefill 税)。
+    - 任何派发层异常都被吞掉并降级为串行 —— 派发层故障不允许让主任务失败。
+    - 子 agent 深度锁:子进程带 AGENT_CHILD_SANDBOX=1 + AGENT_PARALLEL=0,永不递归。
+    - 回执带 _DISPATCH_NOTE_MARK 前缀:类别路由/问答判定跳过它;恢复场景看到它就
+      不再派第二次(极端情况:派发完成后、主模型第一次工具调用前进程死掉)。
+    """
+    try:
+        if _child_sandbox is not None:
+            return messages                      # 子 agent 永不派发(深度锁之三,防御)
+        if os.environ.get("AGENT_PARALLEL", "") in ("0", "false", "off", "no"):
+            return messages
+        # 只在"全新任务"评估:对话里还没有任何工具结果(续跑/恢复不打扰)
+        if any(m.get("role") == "tool" for m in messages):
+            return messages
+        # 派发回执幂等闸:极端恢复场景(派发后、主模型第一次工具调用前进程死掉)
+        # 续跑时对话里已有回执但还没有 tool 消息 —— 不再派第二次,避免双发。
+        if any(str(m.get("content", "")).startswith(_DISPATCH_NOTE_MARK)
+               for m in messages):
+            return messages
+        if len(messages) < 2:
+            return messages
+        import parallel_config as PC
+        import parallel_probe as PP
+        import parallel_todo as PT
+        import parallel_dispatch as PD
+        cfg = PC.get_parallel_config()
+        if not cfg.get("enabled"):
+            return messages
+        provider = PT.make_provider(workdir)
+        probe = PP.ResourceProbe(ollama_host=appconfig.ollama_host())
+        plan = PT.should_dispatch(probe, provider, cfg)
+        if not plan.should:
+            print("[parallel] 不派发: " + " | ".join(plan.reasons[:3]), flush=True)
+            return messages
+        model_tag = cfg.get("child_model")
+        print(f"[parallel] 触发: {plan.n_items} 条简单条目 -> 派给 {model_tag} 并行做 "
+              f"(max_parallel={plan.capacity.get('max_parallel')})", flush=True)
+        dispatcher = PD.ParallelDispatcher(cfg=cfg, progress_cb=lambda ev: PD.emit_progress_line(ev))
+        result = dispatcher.run(plan.items, workdir, probe, child_model=model_tag,
+                                todo_provider=provider)
+        integrator = PD.ResultIntegrator(cfg=cfg, provider=provider)
+        integrated, conflicts, notes = integrator.integrate(result, workdir)
+        note = PD.summary_for_parent(result, integrated)
+        if notes:
+            print("[parallel] " + notes.replace("\n", " | "), flush=True)
+        if note:
+            # 回执带标记前缀:路由/问答判定跳过它,恢复时也不会再派第二次
+            messages.append({"role": "user", "content": _DISPATCH_NOTE_MARK + " " + note})
+        return messages
+    except Exception as _pe:
+        try:
+            print(f"[parallel] 派发层异常,已降级为串行: {_pe}", flush=True)
+        except Exception:
+            pass
+        return messages
+
+
+def agent_loop(model, messages, workdir, session, budget_sec=None):
     global _active_tools
     fails = 0
     fail_count = {}           # 工具名 -> 连续失败次数(同工具无成功则累计)
@@ -1541,6 +2260,7 @@ def agent_loop(model, messages, workdir, session):
     same_sig_streak = 0        # 同工具+同参数连续次数(长任务批处理 args 在变,不该升级禁用)
     last_sig_now = None        # 上一轮 (name, args) 签名,供 same_sig_streak 用
     dup_warns = 0
+    disabled_recall = {}     # 已禁用工具仍被调用的次数(拒绝循环升级用)
     tool_streak = 0
     streak_warns = 0
     research_streak = 0     # 连续调研类工具(web_search/web_fetch)计数
@@ -1551,10 +2271,28 @@ def agent_loop(model, messages, workdir, session):
     productive_used = False  # 是否调用过产出型工具
     fake_finish_warns = 0
     finish_claim_warns = 0   # finish 产物核对拒绝次数(≥2 放行,防死锁)
+    plan_gate_warns = 0      # finish 计划完成度核对拒绝次数(≥2 放行,防死锁)
     bash_teach_warns = 0     # 小模型 run_bash 教学提示次数
     empty_turns = 0          # 连续空文本输出计数
+    empty_resets = 0         # 空轮硬复位已用次数(上限 3)
+    empty_total = 0          # 累计空轮数(transcript 观测用)
     test_guard_warns = 0
-    qa = _is_qa(messages)          # 用户最近消息是"问答"还是"任务"
+    if _child_sandbox is not None:
+        # 子 agent 派发的都是确定性机械任务,永不按"问答"处理:问答路径会换掉沙箱
+        # 系统提示(_CHILD_SYSTEM)、卸掉产出工具,并把小模型瘦身(_SMALL_MODEL_MODE)
+        # 一并关掉。子 agent 的分类只取决于自身任务文本,不能依赖提示模板里恰好
+        # 含有任务动词(TASK_TEMPLATE 的英文约束句)这种脆弱事实。
+        qa = False
+    else:
+        qa = _is_qa(messages, has_progress=_has_task_progress(messages))
+                                       # 用户最近消息是"问答"还是"任务";会话已有实际工作时
+                                       # 短后续指令按任务延续(否则进行中的任务会被误判成寒暄,
+                                       # 换聊天提示 + 卸掉 todo 工具 + 拦截写文件/跑命令)
+    if not qa:
+        # 并行派发 hook(harness 层;问答/子 agent/续跑一律跳过)。
+        # 注意:_maybe_parallel_dispatch 自身还带 _child_sandbox 防御 + AGENT_PARALLEL
+        # 显式关闭 + 无 tool 消息(续跑/恢复)+ 回执幂等四重闸门,这里不重复判断。
+        messages = _maybe_parallel_dispatch(model, messages, workdir, session)
     casual_warns = 0
     casual_force = False            # 强制收尾标志(问答答完 / 重复死循环)
     last_text = ""                  # 上一次助手文本输出(重复检测)
@@ -1566,20 +2304,49 @@ def agent_loop(model, messages, workdir, session):
         cats = None
     else:
         # 任务:按类别路由,只暴露相关工具 → prefill 更小更快
-        _task_text = next((str(m.get("content","")) for m in reversed(messages)
-                           if m.get("role") == "user" and not str(m.get("content","")).startswith(
-                               ("⚠️", "Continue:", "[已拦截", "回答已经足够"))), "")
-        cats = route_categories(_task_text)
+        cats = route_categories(_task_routing_text(messages))
         mcp_manifest()   # 预热 MCP 探测缓存(实际工具由 tools_for_categories 扁平并入)
     # 小模型协议降级(≤4B):edit_file 的 old_text 精确匹配是 2-4B 模型失败重灾区,
     # 直接持久禁用,一律用 create_file 重写;run_bash 报错附教学提示(见错误处理段)。
     # 模型名解析参数量: gemma4:e2b→2 / qwen3.5:4b→4 / ornith-1.5:35b→35;解析失败视为大模型。
     _small_model = (not qa) and ((_model_params_b(model) or 99.0) <= 4.0)
+    global _SMALL_MODEL_MODE
+    _SMALL_MODEL_MODE = bool(_small_model)   # run_tool 读取:小模型 run_bash 输出瘦身
     if _small_model:
         _disabled_tools.add("edit_file")
+    # Task #72:霰弹枪编辑守护(同文件连续成功编辑但不收敛 → 策略提示,不禁用)
+    _edit_guard = _EditConvergenceGuard()
+    # 时间预算节奏(默认完全关闭;kill-resume 续跑时续接上一阶段时钟)
+    # budget_sec 显式传入(CLI --time-budget / GUI 管道)优先于模块级 BUDGET_SEC(env)
+    try:
+        _budget_total = float(budget_sec) if budget_sec is not None else float(BUDGET_SEC or 0)
+    except Exception:
+        _budget_total = 0.0
+    _t0 = time.time()
+    _prev_elapsed = _load_elapsed(workdir) if _budget_total > 0 else 0.0
+    if _prev_elapsed:
+        print(f"[budget: 续接已用时 {_prev_elapsed/60.0:.0f}min / 预算 {_budget_total/60.0:.0f}min]", flush=True)
+    _budget_fired = set()
+
+    def _budget_elapsed():
+        return _prev_elapsed + (time.time() - _t0)
     allowed_extra = set()   # 模型 enable_tools 补充的工具名
     _compact_lvl = 0        # 已执行的最高压缩级别(避免同级别重复触发)
     _restarts = 0           # ollama 重启次数(单任务上限 3 次,防无限重启)
+    # 计划(todo)生命周期兜底:模型忘了勾选时,harness 主动提醒/拦截,列表才会在 UI 里动起来
+    todo_stale = 0          # 自上次 todo create/update 以来完成的产出型工具调用数
+    todo_nudge_warns = 0    # "记得更新计划"提醒次数(上限 2,防刷屏)
+    todo_gate_warns = 0     # finish 时计划未同步的拒绝次数(上限 2,防死锁)
+    _TODO_STALE_NUDGE = 4   # 每完成 4 步实际工作仍没更新计划 → 提醒一次
+
+    def _plan_note():
+        """当前计划文本(todo.json → "[x] n. 条目")。问答模式/无计划 → None。
+        用途:L2/L3 压缩会把历史摘要成 ≤150 字,计划内容随史俱焚——压缩后必须把
+        计划原样塞回上下文,否则模型(和用户)都失去进度坐标。"""
+        if qa:
+            return None
+        t = load_todo(workdir)
+        return format_todo_lines(t) if t else None
     for i in range(200):
         if casual_force:
             print("[收尾] 本轮已足够,强制结束(防问答重复/死循环)", flush=True)
@@ -1600,10 +2367,12 @@ def agent_loop(model, messages, workdir, session):
             # 500 时拿不到用量;opencode 同思路——请求前预算检查避免超限/错误)
             _est = _estimate_messages_tokens(messages, ct)
             if _est > CTX_BUDGET * 0.90 and _compact_lvl < 3:
-                messages = compact_history(model, messages, level=3); _compact_lvl = 3
+                messages = compact_history(model, messages, level=3, todo_text=_plan_note(),
+                                           files_text=_workdir_files_text(workdir)); _compact_lvl = 3
                 print(f"[{i}] 事前估算 {_est} token 超限,已压缩(L3)", flush=True)
             elif _est > CTX_BUDGET * 0.75 and _compact_lvl < 2:
-                messages = compact_history(model, messages, level=2); _compact_lvl = 2
+                messages = compact_history(model, messages, level=2, todo_text=_plan_note(),
+                                           files_text=_workdir_files_text(workdir)); _compact_lvl = 2
                 print(f"[{i}] 事前估算 {_est} token 超限,已压缩(L2)", flush=True)
             elif _est > CTX_BUDGET * 0.60 and _compact_lvl < 1:
                 messages = compact_history(model, messages, level=1); _compact_lvl = 1
@@ -1671,7 +2440,8 @@ def agent_loop(model, messages, workdir, session):
                     lvl = min(3, _compact_lvl + 1)
                     _compact_lvl = lvl
                     try:
-                        messages = compact_history(model, messages, level=lvl)
+                        messages = compact_history(model, messages, level=lvl, todo_text=_plan_note(),
+                                                   files_text=_workdir_files_text(workdir))
                         print(f"[{i}] 500 错误,已降级压缩上下文(L{lvl})再重试", flush=True)
                     except Exception:
                         pass
@@ -1699,14 +2469,18 @@ def agent_loop(model, messages, workdir, session):
             # 分层压缩(context-rot:本地模型早退化,分级提前压缩)
             # 60% → L1 截断旧工具输出;75% → L2 摘要早轮次;90% → L3 全量重建
             if pt > CTX_BUDGET * 0.90 and _compact_lvl < 3:
-                messages = compact_history(model, messages, level=3); _compact_lvl = 3
+                messages = compact_history(model, messages, level=3, todo_text=_plan_note()); _compact_lvl = 3
             elif pt > CTX_BUDGET * 0.75 and _compact_lvl < 2:
-                messages = compact_history(model, messages, level=2); _compact_lvl = 2
+                messages = compact_history(model, messages, level=2, todo_text=_plan_note()); _compact_lvl = 2
             elif pt > CTX_BUDGET * 0.60 and _compact_lvl < 1:
                 messages = compact_history(model, messages, level=1); _compact_lvl = 1
         msg = r.get("message",{})
         content = msg.get("content","") or ""
         tcs = msg.get("tool_calls")
+        if r.get("done_reason") == "length" and _semantically_empty(content) and not tcs:
+            # 生成被 NUM_PREDICT 截断且无实质正文/调用 = 空响应死循环签名(取证插桩;
+            # 判空用语义口径,think 标签壳不算正文)
+            print(f"[{i}] ⚠️ done_reason=length 且无正文无调用(eval={r.get('eval_count')})——疑似生成预算被烧尽", flush=True)
         if not tcs and not qa:
             # 抢救:模型把工具调用写成文本 JSON 时,尝试解析成真实调用(问答模式禁用,防加戏)
             salvaged = try_parse_tool_calls(content)
@@ -1736,9 +2510,31 @@ def agent_loop(model, messages, workdir, session):
                     name = _alias[name]
                     fn["name"] = name
                 if (name in _disabled_tools or name not in [t["function"]["name"] for t in _active_tools]) and not is_mcp_tool(name):
+                    # 拒绝循环升级:被禁用工具仍被反复调用时,拒绝消息本身也在喂死循环
+                    # (WF-08 4b 实证:todo 禁用后被拒 ~150 次,模型从未换动作烧满预算)。
+                    # 3 次注入强提示,10 次硬复位上下文(复位后工具面不再含被禁工具)。
+                    disabled_recall[name] = disabled_recall.get(name, 0) + 1
+                    if disabled_recall[name] >= 10:
+                        _task0 = next((str(m.get("content", "")) for m in messages
+                                       if m.get("role") == "user"), "")
+                        messages = [messages[0],
+                                    {"role": "user", "content":
+                                     _task0 + "\n\n⚠️ [系统] 上下文已重置:工具 " + name
+                                     + " 已被禁用,再次调用也不会执行,且不会再出现在你的工具列表里。"
+                                     + "当前进度快照:\n计划:\n" + load_todo_str(workdir)
+                                     + "\n工作目录已有文件:\n" + _workdir_files_text(workdir)
+                                     + "\n请立即改用 create_file 写产出文件推进任务。"}]
+                        disabled_recall[name] = 0
+                        print(f"[{i}] ⚠️ {name} 被禁用后仍被调用 10 次,硬复位上下文", flush=True)
+                        continue
                     res = (f"[tool {name} 已被禁用(连续重复调用保护)。不要尝试用其他工具绕道读同一内容:"
                            f"直接用 create_file 写产出文件,或已有信息足够就调用 finish。]")
-                elif name not in ("finish", "todo") and last_sig == (name, json.dumps(args, sort_keys=True, ensure_ascii=False)) and dup_warns < 3:
+                    if disabled_recall[name] == 3:
+                        messages.append({"role": "user", "content":
+                            f"⚠️ 工具 {name} 已被禁用且你已多次尝试调用它。禁用是永久的,"
+                            f"该工具也不会再出现在工具列表里。现在就换动作:"
+                            f"用 create_file 写产出文件推进,需要看已有产物就用 read_file/list_dir。"})
+                elif name not in ("finish",) and last_sig == (name, json.dumps(args, sort_keys=True, ensure_ascii=False)) and dup_warns < 3:
                     # 严格不重复同一命令:完全相同签名连续调用 → 拦截并提醒换策略
                     dup_warns += 1
                     res = f"[已拦截:你刚调用过完全相同的 {name}(参数一致),结果不会变。请换策略:read_file 看真实情况/换实现方式。]"
@@ -1774,7 +2570,13 @@ def agent_loop(model, messages, workdir, session):
                     productive_used = True
                 elif is_mcp_tool(name) and _is_mcp_producing(name):
                     productive_used = True   # MCP 产出型工具(create_docx/write_*/render_* 等)
-                print(f"[{i}] ⚙ {name} {json.dumps(args,ensure_ascii=False)[:60]} -> {res[:90]}", flush=True)
+                # 计划进度推进统计:模型做了实际工作却长期不更新计划 → 提醒
+                # (列表只靠模型显式 update 才会动,小模型常"建了就忘",UI 侧因此永远静止)
+                if name in _PRODUCTIVE or (is_mcp_tool(name) and _is_mcp_producing(name)):
+                    todo_stale += 1
+                elif name == "todo":
+                    todo_stale = 0
+                print(f"[{i}|+{int(time.time()-_t0)}s] ⚙ {name} {json.dumps(args,ensure_ascii=False)[:60]} -> {res[:90]}", flush=True)
                 if name=="finish":
                     # 假完成守护:没做任何实际工作就 finish → 拒绝并强制继续
                     if not productive_used and fake_finish_warns < 2:
@@ -1821,6 +2623,43 @@ def agent_loop(model, messages, workdir, session):
                                 + "\n".join("- " + f for f in _missing)
                                 + "\n请用 create_file/run_bash 真正生成它们;"
                                 "或修改 summary 只声称确实存在的文件,然后重新 finish。"})
+                            messages.append({"role":"tool","content":res})
+                            continue
+                    # 计划完成度门禁:模型自建计划(todo)里点名要产出的文件,finish 时必须
+                    # 真实存在。实证(WF-02 e2b):todo.json 里躺着没写的 change_log.md,
+                    # summary 不提它就直接穿过了只对 summary 核对的旧门禁。按文件存在性
+                    # 核对而非勾选状态——all=true 一键勾选曾被用作绕行通道。
+                    if not qa and _child_sandbox is None and plan_gate_warns < 2:
+                        _p_missing = _plan_named_missing(workdir)
+                        if _p_missing:
+                            plan_gate_warns += 1
+                            print(f"[{i}] ⚠️ 计划核对:计划点名但缺失 {_p_missing},拒绝 finish", flush=True)
+                            messages.append({"role":"user","content":
+                                "⚠️ 你的 finish 被拒绝:你的计划(todo)里点名了以下产物文件,"
+                                "但它们在工作目录中不存在:\n"
+                                + "\n".join("- " + f for f in _p_missing)
+                                + "\n两条路二选一:"
+                                "①用 create_file 真正生成它们;②若计划已不符合实际,"
+                                "用 todo(action=create, items=[与实际一致的新计划]) 重建计划后重新 finish。"})
+                            messages.append({"role":"tool","content":res})
+                            continue
+                    # 计划同步门禁:任务结束前必须把计划与实际进度对齐。否则 UI 的计划面板
+                    # 永远停在"全部未勾",模型侧的计划也失去坐标(实证:e2b 8/8 格建了
+                    # 计划却 0 勾选收尾)。上限 2 次,给小模型便宜的退出路径(all=true)。
+                    # 子 agent 豁免:单条机械任务,不维护 todo 计划(它的退出契约是
+                    # 产物文件 + finish/FAILED,由派发层核对;被门禁卡住只会白白烧完
+                    # 自己的预算,然后被派发层当成 timeout 回退主模型)。
+                    if not qa and _child_sandbox is None and todo_gate_warns < 2:
+                        _t_done, _t_all = todo_progress(load_todo(workdir))
+                        if _t_all and _t_done < _t_all:
+                            todo_gate_warns += 1
+                            print(f"[{i}] ⚠️ 计划未同步({_t_done}/{_t_all}),拒绝 finish", flush=True)
+                            messages.append({"role":"user","content":
+                                f"⚠️ 你的 finish 被拒绝:计划(todo)里还有 {_t_all - _t_done} 项未标记完成({_t_done}/{_t_all})。\n"
+                                f"当前计划:\n{load_todo_str(workdir)}\n"
+                                "请先把已完成的步骤逐个勾掉: todo(action=update, index=步骤号);"
+                                "已全部完成可一次同步: todo(action=update, all=true)。"
+                                "若仍有步骤没做,请继续执行后再 finish。"})
                             messages.append({"role":"tool","content":res})
                             continue
                     print("\n===== TASK COMPLETE =====", flush=True); print(res, flush=True)
@@ -1900,25 +2739,80 @@ def agent_loop(model, messages, workdir, session):
                         research_streak = 0
                 elif name in ("create_file", "edit_file", "append_file", "finish", "run_bash"):
                     research_streak = 0   # 仅产出型工具清零;todo/skills/enable 等 meta 工具不影响
-                # todo 循环检测:累计 todo 调用 ≥6 次仍无产出 → 禁用 todo,强制干正事
+                # todo 循环检测:任务开局"建计划+连续勾选"是合法动作(WF-08 实证 6 连勾被误禁),
+                # 判据必须按签名级:同一 (action,index) 连续 ≥6 次,或无产出 todo 累计 ≥15 次
+                # (9 项计划的正常勾选约 12-13 次,留余量)才禁用。
                 if name == "todo":
                     todo_streak += 1
-                    if todo_streak >= 6:
+                    if same_sig_streak >= 6 or todo_streak >= 15:
                         _disabled_tools.add("todo")
                         _active_tools = [t for t in _active_tools
                                          if t["function"]["name"] != "todo"]
                         messages.append({"role":"user","content":
-                            f"⚠️ 你已调用 todo 达 {todo_streak} 次但没做实际工作。todo 已被禁用:"
-                            f"立即用 edit_file/create_file 修改 app.py 修复漏洞,用 run_bash 跑测试。"})
+                            f"⚠️ todo 已被禁用(同一调用连发 {same_sig_streak} 次/累计 {todo_streak} 次无实际工作)。"
+                            f"立即改用产出型工具推进:create_file 写产出文件、run_bash 执行验证;"
+                            f"需要记录计划就直接写进产出文件里。"})
                         todo_streak = 0
                 elif name in _PRODUCTIVE:
                     todo_streak = 0   # 产出型工具清零 todo 计数
+                # #72 霰弹枪编辑守护:只统计真正落地的成功编辑(res 以 "[edited" 开头),
+                # 被禁用/被拦截/失败的 edit_file 不计数。
+                if name == "edit_file" and str(res).startswith("[edited"):
+                    _hint = _edit_guard.observe(args.get("path", ""))
+                    if _hint:
+                        print(f"[{i}] ⚠️ 霰弹枪编辑提示: {_edit_guard.last_path} "
+                              f"(连续成功编辑 {_edit_guard.streak} 次)", flush=True)
+                        messages.append({"role":"user","content":_hint})
+                # 时间预算节奏提示(默认关闭;任务模式才注入,问答轮次本来就短)
+                if _budget_total > 0 and not qa:
+                    _el = _budget_elapsed()
+                    _save_elapsed(workdir, _el)
+                    _bn = _budget_nudge(_budget_total, _el, _budget_fired)
+                    if _bn:
+                        print(f"[{i}] ⏱ 预算提示已注入(已用 {_el/60.0:.0f}min)", flush=True)
+                        messages.append({"role":"user","content":_bn})
                 messages.append({"role":"tool","content":res})
+                # 计划停滞提醒(非拦截):已完成若干步实际工作但计划一项没动 → 提醒勾选。
+                # 只提醒不否决,避免把"忘勾计划"升级成死循环;上限 2 次防刷屏。
+                if not qa and todo_nudge_warns < 2 and todo_stale >= _TODO_STALE_NUDGE:
+                    _t_done, _t_all = todo_progress(load_todo(workdir))
+                    if _t_all and _t_done < _t_all:
+                        _stale = todo_stale
+                        todo_nudge_warns += 1
+                        todo_stale = 0
+                        messages.append({"role":"user","content":
+                            f"⚠️ 计划进度提醒:你已完成多步实际工作,但计划仍是 {_t_done}/{_t_all}。"
+                            f"每完成一步就同步一次: todo(action=update, index=已完成步骤号)。\n"
+                            f"当前计划:\n{load_todo_str(workdir)}"})
+                        print(f"[{i}] 📌 计划停滞提醒({_t_done}/{_t_all},连续 {_stale} 步未更新)", flush=True)
         else:
             if not STREAM:   # 流式时 token 已逐字上屏,不再整段打印
-                print(f"[{i}] ✍ {content[:2000]}", flush=True)
-            if not content.strip():
+                print(f"[{i}|+{int(time.time()-_t0)}s] ✍ {content[:2000]}", flush=True)
+            if _semantically_empty(content):
                 empty_turns += 1
+                empty_total += 1
+                if empty_turns >= 6 and empty_resets < 3:
+                    # 硬复位:连续 6 个空轮 = 当前上下文已把模型推进生成死区(P0-1 修复前的
+                    # 典型签名:思考烧光 NUM_PREDICT,content 恒空)。重建最小工作集:
+                    # 系统提示 + 原始任务 + 进度快照(计划/已有文件,均为 agent 自产状态)。
+                    empty_resets += 1
+                    empty_turns = 0
+                    _task0 = next((str(m.get("content", "")) for m in messages
+                                   if m.get("role") == "user"), "")
+                    _files = _workdir_files_text(workdir)
+                    messages = [messages[0],
+                                {"role": "user", "content":
+                                 _task0 + "\n\n⚠️ [系统] 连续多次空输出,上下文已重置。当前进度快照:\n"
+                                 + "计划:\n" + load_todo_str(workdir)
+                                 + "\n工作目录已有文件:\n" + _files
+                                 + "\n请从第一个未完成的步骤继续,立即用工具推进,不要输出空文本。"}]
+                    print(f"[{i}] ⚠️ 连续空轮×6,硬复位上下文(第 {empty_resets}/3 次,累计空轮 {empty_total})", flush=True)
+                    continue
+                if empty_turns >= 3 and empty_resets >= 3:
+                    # 复位额度用尽仍空 = 模型已失去行动能力,保留检查点优雅退出(可续跑)。
+                    print(f"[{i}] 累计 {empty_total} 个空轮且 3 次复位无效,优雅退出", flush=True)
+                    save_session(session, messages)
+                    sys.exit(1)
                 if empty_turns >= 3:
                     empty_turns = 0
                     messages.append({"role":"user","content":

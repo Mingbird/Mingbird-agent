@@ -106,6 +106,10 @@ _T = {
     "🤔 思考过程 · {n} 字": "🤔 thinking · {n} chars",
     "查看": "View",
     "计划 (todo)": "Plan (todo)",
+    "任务时限:": "Time limit:",
+    "[已从任务描述识别时限 {n} 分钟,优先于手填值]": "[Time limit {n} min detected in the task text — overrides the box]",
+    "[任务时限 {n} 分钟,超时会收到收尾提醒]": "[Time limit {n} min — you'll get wind-down reminders]",
+    "[任务时限不可用:无法加载解析器 {e}]": "[Time limit unavailable: cannot load parser {e}]",
 }
 def _t(s):
     if _LANG == "zh":
@@ -363,6 +367,12 @@ class AgentGUI:
                   command=self.choose_dir).pack(side="left")
         tb.Button(bar2, text=_t("打开"), bootstyle="secondary-outline",
                   command=self.open_dir).pack(side="left", padx=(4, 0))
+        # 任务时限(Task #73):默认空=不限时;接受分钟/小时(40 / 1.5h / 90m / 半小时)。
+        # 任务描述里自述时限(如"尽量在30分钟内")会自动识别并回填到这里,优先于手填值。
+        tb.Label(bar2, text=_t("任务时限:")).pack(side="left", padx=(10, 0))
+        self.tb_var = tk.StringVar(value="")
+        self.tb_entry = tb.Entry(bar2, textvariable=self.tb_var, width=9, bootstyle="info")
+        self.tb_entry.pack(side="left", padx=(2, 4))
 
     def _build_body(self):
         pw = tb.Panedwindow(self.root, orient="horizontal")
@@ -406,11 +416,15 @@ class AgentGUI:
         self.se_lb.bind("<Double-1>", lambda e: self.load_selected_session())
 
         # 计划
-        pl = tb.Labelframe(side, text=_t("计划 (todo)"), padding=4)
-        pl.grid(row=4, column=0, sticky="ew", padx=6, pady=(0,4))
-        self.plan_txt = tk.Text(pl, height=4, font=("Consolas", 8), state="disabled",
+        self.plan_frame = tb.Labelframe(side, text=_t("计划 (todo)"), padding=4)
+        self.plan_frame.grid(row=4, column=0, sticky="ew", padx=6, pady=(0,4))
+        pf = tb.Frame(self.plan_frame); pf.pack(fill="x")
+        self.plan_txt = tk.Text(pf, height=6, font=("Consolas", 8), state="disabled",
                                 relief="flat", wrap="word")
-        self.plan_txt.pack(fill="x")
+        self.plan_sb = tk.Scrollbar(pf, command=self.plan_txt.yview)
+        self.plan_txt.configure(yscrollcommand=self.plan_sb.set)
+        self.plan_txt.pack(side="left", fill="x", expand=True)
+        self.plan_sb.pack(side="right", fill="y")
 
         # ---------- 主区 ----------
         main = tb.Frame(pw); pw.add(main, weight=1)
@@ -663,6 +677,45 @@ class AgentGUI:
         self.transcript.insert("end", "  " + txt + "\n", "note")
         self.transcript.config(state="disabled")
         self._scroll_transcript()
+
+    # ================= 并行派发进度(@@DISPATCH@@ 行协议) =================
+    def _on_dispatch(self, payload):
+        """主 agent 派发子 agent 的进度:状态栏显示"已派发子任务 X/Y 完成",transcript 落备注。"""
+        try:
+            ev = json.loads(payload)
+        except Exception:
+            ev = {}
+        phase = ev.get("phase", "")
+        total = ev.get("total", 0)
+        if phase == "start":
+            self.dispatch_state = {"done": 0, "total": total,
+                                   "model": ev.get("model", "")}
+            self.status_var.set(_t(" 已派发子任务 0/{t} 完成 (模型 {m})").format(
+                t=total, m=ev.get("model", "")))
+            self.log_note(_t("[并行派发] ") + _t("{n} 条简单子任务派给 {m} 并行做").format(
+                n=total, m=ev.get("model", "")))
+            return
+        if phase == "progress":
+            st = getattr(self, "dispatch_state", None) or {}
+            done = st.get("done", 0)
+            if ev.get("status") in ("ok", "failed", "timeout", "severe", "aborted",
+                                    "load_failure"):
+                done += 1
+                st["done"] = done
+            self.status_var.set(_t(" 已派发子任务 {d}/{t} 完成").format(
+                d=done, t=st.get("total", ev.get("total", 0))))
+            if ev.get("status") not in (None, "running"):
+                self.log_note(_t("[并行派发] 子任务 {i}: {s}").format(
+                    i=ev.get("index", "?"), s=ev.get("status")))
+            return
+        if phase == "done":
+            self.status_var.set(_t(" 已派发子任务 {o}/{t} 完成").format(
+                o=ev.get("ok", 0), t=ev.get("total", 0)))
+            self.log_note(_t("[并行派发] 结束: 成功 {o}/{t},回退主模型 {f},严重违规 {sv}").format(
+                o=ev.get("ok", 0), t=ev.get("total", 0), f=ev.get("fallback", 0),
+                sv=ev.get("severe_violations", 0)))
+            return
+
     def log(self, txt):
         self.console.config(state="normal")
         self.console.insert("end", txt + "\n"); self.console.see("end")
@@ -994,6 +1047,14 @@ class AgentGUI:
         if not resume_ok:
             ck = os.path.join(workdir, ".agent_state.json")
             if os.path.exists(ck): os.remove(ck); self.log_note(_t("[已清除旧进度]"))
+            # 上一任务遗留的 todo.json 必须一并清掉:否则计划面板会一直显示旧清单,
+            # 用户看到的是上个任务的"已勾完"列表,误以为新任务没有计划。
+            try:
+                tj = os.path.join(workdir, "todo.json")
+                if os.path.exists(tj): os.remove(tj)
+                self._render_plan([], force=True)
+            except Exception:
+                pass
         env = dict(os.environ); env["PYTHONIOENCODING"]="utf-8"
         env["AGENT_STREAM"] = "1"   # 对话流式输出 + 思考流
         env["AGENT_THINK"] = "1" if self.think_var.get() else "0"
@@ -1010,6 +1071,7 @@ class AgentGUI:
             args = [sys.executable, AGENT_PY, model, taskfile, workdir]
         if use_session or self.session: args += ["--session", self.session]
         if use_session: args += ["--append"]
+        self._apply_time_budget(env, task)
         self.log(f"====== {_t('开始: ')}{model}" + (f" | {_t('会话:')}{self.session}" if self.session else "") + " ======")
         self.log(f"工作目录: {workdir}\n")
         self.proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -1018,6 +1080,29 @@ class AgentGUI:
         threading.Thread(target=self.reader, daemon=True).start()
         self.send_btn.config(state="disabled")
         self.stop_btn.config(state="normal")
+
+    def _apply_time_budget(self, env, task):
+        """任务时限(Task #73):输入框值(分钟/小时)→ AGENT_TIME_BUDGET_SEC 传给 harness。
+        任务描述里自述的时限(如"尽量在30分钟内")优先,并回填输入框让用户看见。"""
+        try:
+            from ollama_agent import (parse_duration_str, parse_time_budget,
+                                      budget_env_value, TIME_BUDGET_PARSE)
+        except Exception as _e:
+            self.log_note(_t("[任务时限不可用:无法加载解析器 {e}]").format(e=_e))
+            return
+        minutes = parse_duration_str(self.tb_var.get())
+        src = "manual"
+        if TIME_BUDGET_PARSE and task:
+            hit = parse_time_budget(task)
+            if hit:
+                minutes, src = hit, "prompt"
+                self.tb_var.set(f"{hit:g}")
+        sec = budget_env_value(minutes)
+        if sec:
+            env["AGENT_TIME_BUDGET_SEC"] = sec
+            label = (_t("[已从任务描述识别时限 {n} 分钟,优先于手填值]")
+                     if src == "prompt" else _t("[任务时限 {n} 分钟,超时会收到收尾提醒]"))
+            self.log_note(label.format(n=f"{minutes:g}"))
 
     def reader(self):
         for line in iter(self.proc.stdout.readline, ""):
@@ -1246,6 +1331,9 @@ class AgentGUI:
         if line.startswith("@@THINK@@"):
             self._stream_think(line[len("@@THINK@@"):])
             return
+        if line.startswith("@@DISPATCH@@"):
+            self._on_dispatch(line[len("@@DISPATCH@@"):])
+            return
         m = re.match(r"\[ctx: (\d+)/(\d+) = (\d+)%\]", line)
         if m:
             self._collapse_think()
@@ -1297,18 +1385,55 @@ class AgentGUI:
 
     def poll_todo(self):
         tf = os.path.join(self.wd_dir(), "todo.json")
+        t = None
         try:
             t = json.load(open(tf, encoding="utf-8"))
-            text = "\n".join(f"{'[x]' if x['done'] else '[ ]'} {i}. {x['item']}"
-                             for i, x in enumerate(t, 1))
+            if not isinstance(t, list): t = None
         except Exception:
-            text = ""
-        self.plan_txt.config(state="normal")
-        if self.plan_txt.get("1.0", "end").strip() != text.strip():
-            self.plan_txt.delete("1.0", "end")
-            self.plan_txt.insert("1.0", text if text else _t("(尚无计划 — agent 会先建 todo 再执行)"))
-        self.plan_txt.config(state="disabled")
+            t = None
+        self._render_plan(t or [])
         self.root.after(500, self.poll_todo)
+
+    @staticmethod
+    def _format_plan(todo_list):
+        """与 harness 回执同一份格式化(ollama_agent.format_todo_lines);导入失败时
+        本地兜底,保证计划面板在打包环境也能显示。"""
+        try:
+            import ollama_agent
+            return ollama_agent.format_todo_lines(todo_list)
+        except Exception:
+            return "\n".join(f"{'[x]' if x.get('done') else '[ ]'} {i}. {x.get('item','')}"
+                             for i, x in enumerate(todo_list, 1))
+
+    def _render_plan(self, todo_list, force=False):
+        """渲染计划面板:内容与 harness 回执同源(ollama_agent.format_todo_lines),
+        标题带进度(x/y),内容变化时滚动到第一个未完成项——长列表 + 4 行小窗
+        曾让"正在做第几项"完全落在可视区外。"""
+        todo_list = todo_list or []
+        done, total = 0, len(todo_list)
+        for x in todo_list:
+            try:
+                if x.get("done"): done += 1
+            except AttributeError:
+                pass
+        text = self._format_plan(todo_list) if total else _t("(尚无计划 — agent 会先建 todo 再执行)")
+        title = _t("计划 (todo)") + (f"  {done}/{total}" if total else "")
+        try:
+            self.plan_frame.configure(text=title)
+        except Exception:
+            pass
+        self.plan_txt.config(state="normal")
+        if force or self.plan_txt.get("1.0", "end").strip() != text.strip():
+            self.plan_txt.delete("1.0", "end")
+            self.plan_txt.insert("1.0", text)
+            # 滚到第一个未完成项(全部完成则滚到末尾),让"当前进度"落在可视区
+            target = None
+            for idx, x in enumerate(todo_list, 1):
+                if not x.get("done"): target = idx; break
+            if target is None and total: target = total
+            if target is not None:
+                self.plan_txt.see(f"{target}.0")
+        self.plan_txt.config(state="disabled")
 
     def on_close(self):
         if self.proc and self.proc.poll() is None: self.proc.kill()
