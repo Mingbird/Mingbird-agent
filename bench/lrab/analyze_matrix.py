@@ -2,45 +2,75 @@
 # -*- coding: utf-8 -*-
 """Analyze LRAB matrix results → summary table + graceful-degradation chart.
 
-Reads eval_results/MATRIX_MANIFEST.json (or falls back to scanning eval_results/*/score.json),
-groups by (agent, model), averages task scores, and prints a comparison table.
+Single source of truth: eval_results/<cell>/score.json directories, run-3
+window only (2026-09-02 15:25:15 onward = the 288-cell final matrix).
+
+Protocol (2026-09-04 final):
+  - latest-attempt-wins per (agent, model, task): attempt number first, then
+    dirname timestamp as tie-break; a poisoned dir without score.json loses
+    to any future attempt but 0-scores the cell if it is the latest.
+  - timeout / missing-total / missing score.json count 0 (denominator 18).
+  - MATRIX_MANIFEST.json is NOT consumed for scores: mid-batch manifests are
+    incremental snapshots (probe lesson 09-03) and manifest dedup was
+    first-success-wins, which systematically inflated scores.
+  - run-1/run-2 (09-02 <= 15:25, incl. the VRAM-anomaly window) are excluded
+    by dirname timestamp; a 288-cell completeness assertion gates output.
 
 Usage:
   python analyze_matrix.py [--results ~/dev/hummingbird/eval_results] [--chart out.png]
 """
-import argparse, json, os, glob
+import argparse, json, os, re, glob, sys
+
+RUN3_WINDOW = ("0902", "152515")
+NAME_RE = re.compile(r"^(hummingbird|goose|opencode|agentmini)_(.+?)_(.+)_m(\d+)_(\d{4})_(\d{6})$")
+EXPECTED_AGENTS = ["hummingbird", "opencode", "agentmini", "goose"]
+EXPECTED_MODELS = ["gemma4_e2b", "qwen3.5_4b", "gemma4_12b", "ornith1.5_35b"]
+EXPECTED_TASKS = [f"WF{i:02d}" for i in range(1, 16)] + [f"LH{i:02d}" for i in range(1, 4)]
+TOTAL_CELLS = len(EXPECTED_AGENTS) * len(EXPECTED_MODELS) * len(EXPECTED_TASKS)  # 288
 
 def load_scores(results_dir):
-    """Prefer MATRIX_MANIFEST.json (clean matrix runs only); else scan score.json files.
-    Skipping smoke/dev runs avoids polluting the published matrix."""
-    man = os.path.join(results_dir, "MATRIX_MANIFEST.json")
-    if os.path.exists(man):
-        m = json.load(open(man, encoding="utf-8"))
-        scores = []
-        for c in m.get("cells", []):
-            if not c.get("ok"):
-                continue
-            for att in c.get("attempts", []):
-                if att.get("total") is not None:
-                    scores.append({
-                        "agent": c["agent"], "model": c["model"],
-                        "task_id": c["task"], "total": att["total"],
-                        "failure_mode": "completed",
-                    })
-                    break
-        if scores:
-            return scores
-    # fallback: scan score.json
-    scores = []
-    for score_path in glob.glob(os.path.join(results_dir, "*", "score.json")):
-        try:
-            s = json.load(open(score_path, encoding="utf-8"))
-        except Exception:
+    """Scan run-3-window cell dirs, latest-attempt-wins per cell.
+
+    Returns {cell_key: {"total": float, "failure_mode": str, "dir": str}} where
+    total is 0.0 for timeout / no-total / no-score.json cells."""
+    cells = {}
+    for d in glob.glob(os.path.join(results_dir, "*_*")):
+        b = os.path.basename(d)
+        m = NAME_RE.match(b)
+        if not m or not os.path.isdir(d):
             continue
-        if not s.get("agent") or not s.get("model"):
-            continue
-        scores.append(s)
-    return scores
+        if (m.group(5), m.group(6)) < RUN3_WINDOW:
+            continue  # run-1/run-2 contamination (incl. VRAM-anomaly window)
+        agent, task, model = m.group(1), m.group(2), m.group(3)
+        att = (int(m.group(4)), b)
+        sd = None
+        sp = os.path.join(d, "score.json")
+        if os.path.isfile(sp):
+            try:
+                sd = json.load(open(sp, encoding="utf-8"))
+            except Exception:
+                sd = None
+        cur = cells.get((agent, task, model))
+        if cur is None or att > cur["att"]:
+            t = sd.get("total") if isinstance(sd, dict) else None
+            cells[(agent, task, model)] = {
+                "att": att,
+                "total": t if isinstance(t, (int, float)) else 0.0,
+                "failure_mode": (sd or {}).get("failure_mode", "no_score"),
+                "dir": b,
+            }
+    # completeness gate: every planned cell must have >= 1 run-3 attempt
+    missing = []
+    for ag in EXPECTED_AGENTS:
+        for md in EXPECTED_MODELS:
+            for tk in EXPECTED_TASKS:
+                if (ag, tk, md) not in cells:
+                    missing.append(f"{ag}:{md}:{tk}")
+    if len(cells) != TOTAL_CELLS or missing:
+        print(f"INCOMPLETE: {len(cells)}/{TOTAL_CELLS} cells in run-3 window; "
+              f"missing: {missing}", file=sys.stderr)
+        sys.exit(1)
+    return cells
 
 def main():
     ap = argparse.ArgumentParser()
@@ -48,64 +78,56 @@ def main():
     ap.add_argument("--chart", default="", help="save degradation chart PNG path")
     a = ap.parse_args()
 
-    scores = load_scores(a.results)
-    if not scores:
-        print("no scored runs found in", a.results); return
+    cells = load_scores(a.results)
+    print(f"288-cell final matrix, run-3 window (>= {RUN3_WINDOW[0]} {RUN3_WINDOW[1]}), "
+          f"latest-attempt-wins, timeout/no-score = 0\n")
 
-    # group: agent -> model -> list of (task, total, failure_mode)
-    groups = {}
-    for s in scores:
-        ag, md = s["agent"], s["model"]
-        groups.setdefault(ag, {}).setdefault(md, []).append({
-            "task": s.get("task_id"), "total": s.get("total", 0),
-            "failure": s.get("failure_mode", "completed"),
-        })
+    def mean(ag, md, task_filter=None):
+        vals = [c["total"] for (x, tk, y), c in cells.items()
+                if x == ag and (md is None or y == md)
+                and (task_filter is None or task_filter(tk))]
+        return sum(vals) / len(vals) if vals else float("nan")
 
-    # table: rows=agent, cols=model, val=mean total
-    agents = sorted(groups)
-    models = sorted({m for g in groups.values() for m in g})
-    print(f"{'agent':14s} " + " ".join(f"{m:>12s}" for m in models) + "   mean")
+    models = EXPECTED_MODELS
+    print(f"{'agent':14s}" + "".join(f"{m:>15s}" for m in models) + f"{'OVERALL':>10s}{'LH-only':>10s}")
     cell_stats = {}
-    for ag in agents:
+    for ag in EXPECTED_AGENTS:
         row = []
         for md in models:
-            runs = groups.get(ag, {}).get(md, [])
-            if runs:
-                mean = sum(r["total"] for r in runs) / len(runs)
-                row.append(f"{mean:>12.2f}")
-                cell_stats[(ag, md)] = {"mean": mean, "n": len(runs),
-                                        "failures": [r["failure"] for r in runs if r["failure"] != "completed"]}
-            else:
-                row.append(f"{'—':>12s}")
-        means = [cell_stats[(ag, md)]["mean"] for md in models if (ag, md) in cell_stats]
-        row.append(f"{sum(means)/len(means):>6.2f}" if means else "")
-        print(f"{ag:14s} " + " ".join(row))
+            m = mean(ag, md)
+            row.append(f"{m:>15.3f}")
+            cell_stats[(ag, md)] = {
+                "mean": m,
+                "failures": [c["failure_mode"] for (x, tk, y), c in cells.items()
+                             if x == ag and y == md and c["failure_mode"] not in ("completed", "ok")],
+            }
+        overall = sum(mean(ag, md) for md in models) / len(models)
+        lh = mean(ag, None, task_filter=lambda tk: tk.startswith("LH"))
+        row.append(f"{overall:>10.3f}{lh:>10.3f}")
+        print(f"{ag:14s}" + "".join(row))
 
-    # failure-mode summary for small-model cells
-    print("\n-- failure modes (non-completed cells) --")
+    print("\n-- failure modes (non-completed latest attempts) --")
     for (ag, md), st in sorted(cell_stats.items()):
         if st["failures"]:
             print(f"  {ag:12s} {md:16s}: {st['failures']}")
 
-    # chart
     if a.chart:
         try:
             import matplotlib
             matplotlib.use("Agg")
             import matplotlib.pyplot as plt
             fig, ax = plt.subplots(figsize=(8, 5))
-            # x: model order 35b->e2b (only models actually present, in gradient order)
-            order = ["ornith-1.5:35b", "gemma4:12b", "qwen3.5:4b", "gemma4:e2b"]
-            present = [o for o in order if o in models]
-            x = list(range(len(present)))
-            for ag in agents:
-                ys = [cell_stats.get((ag, md), {}).get("mean", float("nan")) for md in present]
+            order = list(reversed(EXPECTED_MODELS))  # e2b -> 35b left to right? keep 35b first
+            order = ["ornith1.5_35b", "gemma4_12b", "qwen3.5_4b", "gemma4_e2b"]
+            x = list(range(len(order)))
+            for ag in EXPECTED_AGENTS:
+                ys = [cell_stats[(ag, md)]["mean"] for md in order]
                 ax.plot(x, ys, marker="o", label=ag)
             ax.set_xticks(x)
-            ax.set_xticklabels([o.split(":")[0] for o in present], rotation=15)
+            ax.set_xticklabels(["35b", "12b", "4b", "e2b"])
             ax.set_xlabel("model (35B → 2B)")
             ax.set_ylabel("mean task score (0-1)")
-            ax.set_title("Graceful degradation across model sizes")
+            ax.set_title("LRAB 288: graceful degradation across model sizes")
             ax.legend()
             ax.grid(True, alpha=0.3)
             fig.tight_layout()
