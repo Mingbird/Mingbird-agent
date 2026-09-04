@@ -43,6 +43,39 @@ def wait_ollama(host=OLLAMA_HOST, max_wait=180):
     return False
 
 
+def restart_ollama():
+    """Kill + relaunch + poll ollama (batch-1 driver protocol, now in-process).
+    One wedge burns one restart, not the chain. Returns False if unreachable."""
+    import subprocess as _sp
+    _sp.run(["taskkill", "/F", "/IM", "ollama.exe"], capture_output=True)
+    _sp.run(["taskkill", "/F", "/IM", "llama-server.exe"], capture_output=True)
+    time.sleep(5)
+    launcher = os.environ.get("OLLAMA_LAUNCHER_PS1", r"C:\Users\99491\launch_ollama_0831.ps1")
+    _sp.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+             "-File", launcher], capture_output=True, timeout=120)
+    return wait_ollama(max_wait=300)
+
+
+def guard_model_loaded(model, host=OLLAMA_HOST, max_wait=900):
+    """35b 加载守卫: tiny generate 请求强制把权重装进显存并要求一次完整生成。
+    UMA 冷加载可达数分钟; 不守卫的话加载时间烧进格子预算, 且撞上 ollama
+    '无限重建 runner' 时整格静默烧死(08-31 批次教训)。uniform for all agents."""
+    if "35b" not in model:
+        return True
+    payload = json.dumps({"model": model, "prompt": "hi", "stream": False,
+                          "options": {"num_predict": 1}}).encode()
+    deadline = time.time() + max_wait
+    while time.time() < deadline:
+        try:
+            req = urllib.request.Request(host + "/api/generate", data=payload,
+                headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=620) as r:
+                return json.loads(r.read()).get("done") is True
+        except Exception:
+            time.sleep(10)
+    return False
+
+
 def list_tasks(tasks_dir):
     """Return {task_id: task_json_path} for all *.json under tasks_dir (any tier)."""
     out = {}
@@ -85,11 +118,20 @@ def main():
                     help="include tier4_longhorizon tasks in a default (no --tasks) run")
     ap.add_argument("--results", default=os.path.expanduser("~/dev/hummingbird/eval_results"))
     ap.add_argument("--timeout-min", type=int, default=45)
+    ap.add_argument("--timeout-min-lh", type=int, default=None,
+                    help="budget for tier4_longhorizon cells (default: 2x --timeout-min)")
+    ap.add_argument("--sweep", choices=("agent", "model"), default="agent",
+                    help="cell ordering: agent-outer (default) or model-outer "
+                         "(288 final: small models first, fragile 35b segment last)")
+    ap.add_argument("--fresh-ollama", action="store_true",
+                    help="restart ollama before every attempt (batch-1 stability protocol)")
     ap.add_argument("--judge", default="", help="judge model (empty = deterministic only, faster)")
     ap.add_argument("--retries", type=int, default=1, help="retries on failed cell")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--start", default="", help="skip cells before this key agent:model:task (resume)")
     a = ap.parse_args()
+    if a.timeout_min_lh is None:
+        a.timeout_min_lh = a.timeout_min * 2
 
     agents = [x.strip() for x in a.agents.split(",") if x.strip()]
     models = [x.strip() for x in a.models.split(",") if x.strip()]
@@ -111,8 +153,13 @@ def main():
     if not tasks:
         print("no tasks found"); sys.exit(1)
 
-    cells = [(ag, md, tk, tp) for ag in agents for md in models for tk, tp in tasks.items()]
-    print(f"matrix plan: {len(agents)} agents x {len(models)} models x {len(tasks)} tasks = {len(cells)} cells")
+    if a.sweep == "model":
+        cells = [(ag, md, tk, tp) for md in models for ag in agents for tk, tp in tasks.items()]
+    else:
+        cells = [(ag, md, tk, tp) for ag in agents for md in models for tk, tp in tasks.items()]
+    print(f"matrix plan: {len(agents)} agents x {len(models)} models x {len(tasks)} tasks "
+          f"= {len(cells)} cells (sweep={a.sweep}, WF budget={a.timeout_min}min, "
+          f"LH budget={a.timeout_min_lh}min)")
 
     if a.dry_run:
         for ag, md, tk, _ in cells[:5]:
@@ -151,30 +198,48 @@ def main():
 
 
 def _run_cells(a, cells, attempt_stats, manifest):
+    guard_fails = 0
     for ag, md, tk, tp in cells:
         key = f"{ag}:{md}:{tk}"
         if a.start and key < a.start:
             continue
-        print(f"\n=== [{key}] starting ===", flush=True)
+        is_lh = (f"{os.sep}tier4{os.sep}" in tp) or (f"{os.sep}tier4_longhorizon{os.sep}" in tp)
+        budget_min = a.timeout_min_lh if is_lh else a.timeout_min
+        print(f"\n=== [{key}] starting (budget {budget_min}min) ===", flush=True)
         cell_attempts = []
         ok = False
         for attempt in range(a.retries + 1):
             t0 = time.time()
-            # probe ollama right before launching
+            # batch-1 稳定性协议: 每 attempt 前 fresh ollama(一个 wedge 烧一次重启,
+            # 不烧整链); 35b 格随后 tiny-request 加载守卫, 失败跳过该 attempt
+            if a.fresh_ollama:
+                print("  [ollama] fresh restart before attempt...", flush=True)
+                if not restart_ollama():
+                    print("  [ollama] unreachable after restart, skipping attempt", flush=True)
+                    continue
             if not ollama_up():
                 print("  [probe] ollama down, waiting 60s...", flush=True)
                 wait_ollama(max_wait=60)
+            if not guard_model_loaded(md):
+                guard_fails += 1
+                print(f"  [guard] {md} load guard FAILED (fails={guard_fails}), "
+                      "skipping attempt", flush=True)
+                if guard_fails >= 3:
+                    print("  [guard] 3 consecutive guard failures — aborting matrix", flush=True)
+                    return
+                continue
+            guard_fails = 0
             # run_id 用完整模型标识(冒号转下划线), 避免 gemma4:12b/e2b 同形(自省P0-3)
             md_slug = md.replace(':', '_').replace('-', '')
             run_id = f"{ag.replace('-','')}_{tk.replace('-','')}_{md_slug}_m{attempt}_{time.strftime('%m%d_%H%M%S')}"
             cmd = [sys.executable, os.path.join(HERE, "run_bench.py"),
                    "--agent", ag, "--task", tp, "--model", md,
-                   "--results", a.results, "--timeout-min", str(a.timeout_min),
+                   "--results", a.results, "--timeout-min", str(budget_min),
                    "--run-id", run_id]
             if a.judge:
                 cmd += ["--judge", a.judge]
             print(f"  attempt {attempt+1}: {' '.join(cmd[:8])}...", flush=True)
-            r = subprocess.run(cmd, capture_output=False, timeout=(a.timeout_min * 60) + 120)
+            r = subprocess.run(cmd, capture_output=False, timeout=(budget_min * 60) + 180)
             wall = time.time() - t0
             cell_attempts.append({"attempt": attempt, "run_id": run_id,
                                   "wall_seconds": round(wall), "returncode": r.returncode})

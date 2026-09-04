@@ -158,6 +158,12 @@ def _tree_kill(p):
 
 
 def _spawn(cmd, env, cwd):
+    # PYTHONUTF8 中心化(四家一视同仁):GBK 控制台曾把 agent-mini 的 rich banner
+    # 变成 2 秒 UnicodeEncodeError 崩溃(批次 1 实锤 19 格)。runner 级统一注入,
+    # 替代污染全局解释器的 sitecustomize hack(2026-09-02 自审 P0-1 定案)。
+    env = dict(env) if env else dict(os.environ)
+    env.setdefault("PYTHONUTF8", "1")
+    env.setdefault("PYTHONIOENCODING", "utf-8")
     return subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             text=True, encoding="utf-8", errors="replace",
                             env=env, cwd=cwd)
@@ -346,6 +352,12 @@ def main():
     transcript = (proc.stdout or "") + (proc.stderr or "")
     if proc.returncode != 0:
         failure_mode = "crash" if wall < 60 else "error"
+        # 环境税细分:GBK 编码崩溃不是模型行为(批次 1 agent-mini 2 秒崩);空轮优雅退出
+        # 是 harness 断路器兜底(复位额度用尽),与"模型投降"也区分开
+        if failure_mode == "crash" and "UnicodeEncodeError" in transcript:
+            failure_mode = "gbk_degraded"
+        elif "复位无效,优雅退出" in transcript:
+            failure_mode = "empty_spin"
     elif score.get("total", 0) == 0:
         # 0 分时区分: 无产物 / 读任务后停滞(stall) / 秒退(early_finish)
         # 只交了计划(plan.md/todo.json)就退 = early_finish——模型"叙述下一步"而不执行,
