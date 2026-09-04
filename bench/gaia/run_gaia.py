@@ -73,7 +73,8 @@ def main():
         total = 0.0
     else:
         total, detail = gaia_scorer.score_answer(workdir, task["gold_answer"])
-        score["failure_mode"] = "completed"
+        # answer.txt 缺失 = agent 烧到强收尾/退化完成,与"正常完成但答错"分开标注
+        score["failure_mode"] = "completed" if not detail.get("error") else "no_answer"
         score["gaia"] = detail
     if total is not None:
         score["total"] = total
