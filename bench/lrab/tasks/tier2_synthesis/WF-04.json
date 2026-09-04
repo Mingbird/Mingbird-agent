@@ -32,11 +32,13 @@
   "final_artifacts": [
     {
       "artifact": "inventory.py",
-      "check": "python_compiles"
-    },
-    {
-      "artifact": "test_inventory.py",
-      "check": "exists"
+      "check": "spec_pytest",
+      "params": {
+        "seed_rel": "fixtures/buggy_project/test_inventory.py",
+        "command": "python -m pytest test_inventory.py -q",
+        "expect_stdout": "6 passed",
+        "timeout_s": 180
+      }
     }
   ],
   "judge_rubric": "rubrics/WF-04.md",

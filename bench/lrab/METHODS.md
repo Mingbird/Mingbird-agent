@@ -25,10 +25,18 @@
   Non-timeout failures (`early_finish`, `no_artifacts`, `error`, `completed`)
   are NOT retried. Adoption: 2026-08-28.
 - **Attribution:** when a cell has multiple attempts, the result is the
-  **latest attempt** (by run-directory timestamp). All aggregators
-  (`batch_status.py`, `analyze_batch64.py`) dedupe by cell key before
-  averaging. Adoption: 2026-08-29 (after the 64-cell batch showed 3 timeout
-  retries on hummingbird all passing on retry).
+  **latest attempt** (attempt number first, run-directory timestamp as
+  tie-break; a directory without `score.json` never wins). All aggregators
+  dedupe by cell key before averaging. Adoption: 2026-08-29 (after the 64-cell
+  batch showed 3 timeout retries on hummingbird all passing on retry); the
+  attempt-number-first refinement and the 288 completeness assertion are part
+  of the final aggregator (`analyze_matrix.py`, 2026-09-04).
+- **Fresh runner per attempt (288 final batch):** the matrix driver restarts
+  the local ollama service before each attempt (`--fresh-ollama`), eliminating
+  cross-cell runner-state contamination. Adoption: 2026-09-02 (pre-registered
+  before the 288 batch began). A 35b tiny-request load guard (3-strike abort)
+  was added at the same time to prevent silent load failures from consuming
+  the wall-clock budget.
 
 ## 3. Timeout handling
 
@@ -36,13 +44,17 @@
   Its `duration_sec` is recorded as the budget (not the true completion time),
   and `failure_mode: timeout` is kept in the data so timeout-only analyses are
   possible.
-- **Budgets by layer (identical across all four agents):** 40 min/cell for the
-  workflow layer (WF-*), 90 min/cell for the long-horizon layer (LH-*).
-  Rationale for the WF number: an earlier 25-min budget produced 5 timeouts
-  that all completed healthily at 40 min (documented as a budget artifact,
-  2026-08-28/29). Timeouts are therefore reported **only** after budget
-  adequacy is verified for the model in question — "small model timed out"
-  requires first ruling out budget artifacts and environment pollution.
+- **Budgets by layer (identical across all four agents):** the 64-cell batch
+  (2026-08-29/30) used 40 min/cell for the workflow layer (WF-*) and 90
+  min/cell for the long-horizon layer (LH-*). The 288-cell final matrix
+  (2026-09-02/04) raised both — **90 min/cell (WF-*) and 180 min/cell (LH-*)** —
+  pre-registered before that batch began; these are the budgets of record for
+  the final dataset. Rationale for the original WF number: an earlier 25-min
+  budget produced 5 timeouts that all completed healthily at 40 min (documented
+  as a budget artifact, 2026-08-28/29). Timeouts are therefore reported **only**
+  after budget adequacy is verified for the model in question — "small model
+  timed out" requires first ruling out budget artifacts and environment
+  pollution.
 - Reported separately: `timeout` vs `error` vs `early_finish` vs `no_artifacts`
   vs `completed` — a 0 from a timeout is not conflated with a 0 from a
   judged-but-wrong submission in the failure-mode breakdown tables.
@@ -83,6 +95,21 @@
   (monitoring only — never affects scores).
 - 2026-08-31: this consolidated document written after the competitor LH wave
   began; §2–5 rules are restatements of what was actually executed, with dates.
+- 2026-09-02: 288-cell final matrix pre-registration — budgets raised to
+  90/180 min (WF/LH), fresh-ollama-per-attempt, 35b load guard, all-agent
+  full re-run for version consistency (fp-0902 integration build). Batch
+  scope monitoring (probe pair `matrix288_status.py` + `check_matrix288.mjs`,
+  runner CPU-delta liveness) is observational only and never affects scores.
+- 2026-09-04 (post-batch, disclosed judging amendment): the seed-integrity
+  comparison in `score_task.py` was found to compare raw bytes; a CRLF→LF
+  rewrite of an unchanged spec (agent tooling EOL normalization) false-
+  positively failed one cell (goose:35b:WF-04), short-circuiting before the
+  pytest run. The check now normalizes line endings before hashing; the cell
+  was re-scored against its preserved workdir (pytest 6/6 green) from 0.571
+  to 1.0, with the original score preserved as `score.premrs-eol-fix.json`
+  and a `rescored` provenance field in the updated `score.json`. Regression
+  tests added. No other cell is affected (WF-04 is the only task using the
+  seed check).
 
 ## 7. Reproducibility artifacts
 
@@ -90,5 +117,11 @@
   overwrite hazard on the single-name manifest is itself disclosed),
   `eval_results/logs/matrix_*.log` (stdout tee), per-cell `score.json` +
   `transcript.txt` + `workdir/` snapshot.
-- Aggregate tables are generated, never hand-edited:
+- Aggregate tables are generated, never hand-edited: the final dataset is
+  produced by `analyze_matrix.py` (run-3 window partition, latest-attempt-wins,
+  timeout/no-score = 0, 288-cell completeness assertion — refuses to emit
+  numbers from an incomplete dataset). Historical batches used
   `analyze_batch64.py --patterns ... --out ...`.
+- Final dataset snapshot: `bench/lrab/results/LRAB_288_FINAL_run3_20260904.zip`
+  (297 run-3 attempt directories incl. retries, driver logs, final manifest,
+  RESULTS.md/METHODS.md/aggregator as shipped).

@@ -299,3 +299,50 @@ def test_tree_kill_terminates_child():
     rb._tree_kill(p)
     rc = p.wait(timeout=30)
     assert rc is not None and rc != 0
+
+
+# --- seed-integrity checks must compare content, not line endings (09-04) ---
+# goose:35b:WF-04 false positive: agent tooling rewrote the spec with LF endings
+# (content unchanged); byte-exact sha flagged "modified" and short-circuited
+# before the pytest run. Seed comparison now normalizes CRLF -> LF.
+
+def _seed_env(tmp_path, monkeypatch, seed_bytes):
+    """Point score_task's seed anchor at tmp_path; return (seed_file, workdir)."""
+    import score_task
+    (tmp_path / "scoring").mkdir()
+    monkeypatch.setattr(score_task, "__file__", str(tmp_path / "scoring" / "score_task.py"))
+    fx = tmp_path / "fixtures"
+    fx.mkdir()
+    seed = fx / "spec_seed.py"
+    seed.write_bytes(seed_bytes)
+    wd = tmp_path / "wd"
+    wd.mkdir()
+    return seed, str(wd)
+
+
+def test_seed_unchanged_eol_normalized(tmp_path, monkeypatch):
+    import score_task
+    seed, wd = _seed_env(tmp_path, monkeypatch, b"x = 1\r\ny = 2\r\n")
+    (tmp_path / "wd" / "spec_seed.py").write_bytes(b"x = 1\ny = 2\n")  # LF rewrite
+    chk = {"check": "seed_unchanged", "params": {"seed_rel": "fixtures/spec_seed.py"}}
+    sc, detail = score_task.check_one(chk, wd, "spec_seed.py")
+    assert sc == 1.0 and "unchanged" in detail
+
+
+def test_seed_real_edit_still_caught(tmp_path, monkeypatch):
+    seed, wd = _seed_env(tmp_path, monkeypatch, b"x = 1\r\ny = 2\r\n")
+    (tmp_path / "wd" / "spec_seed.py").write_bytes(b"x = 999\ny = 2\n")
+    chk = {"check": "seed_unchanged", "params": {"seed_rel": "fixtures/spec_seed.py"}}
+    sc, detail = check_one(chk, wd, "spec_seed.py")
+    assert sc == 0.0 and "modified" in detail
+
+
+def test_spec_pytest_runs_after_eol_normalized_seed(tmp_path, monkeypatch):
+    seed, wd = _seed_env(tmp_path, monkeypatch, b"assert True\r\n")
+    (tmp_path / "wd" / "spec_seed.py").write_bytes(b"assert True\n")
+    (tmp_path / "wd" / "fixed_src.py").write_bytes(b"# agent-fixed source\n")
+    chk = {"check": "spec_pytest", "params": {
+        "seed_rel": "fixtures/spec_seed.py",
+        "command": "echo 6 passed", "expect_stdout": "6 passed"}}
+    sc, detail = check_one(chk, wd, "fixed_src.py")
+    assert sc == 1.0 and "6 passed" in detail

@@ -99,6 +99,47 @@ def check_one(check, workdir, artifact):
             return 1.0, "compiles"
         except Exception as e:
             return 0.0, f"syntax error: {str(e)[:120]}"
+    if kind in ("seed_unchanged", "spec_pytest"):
+        # 与种子 fixture 逐字节比对(WF-04 地板修复):种子自身满足 exists/compiles,
+        # "种子未被改动"必须用内容指纹判。spec_pytest 是复合判定:种子未改动 ∧
+        # 在 workdir 跑 command 且 stdout 含 expect(= bug 真被修好)。单一检查项,
+        # 不进组内平均——否则"种子躺平"仍能靠未改动项白拿半组分(地板残留在 0.214)。
+        import hashlib
+        seed = os.path.normpath(os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            params.get("seed_rel", "")))
+        if not params.get("seed_rel") or not os.path.isfile(seed):
+            return 0.0, "seed fixture not configured/found"
+        # 比对对象 = seed_rel 指向的那份运行副本(workdir 内同名文件),
+        # 不是 check 条目的 artifact(spec_pytest 的 artifact 是被修的源码文件)
+        p_cmp = os.path.join(workdir, os.path.basename(params["seed_rel"]))
+        if not os.path.isfile(p_cmp):
+            return 0.0, "spec copy missing from workdir"
+        # EOL 归一化比对(09-04 goose:35b:WF-04 假阳性定案):两仓种子曾 CRLF/LF 分叉,
+        # agent 工具重写文件会归一化行尾——内容未改却被字节级比对判"已修改",
+        # 短路跳过 pytest 实测。判"改动"看内容,不看行尾。
+        _norm = lambda raw: raw.replace(b"\r\n", b"\n")
+        same = hashlib.sha256(_norm(open(p_cmp, "rb").read())).hexdigest() == \
+               hashlib.sha256(_norm(open(seed, "rb").read())).hexdigest()
+        if kind == "seed_unchanged":
+            return (1.0 if same else 0.0), ("unchanged vs seed" if same else "modified vs seed")
+        if not same:
+            return 0.0, "spec file modified vs seed (task forbids it)"
+        # 种子完好 → 真跑测试(command 在 workdir 执行)
+        import subprocess as _sp
+        cmd = params.get("command", "")
+        expect = params.get("expect_stdout", "")
+        try:
+            r = _sp.run(cmd, shell=True, capture_output=True, text=True,
+                        timeout=int(params.get("timeout_s", 180)), cwd=workdir,
+                        encoding="utf-8", errors="replace")
+            out = (r.stdout or "") + (r.stderr or "")
+            if expect and expect in out:
+                return 1.0, f"seed intact, tests green ({expect})"
+            tail = " | ".join((out or "").strip().splitlines()[-1:])[:100]
+            return 0.0, f"seed intact but tests not green (tail: {tail})"
+        except Exception as e:
+            return 0.0, f"test run failed: {str(e)[:100]}"
     if kind == "script_pass":
         # 在 workdir 里跑一条命令,stdout 含 expect 子串即过(LH-03: python test_suite.py
         # 须打 "10 passed, 0 failed" —— 模块真被修好,而不是只改到"能编译")。
