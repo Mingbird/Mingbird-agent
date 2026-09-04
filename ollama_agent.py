@@ -1790,10 +1790,12 @@ def try_parse_tool_calls(content):
                 if calls:
                     return calls
     # 占位符引号函数式(单参数;多参数占位符形式 288 格未观测到,不扩展)。
+    # 括号形态两开花(2026-09-04 GAIA stage-0):e2b 也发 finish{arg:<|"|>..<|"|>}
+    # 花括号形态,原正则只认圆括号 → 未解析烧到强收尾。括号字符类放开,对称不强制。
     calls = []
     for m in re.finditer(
-            r"\b([a-zA-Z_][a-zA-Z0-9_.]*)\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:"
-            r"\s*<\|\"\|>(.*?)<\|\"\|>\s*\)", c, re.S):
+            r"\b([a-zA-Z_][a-zA-Z0-9_.]*)[\({]\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:"
+            r"\s*<\|\"\|>(.*?)<\|\"\|>\s*[\)}]", c, re.S):
         calls.append((m.group(1), {m.group(2): m.group(3).strip()}))
     return calls or None
 

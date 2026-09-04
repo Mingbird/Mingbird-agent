@@ -729,6 +729,20 @@ def test_parse_placeholder_quote_multiline_value(oa):
         ("finish", {"summary": "line1\nline2 with, commas"})]
 
 
+def test_parse_placeholder_quote_brace_form(oa):
+    # GAIA stage-0 (GAIA-L1-01, e2b) 实测:同一模型也会发花括号形态,
+    # 原正则只认圆括号 → 未解析 → 无反馈烧到强收尾。
+    raw = 'finish{summary:<|"|>无法根据搜索结果完成计算。<|"|>}'
+    assert oa.try_parse_tool_calls(raw) == [
+        ("finish", {"summary": "无法根据搜索结果完成计算。"})]
+
+
+def test_parse_placeholder_quote_brace_form_multiline(oa):
+    raw = 'finish{summary:<|"|>line1\nline2<|"|>}'
+    assert oa.try_parse_tool_calls(raw) == [
+        ("finish", {"summary": "line1\nline2"})]
+
+
 def test_parse_json_form_still_works(oa):
     assert oa.try_parse_tool_calls('{"finish": {"summary": "done"}}') == [
         ("finish", {"summary": "done"})]
