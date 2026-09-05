@@ -754,3 +754,92 @@ def test_parse_json_form_still_works(oa):
 def test_parse_plain_text_rejected(oa):
     assert oa.try_parse_tool_calls("Just a normal answer, no calls here.") is None
     assert oa.try_parse_tool_calls("call foo(bar=1) without placeholders") is None
+
+
+# ---- 交付自查门禁:finish 放行前回注任务原文(语义漂移防护) ----
+
+def test_task_original_text_takes_first_real_user_message(oa):
+    msgs = [{"role": "system", "content": "s"},
+            {"role": "user", "content": "原始任务:输出纯数字。"},
+            {"role": "assistant", "content": ""},
+            {"role": "user", "content": "⚠️ harness 注入,应被跳过"},
+            {"role": "user", "content": "[先前上下文摘要] 也应被跳过"},
+            {"role": "user", "content": "续跑追加指令,不是原文"}]
+    assert oa._task_original_text(msgs) == "原始任务:输出纯数字。"
+
+
+def test_task_original_text_empty_when_no_real_user(oa):
+    assert oa._task_original_text([{"role": "system", "content": "s"}]) == ""
+    assert oa._task_original_text([]) == ""
+
+
+def test_task_original_text_truncates_long_task(oa):
+    long_task = "A" * 2000 + "B" * 2000
+    t = oa._task_original_text([{"role": "user", "content": long_task}])
+    assert len(t) <= 2100
+    assert "(中略)" in t and t.startswith("A") and t.endswith("B")
+    short = oa._task_original_text([{"role": "user", "content": "short task"}])
+    assert "(中略)" not in short            # 阈值内全量保留
+
+
+def test_wiring_finish_reread_injects_task_once_then_passes(oa, tmp_path):
+    # create_file → finish(被拒,注入任务原文)→ finish(放行)
+    calls = [("create_file", {"path": "out.txt", "content": "17"}, "[created out.txt]")]
+    task = "How many thousand hours did it take? Output just the number."
+    msgs = _scripted_loop(oa, str(tmp_path), calls, task=task)
+    rereads = [m for m in msgs if m.get("role") == "user"
+               and "交付前自查" in str(m.get("content", ""))]
+    assert len(rereads) == 1                     # 注入恰一次
+    assert task in rereads[0]["content"]         # 含完整任务原文
+    assert "重新 finish" in rereads[0]["content"]  # 给出可执行下一步
+    assert rereads[0]["content"].startswith("⚠️")  # harness 前缀,不污染路由/qa
+    assert msgs[-1]["role"] == "assistant"       # 第二次 finish 正常放行收尾
+
+
+def test_wiring_finish_reread_skipped_for_qa(oa, tmp_path):
+    msgs = _scripted_loop(oa, str(tmp_path), [], task="你好")
+    assert not [m for m in msgs if m.get("role") == "user"
+                and "交付前自查" in str(m.get("content", ""))]
+
+
+def test_wiring_finish_reread_only_after_existence_gates_pass(oa, tmp_path):
+    # summary 谎报缺失文件:产物核对门禁先拦,自查门禁不应在存在性门禁未过时触发
+    calls = [("create_file", {"path": "real.txt", "content": "x"}, "[created real.txt]")]
+    task = "写一份报告到 report.md,输出纯数字结论。"
+    saved = (oa.call_chat, oa.run_tool, oa.mcp_manifest, oa.mcp_tool_defs)
+    state = {"phase": 0}
+
+    def fake_call_chat(m, messages, ctx=None, tools=None, stream=False, on_token=None, on_think=None):
+        if state["phase"] < 2:
+            state["phase"] += 1
+            args = ({"path": "real.txt", "content": "x"} if state["phase"] == 1
+                    else {"summary": "已完成,见 report.md 和 real.txt"})
+            return {"message": {"content": "", "tool_calls": [
+                        {"function": {"name": "create_file" if state["phase"] == 1 else "finish",
+                                      "arguments": args}}]},
+                    "prompt_eval_count": 500}
+        return {"message": {"content": "done", "tool_calls": [
+                    {"function": {"name": "finish", "arguments": {"summary": "全部完成"}}}]},
+                "prompt_eval_count": 500}
+
+    def fake_run_tool(name, args, wd):
+        if name == "create_file":
+            return "[created real.txt]"
+        if name == "finish":
+            return "[TASK_COMPLETE] done"
+        return "[tool error: not scripted]"
+
+    oa.call_chat, oa.run_tool = fake_call_chat, fake_run_tool
+    oa.mcp_manifest, oa.mcp_tool_defs = (lambda force=False: None), (lambda cats, extra=None: [])
+    try:
+        msgs = oa.agent_loop("gemma4:12b",
+                             [{"role": "system", "content": "s"},
+                              {"role": "user", "content": task}],
+                             str(tmp_path), None)
+    finally:
+        oa.call_chat, oa.run_tool, oa.mcp_manifest, oa.mcp_tool_defs = saved
+
+    claim_rejects = [m for m in msgs if m.get("role") == "user" and "声称的以下产物" in str(m.get("content", ""))]
+    rereads = [m for m in msgs if m.get("role") == "user" and "交付前自查" in str(m.get("content", ""))]
+    assert len(claim_rejects) >= 1               # 谎报被产物门禁拦下
+    assert len(rereads) <= 1                     # 自查至多一次(首次放行前)
