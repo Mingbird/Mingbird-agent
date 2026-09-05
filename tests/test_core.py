@@ -1,4 +1,4 @@
-"""Unit tests for Hummingbird core modules. No network / no Ollama required."""
+"""Unit tests for Mingbird core modules. No network / no Ollama required."""
 import os
 import sys
 import json

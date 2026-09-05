@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""蜂鸟 · 本地 AI 助手 — Windows 桌面 GUI v4(现代化)
+"""鸣鸟 · 本地 AI 助手 — Windows 桌面 GUI v4(现代化)
 基于 ttkbootstrap 的聊天工作区设计:
 - 侧边栏:附件 / 会话 / 计划(todo)
 - 主区:💬 对话(聊天气泡视图) + 🖥 日志(流式控制台)
@@ -40,7 +40,7 @@ except Exception:
     pass
 
 _T = {
-    "蜂鸟 · 本地 AI 助手": "Hummingbird · Local AI Assistant",
+    "鸣鸟 · 本地 AI 助手": "Mingbird · Local AI Assistant",
     "模型:": "Model:", "会话:无": "Session: none", "目录:": "Dir:",
     "关闭思考": "Thinking OFF", "⚙ 设置": "⚙ Settings", "🌓 主题": "🌓 Theme",
     "＋ 新对话": "＋ New Chat", "添加附件": "Attachments", "清空": "Clear",
@@ -97,7 +97,7 @@ _T = {
     "[Ollama 已启动]": "[Ollama started]",
     "(暂无技能)": "(no skills)",
     "(尚无计划 — agent 会先建 todo 再执行)": "(No plan yet — the agent will create a todo list first)",
-    "蜂鸟 · 本地 AI 助手 错误": "Hummingbird · Local AI Assistant Error",
+    "鸣鸟 · 本地 AI 助手 错误": "Mingbird · Local AI Assistant Error",
     "未能自动启动 ollama,请先手动运行 ollama serve。": "Could not start Ollama automatically. Run `ollama serve` manually first.",
     "开始: ": "Started: ",
     "🤔 思考中…": "🤔 thinking…",
@@ -128,7 +128,7 @@ def _log_exc(exc_type, exc, tb):
     if exc_type is not SystemExit:
         try:
             import tkinter.messagebox as _mb
-            _mb.showerror(_t("蜂鸟 · 本地 AI 助手 错误"), f"{exc_type.__name__}: {exc}\n(详情见 {_ERR_LOG})")
+            _mb.showerror(_t("鸣鸟 · 本地 AI 助手 错误"), f"{exc_type.__name__}: {exc}\n(详情见 {_ERR_LOG})")
         except Exception:
             pass
 sys.excepthook = _log_exc
@@ -276,8 +276,8 @@ class AgentGUI:
         self._think_open = False     # 思考已展开(还是折叠成标记行)
         self._streaming_asst = False # 当前助手内容是否已流式上屏(避免重复渲染)
 
-        root.title(f"{_t('蜂鸟 · 本地 AI 助手')} — {self.app_version()}")
-        # 窗口图标(原创蜂鸟,随包自带)
+        root.title(f"{_t('鸣鸟 · 本地 AI 助手')} — {self.app_version()}")
+        # 窗口图标(原创蜂鸟→鸣鸟,图形资产暂沿用,发布前重绘)
         try:
             _ic = os.path.join(AGENT_DIR, "app.ico")
             if os.path.exists(_ic):
@@ -331,7 +331,7 @@ class AgentGUI:
     # ================= 构建界面 =================
     def _build_toolbar(self):
         bar = tb.Frame(self.root, padding=(8, 6)); bar.pack(fill="x")
-        tb.Label(bar, text=_t("蜂鸟 · 本地 AI 助手"), font=MINIMAL["font_title"],
+        tb.Label(bar, text=_t("鸣鸟 · 本地 AI 助手"), font=MINIMAL["font_title"],
                  bootstyle="inverse-primary").pack(side="left", padx=(0, 10))
         tb.Label(bar, text=self.app_version(), bootstyle="secondary",
                  font=("Consolas", 9)).pack(side="left")
@@ -727,7 +727,7 @@ class AgentGUI:
         win.transient(self.root); win.grab_set()
         M = MINIMAL
         win.configure(bg=M["bg"])
-        tb.Label(win, text=_t("蜂鸟 · 本地 AI 助手"),
+        tb.Label(win, text=_t("鸣鸟 · 本地 AI 助手"),
                  font=("Microsoft YaHei UI", 14, "bold"), bootstyle="inverse-primary",
                  padding=(16, 12)).pack(fill="x")
         body = tk.Frame(win, bg=M["bg"]); body.pack(fill="both", expand=True, padx=18, pady=10)
@@ -1467,9 +1467,9 @@ if __name__ == "__main__":
         ok = ollama_agent.ensure_ollama()
         if not ok:
             import tkinter.messagebox as _mb
-            _mb.showwarning("蜂鸟 · 本地 AI 助手", _t("未能自动启动 ollama,请先手动运行 ollama serve。"))
+            _mb.showwarning("鸣鸟 · 本地 AI 助手", _t("未能自动启动 ollama,请先手动运行 ollama serve。"))
     except Exception:
         pass
-    root = tb.Window(themename="minty-light", title=_t("蜂鸟 · 本地 AI 助手"))
+    root = tb.Window(themename="minty-light", title=_t("鸣鸟 · 本地 AI 助手"))
     app = AgentGUI(root)
     root.mainloop()

@@ -1,16 +1,18 @@
-# 🐦 Hummingbird · Local AI Assistant
+# 🐦 Mingbird · Local AI Assistant
+
+> Formerly released as 蜂鸟 / Hummingbird — renamed September 2026. Same bird, new song.
 
 **A local AI agent that runs on the laptop you already own.**
 
 [中文版](README_zh.md) · Apache-2.0 · Windows 10/11
 
-![preview](https://raw.githubusercontent.com/Gustor-Wang/hummingbird-agent/main/assets/preview-en.png)
+![preview](https://raw.githubusercontent.com/Gustor-Wang/mingbird-agent/main/assets/preview-en.png)
 
-Most agent frameworks assume a cloud API or a $2,000 GPU. Hummingbird is the opposite: a **capable, fully-offline agent built for small models (0.5–9B) on modest hardware** — the kind most people actually own.
+Most agent frameworks assume a cloud API or a $2,000 GPU. Mingbird is the opposite: a **capable, fully-offline agent built for small models (0.5–9B) on modest hardware** — the kind most people actually own.
 
 We built and tested it on a laptop with an **AMD Radeon 680M integrated GPU and 16 GB of RAM (no discrete GPU)**. In that environment it responds almost instantly — as fast as talking to Ollama directly, with no perceptible extra wait.
 
-## Why Hummingbird
+## Why Mingbird
 
 - **Small models, finally reliable for real tasks.** The whole point: models in the 1–4B range — the ones that run on any laptop — can now complete long, multi-step tasks, not just chat.
 - **Fully offline.** Your data never leaves the machine. No account, no telemetry, no cloud.
@@ -66,7 +68,7 @@ Every row below is a **real task completed end-to-end on a model in the 1–4B r
    ollama pull gemma4:e2b      # 4B, fast
    ollama pull qwen3.5:2b      # 2B, 256K context
    ```
-2. Run the setup (`Hummingbird-v1.0.0-EN-Setup.exe`) → desktop shortcut.
+2. Run the setup (`Mingbird-v1.4.0-EN-Setup.exe`) → desktop shortcut.
 3. Launch, pick a model, and just talk — or give it a task.
 
 > **No hardcoded models or machine config.** Everything is detected at runtime or configured in `~/.ollama_agent/config.json` (see `AGENTS.md` §4.1): Ollama address, ollama executable, GPU acceleration env vars, and friendly model names — you set it up for *your* machine.

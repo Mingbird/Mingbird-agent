@@ -1,16 +1,18 @@
-# 🐦 蜂鸟 · 本地 AI 助手
+# 🐦 鸣鸟 · 本地 AI 助手
+
+> 曾用名「蜂鸟 / Hummingbird」,2026 年 9 月更名为「鸣鸟 / Mingbird」——同一只鸟,换个名字接着飞。
 
 **一个跑在普通笔记本上的本地 AI agent——不挑显卡,不用云。**
 
 [English](README.md) · Apache-2.0 · Windows 10/11
 
-![preview](https://raw.githubusercontent.com/Gustor-Wang/hummingbird-agent/main/assets/preview-en.png)
+![preview](https://raw.githubusercontent.com/Gustor-Wang/mingbird-agent/main/assets/preview-en.png)
 
-主流 agent 框架几乎都默认"你有云 API 或大显存"。蜂鸟正好相反:**为小模型(0.5–9B)和核显机器优化,全离线、能干真活**——目标就是你我手里的普通笔记本。
+主流 agent 框架几乎都默认"你有云 API 或大显存"。鸣鸟正好相反:**为小模型(0.5–9B)和核显机器优化,全离线、能干真活**——目标就是你我手里的普通笔记本。
 
 我们在一台只有 **AMD Radeon 680M 核显、16GB 系统内存(无独显)** 的笔记本上实际开发、实测了 39 轮基准(V1–V39)。在这样低的配置下,它依然**几乎即时响应**——速度接近直接与 Ollama 对话,无需额外等待。
 
-## 为什么选蜂鸟
+## 为什么选鸣鸟
 
 - **小模型终于能干真活了。** 核心点:1–4B 这个"任何笔记本都能跑"的模型档位,现在能可靠完成长任务、多步任务,而不只是聊天。
 - **全离线。** 数据绝不离开本机。无账号、无遥测、无云。
@@ -66,7 +68,7 @@
    ollama pull gemma4:e2b       # 快,4B 级
    ollama pull qwen3.5:2b       # 2B,256K 长上下文
    ```
-2. 运行安装包(`蜂鸟-v1.0.0-中文安装包.exe`)→ 桌面快捷方式。
+2. 运行安装包(`Mingbird-v1.4.0-CN-Setup.exe`)→ 桌面快捷方式。
 3. 打开,选模型,直接聊或派活。
 
 > **零硬编码模型/机器配置。** 一切都运行时自动检测,或在 `~/.ollama_agent/config.json` 里按你的机器配置(见 `AGENTS.md` §4.1):Ollama 地址、可执行文件、GPU 加速环境变量、模型友好名。

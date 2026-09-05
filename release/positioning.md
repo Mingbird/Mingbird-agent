@@ -1,4 +1,4 @@
-# 蜂鸟 / Hummingbird — 定位与推广角度
+# 鸣鸟 / Mingbird — 定位与推广角度
 
 > v1.0.0 · 2026-08-21 · 供各平台发布稿统一定调使用
 
@@ -11,7 +11,7 @@
 ## 为什么是"普通笔记本"这个角度
 
 主流 agent 框架(Claude Code、OpenAI 生态、各种 MCP 编排器)几乎都以"你有云模型 / 有大显存"为前提。
-蜂鸟是反过来的:**它是为小模型(0.5–9B MoE)和核显机器优化设计的**,目标是 95% 没有独显的人。
+鸣鸟是反过来的:**它是为小模型(0.5–9B MoE)和核显机器优化设计的**,目标是 95% 没有独显的人。
 
 这不是降级,而是一个诚实的技术命题:
 
@@ -30,7 +30,7 @@
 | 5 | **韧性 harness** | `.bak` 自动回滚、精确 pytest 失败注入、重复调用拦截、安全门(拦 rm -rf/系统路径) | V38b 实验、安全门测试 |
 | 6 | **开箱即用的语音** | 本地 STT 模型随安装包自带,约 20× 实时,纯 CPU | 实测 |
 | 7 | **可扩展** | skills + MCP 双扩展机制,`AGENTS.md` 写给 AI 看的接入文档 | 文档 |
-| 8 | **双语言分发** | 蜂鸟(中文)/ Hummingbird(英文)两个安装包,命名清晰 | 安装包 |
+| 8 | **双语言分发** | 鸣鸟(中文)/ Mingbird(英文)两个安装包,命名清晰 | 安装包 |
 
 ## 目标人群(ICP)
 
@@ -49,12 +49,12 @@
 ## 三组可复用文案(直接搬运)
 
 ### 中文
-- 标题:蜂鸟——不挑显卡的本地 AI agent,普通笔记本也能干活的 agent
+- 标题:鸣鸟——不挑显卡的本地 AI agent,普通笔记本也能干活的 agent
 - 副标题:全离线 · 核显实测 · 小模型专用 harness · 自带本地语音
-- 结尾钩子:别再用"我电脑跑不动"当不用的理由了——蜂鸟就是给 95% 的人做的。
+- 结尾钩子:别再用"我电脑跑不动"当不用的理由了——鸣鸟就是给 95% 的人做的。
 
 ### English
-- Title: **Hummingbird — an AI agent that runs on the laptop you already own**
+- Title: **Mingbird — an AI agent that runs on the laptop you already own**
 - Subtitle: Fully offline · tested on AMD iGPU · a harness built for small models (0.5–9B) · local STT bundled
 - Closing hook: *The best model in the world is useless if your machine can't run it. We built the agent for the machine you have.*
 
@@ -64,7 +64,7 @@
 
 ## 谁不该用(也是卖点的一部分)
 
-- 有 4090 / 云端预算的人,可以直接用大模型 agent——蜂鸟不是替代品,是"人人可用"的补位。
+- 有 4090 / 云端预算的人,可以直接用大模型 agent——鸣鸟不是替代品,是"人人可用"的补位。
 - 诚实说明:复杂多文件重构、超长自主任务,小模型上限在;但 80% 的日常 agent 活儿(文件管理、查资料、写脚本、跑测试、整理)完全能打。
 
 ## 发布资产清单

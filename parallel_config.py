@@ -5,7 +5,7 @@
 用户配置:~/.ollama_agent/config.json 的 "parallel" 段(深合并到默认值上)。
 环境变量:
   AGENT_PARALLEL=0      无条件硬闸(优先级最高,bench 冻结期/子进程用它整体关掉)
-  HUMMINGBIRD_DEPTH     派发深度(子进程由 dispatcher 置 1,达到 max_depth 即拒绝)
+  MINGBIRD_DEPTH        派发深度(子进程由 dispatcher 置 1,达到 max_depth 即拒绝;旧名 HUMMINGBIRD_DEPTH 兼容读取)
 
 设计文档: design/2026-09-01-parallel-dispatch.md
 """
@@ -210,6 +210,6 @@ def current_depth(environ=None):
     """当前派发深度(主 agent = 0;子进程由 dispatcher 置 1)。"""
     env = os.environ if environ is None else environ
     try:
-        return int(str(env.get("HUMMINGBIRD_DEPTH", "0")).strip() or 0)
+        return int(str(env.get("MINGBIRD_DEPTH") or env.get("HUMMINGBIRD_DEPTH") or "0").strip() or 0)
     except Exception:
         return 0

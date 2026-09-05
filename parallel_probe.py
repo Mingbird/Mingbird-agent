@@ -96,7 +96,7 @@ def read_loaded_models(host, timeout=4.0):
     """
     try:
         req = urllib.request.Request(host.rstrip("/") + "/api/ps",
-                                     headers={"User-Agent": "hummingbird-parallel"})
+                                     headers={"User-Agent": "mingbird-parallel"})
         with urllib.request.urlopen(req, timeout=timeout) as r:
             data = json.load(r)
         out = []
