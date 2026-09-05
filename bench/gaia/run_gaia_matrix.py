@@ -47,6 +47,7 @@ AGENTS = ["hummingbird", "opencode", "goose", "agent-mini"]
 TASKS_DIR = os.path.join(HERE, "tasks")
 BASE = os.path.join(HB_ROOT, "eval_results", "gaia_l1_matrix")
 BUDGET_MIN = 30
+SEARCH_CHECK_EVERY = 10   # cells between live search-health probes
 LOG_PATH = os.path.join(BASE, "driver_log.txt")
 PROGRESS_PATH = os.path.join(BASE, "GAIA_PROGRESS.json")
 MANIFEST_PATH = os.path.join(BASE, "GAIA_MANIFEST.json")
@@ -175,11 +176,11 @@ def guard_model_loaded(model, max_wait=900):
     return False
 
 
-def wait_for_search(max_hours=6, interval_min=5):
-    """Ignition gate: GAIA-L1 is search-dependent; a flagged DDG exit node
-    (202 anomaly challenge, IP-bound, usually clears in ~30-60 min) would
-    poison the whole matrix with false 0s. Probe the REAL path (wrapper via
-    proxy env) and block until it returns actual results."""
+def wait_for_search(max_hours=48, interval_min=5):
+    """Ignition / health gate: GAIA-L1 is search-dependent; a flagged DDG
+    exit node (202 anomaly challenge, IP-bound) poisons cells with honest-
+    looking 0s. Probe the REAL path (wrapper via proxy env, fresh=True so
+    the probe never reads the cache) and block until it returns results."""
     deadline = time.time() + max_hours * 3600
     attempt = 0
     sys.path.insert(0, HERE)
@@ -187,7 +188,7 @@ def wait_for_search(max_hours=6, interval_min=5):
     while time.time() < deadline:
         attempt += 1
         try:
-            txt = dsm.search("capital of France", 3)
+            txt = dsm.search("capital of France", 3, fresh=True)
             ok = txt.startswith(("1.", "2.", "3.", "4.", "5.")) or (
                 "http" in txt and "Error" not in txt[:60])
         except Exception as e:
@@ -321,7 +322,7 @@ def main():
     if total != 848:
         log("WARNING: expected 848 cells, got %d -- task dir mismatch?" % total)
 
-    if not wait_for_search(max_hours=6, interval_min=5):
+    if not wait_for_search(max_hours=48, interval_min=5):
         sys.exit(1)
 
     manifest_cells = []
@@ -395,6 +396,17 @@ def main():
         done += 1
         ran += 1
         write_progress(done, total, "", eta_h)
+
+        # Continuous search guard. The boot gate only proves health once:
+        # on 09-05 the DDG flag re-formed minutes after ignition and every
+        # in-cell search silently returned empty pages, poisoning 233 cells
+        # with honest-looking 0s while the log kept advancing (invisible to
+        # stall/FATAL sentinels). Re-probe live every N cells and PAUSE --
+        # not abort -- on degradation.
+        if ran % SEARCH_CHECK_EVERY == 0 and not wait_for_search(
+                max_hours=24, interval_min=5):
+            log("FATAL: search degraded mid-run and did not recover")
+            sys.exit(1)
 
     with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
         json.dump({"protocol": {"budget_min": BUDGET_MIN, "models": MODELS,
