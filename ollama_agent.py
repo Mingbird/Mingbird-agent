@@ -1704,6 +1704,27 @@ def _task_routing_text(messages):
                      _HARNESS_NOTE_PREFIXES)), "")
 
 
+def _task_original_text(messages, max_chars=2000):
+    """任务原文 = 第一条"真实用户输入"(跳过 harness 注入/摘要/压缩标记)。
+    交付自查门禁在 finish 放行前回注它,让模型对照自查;多轮续跑的追加
+    指令不算原文(原始指令才是格式约束的权威来源)。超过 max_chars 取首尾
+    各一半加中略标记:格式要求句几乎总在题面首尾,全量回注对超长任务是
+    数千 token 的一次性开销。"""
+    for m in messages:
+        if m.get("role") == "user":
+            text = str(m.get("content","") or "").strip()
+            if not text:
+                continue
+            if (text.startswith(_HARNESS_NOTE_PREFIXES)
+                    or "[先前上下文摘要]" in text or "上下文已压缩" in text):
+                continue
+            if len(text) <= max_chars:
+                return text
+            half = max_chars // 2
+            return text[:half] + "\n...(中略)...\n" + text[-half:]
+    return ""
+
+
 def _dedupe_trailing_assistant(messages):
     """修复对话结构:删除末尾连续的空 assistant 消息(保留最后一条)。
     连续 assistant(无 tool_calls)会让 ollama 报 400 'Cannot have 2 or more
@@ -2288,6 +2309,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     productive_used = False  # 是否调用过产出型工具
     fake_finish_warns = 0
     finish_claim_warns = 0   # finish 产物核对拒绝次数(≥2 放行,防死锁)
+    finish_reread_used = False  # 交付自查门禁:任务原文回注只发生一次(防自查循环烧预算)
     plan_gate_warns = 0      # finish 计划完成度核对拒绝次数(≥2 放行,防死锁)
     bash_teach_warns = 0     # 小模型 run_bash 教学提示次数
     empty_turns = 0          # 连续空文本输出计数
@@ -2677,6 +2699,30 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                 "请先把已完成的步骤逐个勾掉: todo(action=update, index=步骤号);"
                                 "已全部完成可一次同步: todo(action=update, all=true)。"
                                 "若仍有步骤没做,请继续执行后再 finish。"})
+                            messages.append({"role":"tool","content":res})
+                            continue
+                    # 交付自查门禁(语义漂移防护):finish 放行前把任务原文回注一次,
+                    # 让模型逐条自查交付是否满足任务的全部要求。长任务执行到末尾,
+                    # 模型注意力会漂移,常漏掉题面前的格式约束(GAIA-L1 实证:数值
+                    # 算对但漏了"千小时"单位,存在性门禁全绿放行 0 分)。前面几道
+                    # 门禁查"有没有撒谎/烂尾",这一道查"对不对题"——但格式语义
+                    # 只有模型自己能判,harness 能做的是把题面拉回注意力前沿
+                    # (提醒),不是代为校验。回注只发生一次,第二次 finish 直接
+                    # 放行,否则自查-拒绝循环白烧预算。任务原文是用户给过的信息,
+                    # 回注不引入任何测量侧状态。问答/子 agent 豁免(与计划门禁同款)。
+                    if not qa and _child_sandbox is None and not finish_reread_used:
+                        finish_reread_used = True
+                        _orig = _task_original_text(messages)
+                        if _orig:
+                            print(f"[{i}] ⚠️ 交付自查:回注任务原文({len(_orig)} 字符),要求自查后重新 finish", flush=True)
+                            messages.append({"role":"user","content":
+                                "⚠️ 交付前自查:结束前逐条核对以下【原始任务指令】,确认你的最终交付"
+                                "完全满足其中每一条要求——特别是:答案/产物的格式(单位、小数位、"
+                                "取整方式)、命名、数值范围,以及任务明确点名的每一个子项。"
+                                "长任务执行到末尾容易遗忘题面细节。\n"
+                                "若发现任何一条不满足:先修正交付物,再重新 finish;"
+                                "若全部满足:直接重新 finish 即可。\n"
+                                "--- 原始任务指令 ---\n" + _orig + "\n--- 原始任务指令结束 ---"})
                             messages.append({"role":"tool","content":res})
                             continue
                     print("\n===== TASK COMPLETE =====", flush=True); print(res, flush=True)
