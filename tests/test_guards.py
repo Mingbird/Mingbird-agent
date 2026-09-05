@@ -843,3 +843,87 @@ def test_wiring_finish_reread_only_after_existence_gates_pass(oa, tmp_path):
     rereads = [m for m in msgs if m.get("role") == "user" and "交付前自查" in str(m.get("content", ""))]
     assert len(claim_rejects) >= 1               # 谎报被产物门禁拦下
     assert len(rereads) <= 1                     # 自查至多一次(首次放行前)
+
+
+# ---- 格式泄漏谱系第三形态:整段函数调用表达式(e2b GAIA L1-05 实锤) ----
+
+def test_parse_func_expr_double_quote_finish(oa):
+    # L1-05 实锤形态:两次假完成拒绝后模型漂移成普通双引号纯文本,三连撞强收尾
+    assert oa.try_parse_tool_calls('finish(summary="0")') == [
+        ("finish", {"summary": "0"})]
+
+
+def test_parse_func_expr_single_quote(oa):
+    assert oa.try_parse_tool_calls("finish(summary='0')") == [
+        ("finish", {"summary": "0"})]
+
+
+def test_parse_func_expr_create_file_multi_args(oa):
+    assert oa.try_parse_tool_calls('create_file(path="answer.txt", content="1")') == [
+        ("create_file", {"path": "answer.txt", "content": "1"})]
+
+
+def test_parse_func_expr_empty_args(oa):
+    assert oa.try_parse_tool_calls("finish()") == [("finish", {})]
+
+
+def test_parse_func_expr_bool_and_number_types(oa):
+    assert oa.try_parse_tool_calls('todo(action="update", index=1, done=true)') == [
+        ("todo", {"action": "update", "index": 1, "done": True})]
+    assert oa.try_parse_tool_calls('web_search(query="x", max_results=3)') == [
+        ("web_search", {"query": "x", "max_results": 3})]
+    assert oa.try_parse_tool_calls('memory_recall(query="x", limit=0.5)') == [
+        ("memory_recall", {"query": "x", "limit": 0.5})]
+
+
+def test_parse_func_expr_comma_inside_quotes(oa):
+    assert oa.try_parse_tool_calls('finish(summary="a, b and c")') == [
+        ("finish", {"summary": "a, b and c"})]
+
+
+def test_parse_func_expr_multiline_value(oa):
+    assert oa.try_parse_tool_calls('finish(summary="line1\nline2")') == [
+        ("finish", {"summary": "line1\nline2"})]
+
+
+def test_parse_func_expr_prose_wrapped_rejected(oa):
+    # 防误伤闸①:任何散文包裹都拒绝(自然文本不被当成调用)
+    assert oa.try_parse_tool_calls('I will finish(summary="0") now') is None
+    assert oa.try_parse_tool_calls('finish(summary="0") as requested') is None
+
+
+def test_parse_func_expr_unknown_name_rejected(oa):
+    # 防误伤闸③:未知工具名且无点 → 拒绝
+    assert oa.try_parse_tool_calls('foo(bar="x")') is None
+    assert oa.try_parse_tool_calls('evaluate(x=1)') is None
+
+
+def test_parse_func_expr_mcp_dotted_name_allowed(oa):
+    # MCP 扁平名 "server.tool" 放行(与派发器自动路由一致)
+    assert oa.try_parse_tool_calls('tavily.search(query="x")') == [
+        ("tavily.search", {"query": "x"})]
+
+
+def test_parse_func_expr_nested_value_rejected(oa):
+    # 防误伤闸②:嵌套结构不在 value 白名单,拒绝(保守,未观测到该形态)
+    assert oa.try_parse_tool_calls('batch_tools(calls=[{"tool": "read_file"}])') is None
+
+
+def test_parse_placeholder_still_preferred_over_func_expr(oa):
+    # 回归:占位符形态仍走老正则(优先级在前),不受新解析器影响
+    raw = 'finish(summary:<|"|>Task aborted.<|"|>)'
+    assert oa.try_parse_tool_calls(raw) == [("finish", {"summary": "Task aborted."})]
+
+
+# ---- 假完成门禁拒绝消息带下一步可执行动作(LH-01 原则落实) ----
+
+def test_wiring_fake_finish_rejection_carries_next_action(oa, tmp_path):
+    # 脚本只发 finish(零实际工作)→ 被拒;拒绝消息必须给可执行的下一步
+    msgs = _scripted_loop(oa, str(tmp_path), [])
+    rejects = [m for m in msgs if m.get("role") == "user"
+               and "finish 被拒绝" in str(m.get("content", ""))]
+    assert len(rejects) >= 1
+    c = rejects[0]["content"]
+    assert "下一步二选一" in c
+    assert "create_file" in c and "answer.txt" in c   # 具体交付路径模板
+    assert "继续用工具推进" in c                        # 未完成时的出路
