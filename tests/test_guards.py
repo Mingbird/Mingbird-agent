@@ -169,6 +169,7 @@ def _scripted_loop(oa, workdir, calls, task="修复 m08.py 里的 bug,并运行�
     """按脚本驱动 agent_loop。calls=[(name, args, result), ...],脚本用尽后回 finish。
     返回最终 messages。MCP 探测被短路(不触网)。"""
     saved = (oa.call_chat, oa.run_tool, oa.mcp_manifest, oa.mcp_tool_defs)
+    saved_tools = (list(oa._active_tools), set(oa._disabled_tools))  # 模块级全局快照
     it = {"i": 0}
 
     def fake_call_chat(m, messages, ctx=None, tools=None, stream=False, on_token=None, on_think=None):
@@ -196,6 +197,9 @@ def _scripted_loop(oa, workdir, calls, task="修复 m08.py 里的 bug,并运行�
         return oa.agent_loop(model, msgs, workdir, None, budget_sec=budget_sec)
     finally:
         oa.call_chat, oa.run_tool, oa.mcp_manifest, oa.mcp_tool_defs = saved
+        oa._active_tools[:] = saved_tools[0]
+        oa._disabled_tools.clear()
+        oa._disabled_tools.update(saved_tools[1])
         oa._disabled_tools.discard("edit_file")
         oa._SMALL_MODEL_MODE = False
 
@@ -927,3 +931,38 @@ def test_wiring_fake_finish_rejection_carries_next_action(oa, tmp_path):
     assert "下一步二选一" in c
     assert "create_file" in c and "answer.txt" in c   # 具体交付路径模板
     assert "继续用工具推进" in c                        # 未完成时的出路
+
+
+# ---- research_streak 签名级化(GAIA L1-04 误伤修复):新查询=推进,重复指纹才计数 ----
+
+def test_wiring_research_streak_ignores_new_queries(oa, tmp_path):
+    # 连续 8 个不同 query = 持续推进,不得禁用(旧判据第 6 次就禁,误杀考据型任务)
+    # web_search 是 ADVANCED 工具:先 enable_tools 装入工具面,否则调用在"未启用"检查被拒
+    calls = ([("enable_tools", {"tools": ["web_search"]}, "[enabled]")]
+             + [("web_search", {"query": f"different query {i}"}, "• r") for i in range(8)])
+    msgs = _scripted_loop(oa, str(tmp_path), calls)
+    bans = [m for m in msgs if m.get("role") == "user" and "已被禁用" in str(m.get("content", ""))]
+    assert not bans
+
+
+def test_wiring_research_streak_bans_repeated_fingerprints(oa, tmp_path):
+    # 两个 query 交替 = 指纹都在 seen 集合里,每轮累计;6 轮后触发签名级禁用
+    calls = ([("enable_tools", {"tools": ["web_search"]}, "[enabled]")]
+             + [("web_search", {"query": "A"}, "• r") if i % 2 == 0
+                else ("web_search", {"query": "B"}, "• r") for i in range(12)])
+    msgs = _scripted_loop(oa, str(tmp_path), calls)
+    bans = [m for m in msgs if m.get("role") == "user"
+            and "重复完全相同的网络查询" in str(m.get("content", ""))]
+    assert len(bans) >= 1
+
+
+def test_wiring_research_streak_covers_multi(oa, tmp_path):
+    # web_search_multi 纳入守护(此前不在 _RESEARCH 里,被禁后成绕道通道空转 13 轮)。
+    # multi 是 ADVANCED 工具,先 enable_tools 装入工具面再验证 streak 计数。
+    calls = ([("enable_tools", {"tools": ["web_search_multi"]}, "[enabled]")],
+             [("web_search_multi", {"queries": ["A"]}, "• r") if i % 2 == 0
+              else ("web_search_multi", {"queries": ["B"]}, "• r") for i in range(12)])
+    msgs = _scripted_loop(oa, str(tmp_path), calls[0] + calls[1])
+    bans = [m for m in msgs if m.get("role") == "user"
+            and "重复完全相同的网络查询" in str(m.get("content", ""))]
+    assert len(bans) >= 1
