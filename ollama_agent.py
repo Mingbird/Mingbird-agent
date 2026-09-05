@@ -1206,7 +1206,13 @@ def run_tool(name, args, workdir):
             _env = dict(os.environ)
             _env.setdefault("PYTHONUTF8", "1")
             _env.setdefault("PYTHONIOENCODING", "utf-8")
-            r=subprocess.run(cmd,shell=True,capture_output=True,text=True,timeout=300,cwd=workdir,env=_env)
+            # 读端编码健壮性(35b GAIA L1-03/04/05 三格毒杀实证):text=True 不带
+            # encoding 时继承进程默认(PYTHONUTF8=1 环境=utf-8),而 cmd 内建命令/
+            # 非 python 程序在中文 Windows 上输出 GBK 字节 → reader 线程
+            # UnicodeDecodeError 炸死,run_bash 挂掉。显式 utf-8 + replace:
+            # 非 UTF-8 输出降级为替换符(乱码可见),永不崩。
+            r=subprocess.run(cmd,shell=True,capture_output=True,timeout=300,cwd=workdir,env=_env,
+                             encoding="utf-8", errors="replace")
             out = _format_bash_out(r.returncode, r.stdout or "", r.stderr or "",
                                    small_model=_SMALL_MODEL_MODE)
             # 常见 Linux 绝对路径幻觉(/workspace /data /tmp 等),给提示
@@ -2693,7 +2699,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     if glob.glob(os.path.join(workdir, "test_*.py")) and test_guard_warns < 3:
                         test_guard_warns += 1
                         pr = subprocess.run("python -m pytest -q", shell=True,
-                                            capture_output=True, text=True, cwd=workdir, timeout=300)
+                                            capture_output=True, cwd=workdir, timeout=300,
+                                            encoding="utf-8", errors="replace")
                         ok = pr.returncode == 0
                         tail = ((pr.stdout or "").strip().splitlines() or [""])[-1][:120]
                         if not ok:
