@@ -345,21 +345,36 @@ def todo_progress(t):
     return sum(1 for x in t if x.get("done")), len(t)
 
 # ---------------- 网页 ----------------
+def _search_backends():
+    """搜索后端可配置(逗号分隔 URL 列表,env AGENT_SEARCH_BACKENDS)。
+    默认国内双后端不变;国际场景配带市场参数的模板,如
+    https://www.bing.com/search?setmkt=en-US&setlang=en&q={query}
+    ({query} 占位符:不带占位符按 q= 参数传;市场参数否则按出口 IP 定位,
+    会拿到错误语言的结果)。URL 按 baidu/bing 分选择器解析,兼容 b_algo 即可。"""
+    raw = (os.environ.get("AGENT_SEARCH_BACKENDS") or "").strip()
+    if raw:
+        return tuple(u.strip() for u in raw.split(",") if u.strip())
+    return ("https://cn.bing.com/search", "https://www.baidu.com/s")
+
 def web_search(query, max_results=5):
-    key = _cache_key("search", query, max_results)
-    cached = _cache_get(key)
-    if cached:
-        return cached
     import requests
     from bs4 import BeautifulSoup
     hd = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
     last_err = ""
-    for url in ("https://cn.bing.com/search", "https://www.baidu.com/s"):
+    for url in _search_backends():
+        key = _cache_key("search", url.split("//")[-1], query, max_results)
+        cached = _cache_get(key)
+        if cached:
+            return cached
         try:
-            r = requests.get(url, params={"q": query}, headers=hd, timeout=20)
+            if "{query}" in url:
+                import urllib.parse as _up
+                r = requests.get(url.replace("{query}", _up.quote_plus(query)), headers=hd, timeout=20)
+            else:
+                r = requests.get(url, params={"q": query}, headers=hd, timeout=20)
             soup = BeautifulSoup(r.text, "html.parser")
             out = []
-            lis = soup.select("li.b_algo") if url.startswith("https://cn.bing") else soup.select("div.result.c-container")
+            lis = soup.select("div.result.c-container") if "baidu" in url else soup.select("li.b_algo")
             for li in lis[:max_results]:
                 a = li.select_one("h2 a") or li.select_one("h3 a")
                 if not a: continue

@@ -78,6 +78,17 @@ def prep_env():
     if proxy:
         os.environ["HTTP_PROXY"] = proxy
         os.environ["HTTPS_PROXY"] = proxy
+    # Hummingbird's builtin web_search defaults to cn.bing/baidu (CN-market,
+    # regionalized) and poisons English GAIA tasks with zhihu/baike noise --
+    # the model picking the builtin over the MCP wrapper then gets garbage.
+    # Point the builtin at international Bing with an explicit market (without
+    # setmkt, Bing geolocates by proxy exit IP -- the current exit is JP and
+    # serves Japanese results) so BOTH search tools serve en-US results; same
+    # upstream the shared MCP wrapper uses. Run-environment config, not bench
+    # state (fairness: equivalent to a user's config file).
+    os.environ.setdefault(
+        "AGENT_SEARCH_BACKENDS",
+        "https://www.bing.com/search?setmkt=en-US&setlang=en&q={query}")
     # ollama calls must never try the proxy even when one is set
     no_px = set((os.environ.get("NO_PROXY", "") or "").split(","))
     no_px |= {"localhost", "127.0.0.1"}
