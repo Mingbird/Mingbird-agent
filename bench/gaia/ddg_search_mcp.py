@@ -13,6 +13,7 @@ MCP surface (kept minimal):
 
 Protocol: newline-delimited JSON-RPC 2.0 over stdio (same as the npx server).
 """
+import hashlib
 import json
 import os
 import sys
@@ -20,6 +21,67 @@ import time
 import urllib.parse
 import urllib.request
 import re
+
+# Each agent invocation spawns a FRESH MCP interpreter, so cross-process
+# state (dedup cache, request spacing) can only live on disk. DDG anomaly-
+# flags exit IPs on scripted-request volume (09-05: the flag re-formed
+# minutes after a healthy ignition and silently emptied every in-cell
+# search), so the wrapper caps request rate and dedups identical queries
+# across all four agents.
+CACHE_DIR = os.environ.get("GAIA_SEARCH_CACHE") or os.path.join(
+    os.path.expanduser("~"), ".gaia_search_cache")
+CACHE_TTL = 12 * 3600     # SERP drift within half a day is negligible
+MIN_SPACING = 4.0         # seconds between LIVE requests, shared via file
+
+
+def _cache_path(query):
+    h = hashlib.sha1((query + "|us-en").encode("utf-8")).hexdigest()
+    return os.path.join(CACHE_DIR, h + ".json")
+
+
+def _cache_get(query, ignore_ttl=False):
+    try:
+        with open(_cache_path(query), encoding="utf-8") as f:
+            d = json.load(f)
+        if ignore_ttl or time.time() - d["ts"] <= CACHE_TTL:
+            return d["text"]
+    except Exception:
+        pass
+    return None
+
+
+def _cache_put(query, text):
+    try:
+        with open(_cache_path(query), "w", encoding="utf-8") as f:
+            json.dump({"ts": time.time(), "text": text}, f)
+    except Exception:
+        pass
+
+
+def _throttle():
+    """Wait until MIN_SPACING has passed since the last live request."""
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+    except Exception:
+        pass
+    lock = os.path.join(CACHE_DIR, ".lastreq")
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        try:
+            last = os.path.getmtime(lock)
+        except OSError:
+            break
+        wait = MIN_SPACING - (time.time() - last)
+        if wait <= 0:
+            break
+        time.sleep(min(wait, 2.0))
+
+
+def _stamp():
+    try:
+        open(os.path.join(CACHE_DIR, ".lastreq"), "w").close()
+    except OSError:
+        pass
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/126.0 Safari/537.36")
@@ -52,7 +114,25 @@ def strip_tags(s):
     return html.unescape(re.sub(r"<[^>]+>", "", s or "")).strip()
 
 
-def search(query, max_results=6):
+def search(query, max_results=6, fresh=False):
+    """fresh=True bypasses the cache (driver health probes must hit live)."""
+    if not fresh:
+        hit = _cache_get(query)
+        if hit is not None:
+            return hit
+    _throttle()
+    text = _search_live(query, max_results)
+    _stamp()
+    if text.startswith(("1.", "2.", "3.", "4.", "5.")):
+        _cache_put(query, text)      # only real result sets are cached
+    elif text.startswith("Error") and not fresh:
+        stale = _cache_get(query, ignore_ttl=True)
+        if stale is not None:
+            return stale             # degraded upstream: serve stale cache
+    return text
+
+
+def _search_live(query, max_results=6):
     # kl=us-en pins the SERP region: without it DDG localizes by proxy exit IP
     # (a CN-exit tunnel made "Moon perigee" return Baidu Baike — 09-05 smoke).
     url = ("https://html.duckduckgo.com/html/?q="
