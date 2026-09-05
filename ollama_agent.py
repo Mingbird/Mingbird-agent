@@ -1797,12 +1797,64 @@ def _is_tool_error(res):
     r = res[:200].lower()
     return any(m in r for m in _FAIL_MARKERS)
 
+# 格式泄漏谱系第三形态(2026-09-05 GAIA e2b L1-05 实锤):普通引号函数式纯文本
+# finish(summary="0")——前两形态(JSON / 占位符引号)都不接,三连重复撞强收尾,
+# 交付文件从未落盘。按"整段输出是一个函数调用表达式"的结构特征统一识别,
+# 不按引号形态逐个枚举;单引号/占位符/未来变体自动全覆盖。
+# 防误伤三闸:①全串必须整体是 name(args)(任何散文包裹即拒绝);
+# ②value 仅接受引号字符串/数字/布尔/null(嵌套结构拒绝);③name 必须已知
+# (内置全集或 MCP 扁平名 "server.tool")。解析失败一律返回 None 走纯文本路径。
+_KNOWN_TOOL_NAMES = frozenset(
+    t["function"]["name"] for t in list(CORE_TOOLS) + list(ADVANCED_TOOLS))
+_FUNC_CALL_RE = re.compile(r'^([a-zA-Z_][a-zA-Z0-9_.]*)\s*\((.*)\)$', re.S)
+_FUNC_ARG_RE = re.compile(
+    r'([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*'
+    r'(<\|"\|>.*?<\|"\|>|"[^"]*"|\'[^\']*\'|-?\d+(?:\.\d+)?|true|false|null)', re.S)
+
+def _parse_func_call_expr(c):
+    """整段文本就是一个工具调用表达式时解析为调用,否则 None(见上方三闸注释)。"""
+    m = _FUNC_CALL_RE.match(c)
+    if not m:
+        return None
+    name, argstr = m.group(1), m.group(2).strip()
+    if name not in _KNOWN_TOOL_NAMES and "." not in name:
+        return None
+    args, pos = {}, 0
+    if argstr:
+        for am in _FUNC_ARG_RE.finditer(argstr):
+            if am.start() != pos:
+                return None          # 未覆盖碎片(嵌套/散文/杂讯) → 拒绝
+            k, v = am.group(1), am.group(2)
+            if v.startswith('<|"|>'):
+                v = v[5:-5]
+            elif v[:1] in ('"', "'"):
+                v = v[1:-1]
+            elif v in ("true", "false"):
+                v = (v == "true")
+            elif v == "null":
+                v = None
+            else:
+                try:
+                    v = int(v)
+                except ValueError:
+                    v = float(v)
+            args[k] = v
+            pos = am.end()
+            while pos < len(argstr) and argstr[pos] in ', \t\r\n':
+                pos += 1
+        if pos != len(argstr):
+            return None
+    return [(name, args)]
+
 def try_parse_tool_calls(content):
     """小模型常把工具调用写成文本 JSON 而非 tool_call(格式泄漏)。尝试解析成工具调用。
     支持: {"todo": {...}} / {"name":"todo","arguments":{...}} / [{"todo":{...}},...]
           占位符引号函数式: finish(summary:<|"|>...<|"|>)——小模型偶发把字符串引号写成
-          tokenizer 占位符 <|"|>,打崩 ollama 原生解析后调用被当纯文本,无反馈重复到收尾
-          (e2b WF-13 实锤)。归一化成真实调用,走常规门禁(假完成/产物核对)给纠正反馈。
+          tokenizer 占位符,打崩 ollama 原生解析后调用被当纯文本,无反馈重复到收尾
+          (e2b WF-13 实锤)。
+          整段函数调用表达式: finish(summary="0")——普通/单引号形态,见
+          _parse_func_call_expr(e2b GAIA L1-05 实锤)。归一化成真实调用,走常规门禁
+          (假完成/产物核对)给纠正反馈。
     返回 [(name, args), ...] 或 None。"""
     c = content.strip()
     if c.startswith(("{", "[")):
@@ -1833,7 +1885,9 @@ def try_parse_tool_calls(content):
             r"\b([a-zA-Z_][a-zA-Z0-9_.]*)[\({]\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:"
             r"\s*<\|\"\|>(.*?)<\|\"\|>\s*[\)}]", c, re.S):
         calls.append((m.group(1), {m.group(2): m.group(3).strip()}))
-    return calls or None
+    if calls:
+        return calls
+    return _parse_func_call_expr(c)
 
 _ARTIFACT_EXTS = (".md", ".txt", ".png", ".jpg", ".jpeg", ".csv", ".py", ".json", ".docx",
                   ".xlsx", ".pdf", ".html", ".yaml", ".yml", ".svg", ".tex", ".tsv", ".log")
@@ -2621,9 +2675,17 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     if not productive_used and fake_finish_warns < 2:
                         fake_finish_warns += 1
                         print(f"[{i}] ⚠️ 拒绝假 finish:未使用任何产出型工具(create_file/edit_file/run_bash)", flush=True)
+                        # 拒绝消息必须给下一步可执行动作(LH-01 教训):只说"为什么拒"不给
+                        # "怎么继续",小模型会原地重复同一调用或漂移成不可解析文本形态
+                        # (e2b GAIA L1-05 实锤:两次被拒后 finish(summary="0") 三连撞强收尾)。
                         messages.append({"role":"user","content":
                             "⚠️ 你的 finish 被拒绝:你还没有做任何实际工作(未创建/修改文件或运行命令)。"
-                            "请先真正执行任务(读写文件、运行命令、写报告),完成后再调用 finish。"})
+                            "下一步二选一:\n"
+                            "1. 若最终答案/交付内容已确定:先用 create_file 把它写成文件"
+                            "(任务要求写 answer.txt 时就是: create_file(path=\"answer.txt\", "
+                            "content=\"<你的最终答案>\")),然后重新 finish。\n"
+                            "2. 若工作尚未完成:继续用工具推进(读写文件、运行命令、搜索),"
+                            "完成后再调用 finish。"})
                         messages.append({"role":"tool","content":res})
                         continue
                     # 测试验证守护:目录有 test_*.py 时,harness 亲自跑 pytest,不过则拒绝 finish
