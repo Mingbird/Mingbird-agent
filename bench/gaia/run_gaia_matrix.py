@@ -89,6 +89,11 @@ def prep_env():
     os.environ.setdefault(
         "AGENT_SEARCH_BACKENDS",
         "https://www.bing.com/search?setmkt=en-US&setlang=en&q={query}")
+    # Context budget: 128K (2026-09-05 staged test on this machine: 35B MoE
+    # decode 26.4 tok/s at 128K vs 1.8 tok/s at 256K = swap thrash). GAIA runs
+    # are product-capability probes; the LRAB 288 comparison stays frozen at
+    # 32K (run_bench fallback) so the four-harness protocol is untouched.
+    os.environ.setdefault("AGENT_CTX", "131072")
     # ollama calls must never try the proxy even when one is set
     no_px = set((os.environ.get("NO_PROXY", "") or "").split(","))
     no_px |= {"localhost", "127.0.0.1"}

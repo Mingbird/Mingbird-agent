@@ -70,7 +70,11 @@ def _cache_set(key, data):
         pass
 
 THINK = os.environ.get("AGENT_THINK") == "1"
-CTX_BUDGET = int(os.environ.get("AGENT_CTX", "16384"))
+# 上下文预算默认 128K(2026-09-05 压测定案):35B MoE 在 32GB UMA 机器上实测
+# 64K=28.0 tok/s / 128K=26.4 tok/s(几乎无衰减) / 256K=1.8 tok/s(换页崩塌,
+# load 837s)——128K 是本机甜点,可用空间 4 倍于旧 32K,大幅减少压缩触发。
+# 旧默认 16384;小模型(e2b/4b)128K KV 占用小,实测可跑。
+CTX_BUDGET = int(os.environ.get("AGENT_CTX", "131072"))
 TEMP = float(os.environ.get("AGENT_TEMP", "0"))
 NUM_PREDICT = int(os.environ.get("AGENT_NUMPREDICT", "2048"))
 SYSTEM_FILE = os.environ.get("AGENT_SYSTEM_FILE", "")
@@ -1097,6 +1101,72 @@ def _gate_check(name, args, workdir):
         pass
     return None
 
+# ---------------- 多模态输入接线(视觉) ----------------
+# 四个出厂模型(ornith-1.5/gemma4×2/qwen3.5)ollama manifest 全部带 vision 能力
+# (gemma4 双款另有 audio),但 harness 从未把画面喂给模型——read_file 读图按文本
+# 乱码,call_chat 不传 images(GAIA 图片/视频题全 0 的根因,2026-09-05 定案)。
+# 接线设计:read_file 识别图片扩展 → base64 入 workdir 待附队列 → 下一次请求前
+# _attach_pending_images 把图挂到最后一条 tool/user 消息的 images 字段(ollama
+# 模板自动展开);历史消息仅保留最近 _IMG_KEEP_MSGS 条的图,更早剥除(防 state
+# 膨胀与上下文浪费)。音频(ollama audio 字段)与视频抽帧为后续步骤。
+_IMG_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")
+_IMG_MAX_BYTES = 20 * 1024 * 1024   # 单图上限
+_IMG_PER_TURN = 4                    # 待附队列上限(张/轮)
+_IMG_KEEP_MSGS = 2                   # 历史保留带图消息数
+
+def _pending_images_path(workdir):
+    return os.path.join(workdir, ".hb_pending_images.json")
+
+def _pending_images_load(workdir):
+    try:
+        return json.load(open(_pending_images_path(workdir), encoding="utf-8"))
+    except Exception:
+        return []
+
+def _pending_images_save(workdir, items):
+    try:
+        json.dump(items, open(_pending_images_path(workdir), "w", encoding="utf-8"))
+    except Exception:
+        pass
+
+def _read_file_image(workdir, display, real):
+    """图片分支:大小检查 → base64 → 入待附队列。返回给模型的回执。"""
+    sz = os.path.getsize(real)
+    if sz > _IMG_MAX_BYTES:
+        return f"[image too large: {display} ({sz // 1024 // 1024} MB, limit 20 MB)]"
+    import base64 as _b64
+    b64 = _b64.b64encode(open(real, "rb").read()).decode("ascii")
+    pend = _pending_images_load(workdir)
+    if len(pend) >= _IMG_PER_TURN:
+        return (f"[image queued: {display} ({sz // 1024} KB)。待附队列已满({_IMG_PER_TURN} 张),"
+                f"请先分析已附载的图片,再读取下一张。]")
+    pend.append({"path": display, "b64": b64})
+    _pending_images_save(workdir, pend)
+    return (f"[image attached: {display} ({sz // 1024} KB)]——图片已随本轮请求载入,"
+            f"你可以直接描述、读取文字或分析它的内容。")
+
+def _attach_pending_images(messages, workdir):
+    """请求前调用:待附图挂到最后一条 tool/user 消息;剥离历史旧图。返回附加张数。"""
+    pend = _pending_images_load(workdir)
+    seen = 0
+    for m in reversed(messages):
+        if m.get("role") in ("user", "tool", "assistant") and m.get("images"):
+            seen += 1
+            if seen > _IMG_KEEP_MSGS:
+                m.pop("images", None)
+    if not pend:
+        return 0
+    n_attached = 0
+    for m in reversed(messages):
+        if m.get("role") in ("tool", "user"):
+            imgs = m.setdefault("images", [])
+            for it in pend:
+                imgs.append(it["b64"])
+                n_attached += 1
+            break
+    _pending_images_save(workdir, [])
+    return n_attached
+
 def run_tool(name, args, workdir):
     try:
         # 工具名别名:小模型常输出业界通名(write_file/list_directory 等),
@@ -1140,6 +1210,12 @@ def run_tool(name, args, workdir):
             p=os.path.join(workdir,args["path"])
             if not os.path.exists(p):
                 return f"[not found: {args['path']}]"
+            # 视觉接线:图片不按文本读(乱码),转 base64 随下一条消息附载给多模态模型
+            if str(args["path"]).lower().endswith(_IMG_EXTS):
+                real, inside = _safe_path(workdir, str(args["path"]))
+                if not inside:
+                    return "[blocked: 路径越界(工作目录边界守护)]"
+                return _read_file_image(workdir, str(args["path"]), real)
             # 按需精读:start_line/end_line 只读指定行区间(科研场景精读全文落盘文件)
             sl = int(args.get("start_line", 0) or 0)
             el = int(args.get("end_line", 0) or 0)
@@ -2477,6 +2553,10 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
             elif _est > CTX_BUDGET * 0.60 and _compact_lvl < 1:
                 messages = compact_history(model, messages, level=1); _compact_lvl = 1
                 print(f"[{i}] 事前估算 {_est} token 超限,已压缩(L1)", flush=True)
+            # 多模态接线:待附图片挂载到最后一条消息(images 字段),并剥离历史旧图
+            _n_img = _attach_pending_images(messages, workdir)
+            if _n_img:
+                print(f"[{i}] 🖼 已附载 {_n_img} 张图片(多模态输入)", flush=True)
             if STREAM:
                 r = call_chat(model, messages, tools=ct, stream=True, on_token=_stream_tok, on_think=_stream_think)
             else:
