@@ -11,12 +11,16 @@ GAIA validation L1(53 题)作为 LRAB 之外的外部锚基准。L2/L3 含图片
 - `run_gaia.py` — 单格 runner:prepare workdir(附件复制+question.txt)→
   复用 `run_bench.py` 四家 adapter → 判分 → score.json(含 failure_mode:
   completed / no_answer)。
-- `run_gaia_matrix.py` — 848 格全量驱动:4 agent × 4 模型 × 53 题,30min 统一
+- `run_gaia_matrix.py` — 424 格两端驱动:4 agent × 2 模型(gemma4:e2b 与
+  ornith-1.5:35b 两端锚定,完整 4 模型梯度见 LRAB 288)× 53 题,30min 统一
   预算,model-outer 切片(边界重启 ollama + 35b 加载守卫),DONE.json 断点续跑,
-  latest-attempt-wins;`wait_for_search()` 点火门等搜索引擎可用后才开始计格。
-- `ddg_search_mcp.py` — 本地 stdio MCP 搜索封装(html.duckduckgo.com,urllib
-  原生认代理 env;`kl=us-en` 固定英区)。四家同源对齐:三家(hummingbird /
-  goose / opencode)挂此 MCP,agent-mini 用内置 web_search(同抓该端点)。
+  latest-attempt-wins;`wait_for_search()` 点火门 + 每 10 格 live 复探搜索,
+  降级即暂停(2026-09-05 搜索标记事故后的连续守护)。
+- `ddg_search_mcp.py` — 本地 stdio MCP 搜索封装(Bing HTML 优先 + DDG html
+  回退,urllib 原生认代理 env;`setmkt=en-US`/`kl=us-en` 固定英区;磁盘缓存
+  按 egress 模式打标 + 跨进程 4s 节流)。三家(hummingbird / goose / opencode)
+  挂此 MCP,agent-mini 用内置 web_search(DDG 端点,当前出口 IP 被 anomaly
+  标记,实际无搜索)——不对称在 METHODS 披露。
 
 ## 公平协议
 

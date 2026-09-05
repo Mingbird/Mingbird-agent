@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""GAIA-L1 full matrix driver: 4 agents x 4 models x 53 tasks = 848 cells.
+"""GAIA-L1 matrix driver: 4 agents x 2 models (both ends) x 53 tasks = 424 cells.
+
+Model scope (2026-09-05 user decision): two-end anchor -- gemma4:e2b (smallest)
++ ornith-1.5:35b (strongest). The full 4-model gradient is the LRAB 288
+matrix's job; disclose GAIA as a two-end external anchor in METHODS.
 
 Protocol mirrors the LRAB 288 matrix (fp_0902 proven parts inlined):
-  - sequential, model-outer slices (e2b -> 4b -> 12b -> 35b), ollama restart at
+  - sequential, model-outer slices (e2b -> 35b), ollama restart at
     slice boundaries so the previous model's weights are gone before the next;
   - uniform 30 min wall budget, timeout = no total (scored 0 at aggregation);
   - latest-attempt-wins resume via per-cell DONE.json (a restart skips done
@@ -42,7 +46,11 @@ sys.path.insert(0, HERE)
 import run_bench as rb            # noqa: E402  (LRAB primitives, untouched)
 import gaia_scorer                # noqa: E402
 
-MODELS = ["gemma4:e2b", "qwen3.5:4b", "gemma4:12b", "ornith-1.5:35b"]
+# Two-end anchor (2026-09-05 user decision): smallest + strongest models only.
+# The full 4-model gradient lives in the LRAB 288 matrix; GAIA here is an
+# external anchor, so both ends suffice for the release narrative. Disclose
+# as "two-end L1 anchor" in METHODS -- not a full gradient.
+MODELS = ["gemma4:e2b", "ornith-1.5:35b"]
 AGENTS = ["hummingbird", "opencode", "goose", "agent-mini"]
 TASKS_DIR = os.path.join(HERE, "tasks")
 BASE = os.path.join(HB_ROOT, "eval_results", "gaia_l1_matrix")
@@ -319,8 +327,8 @@ def main():
     done = sum(1 for m, ag, tp in plan
                if os.path.exists(cell_paths(m, ag, tp)[1]))
     log("plan: %d cells, %d already done, %d to run" % (total, done, total - done))
-    if total != 848:
-        log("WARNING: expected 848 cells, got %d -- task dir mismatch?" % total)
+    if total != 424:
+        log("WARNING: expected 424 cells, got %d -- task dir mismatch?" % total)
 
     if not wait_for_search(max_hours=48, interval_min=5):
         sys.exit(1)
