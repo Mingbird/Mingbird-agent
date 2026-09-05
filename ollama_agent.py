@@ -822,6 +822,10 @@ def enable_advanced_tools(names):
     for n in names:
         if n in avail and n not in [t["function"]["name"] for t in _active_tools]:
             _active_tools.append(avail[n]); added.append(n)
+        # 显式启用=解锁反循环禁用(2026-09-05):禁用消息承诺"enable_tools 可重新启用"
+        # 就必须为真(LH-01:给的动作必须有效);解锁后再空转会被再次禁用(warns 上限兜底)
+        if n in _disabled_tools:
+            _disabled_tools.discard(n)
         elif is_mcp_tool(n) and n not in mcp_added:
             # MCP 扁平工具(服务器.工具名):由 agent_loop 的 allowed_extra 负责注入
             mcp_added.append(n)
@@ -2440,10 +2444,12 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     streak_warns = 0
     research_streak = 0     # 连续调研类工具(web_search/web_fetch)计数
     research_warns = 0
-    _RESEARCH = ("web_search", "web_fetch")
+    # (_RESEARCH 旧二元列表已并入 _RESEARCH_ALL,含 web_search_multi)
     todo_streak = 0         # 累计 todo 调用(仅产出型工具清零)
     _PRODUCTIVE = ("create_file", "edit_file", "append_file", "finish", "run_bash")
     productive_used = False  # 是否调用过产出型工具
+    _RESEARCH_ALL = ("web_search", "web_fetch", "web_search_multi")  # 签名级调研守护覆盖面
+    _research_seen = set()  # streak 周期内的查询指纹(新查询=推进=清零)
     fake_finish_warns = 0
     finish_claim_warns = 0   # finish 产物核对拒绝次数(≥2 放行,防死锁)
     finish_reread_used = False  # 交付自查门禁:任务原文回注只发生一次(防自查循环烧预算)
@@ -2938,18 +2944,31 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     messages.append({"role":"user","content":
                         f"⚠️ {name} 已连续调用 {tool_streak} 次,现被禁用。停止重复它,直接推进实际工作(写文件/执行/调用 finish)。"})
                     tool_streak = 1
-                # 调研类工具组合检测:web_search/web_fetch 累计 ≥6 次仍无产出(产出型工具才会清零)→ 禁用并强制推进
-                if name in _RESEARCH:
-                    research_streak += 1
+                # 调研类工具组合检测(签名级,2026-09-05 GAIA L1-04 误伤定案):
+                # 旧判据"连续 ≥6 次网络工具无文件产出即禁用"在考据型任务上结构性误伤——
+                # 找"论文里的一个数"时搜到之前无文件可写,最精准的一条查询刚发出就被禁。
+                # 新判据与反循环签名级哲学一致:参数在变=有推进=清零;只有**重复无新信息**
+                # (同 query/url 指纹)才计数。web_search_multi 一并纳入(此前不在 _RESEARCH
+                # 里,被禁后成了绕道通道,同查询空转 13 轮)。
+                if name in _RESEARCH_ALL:
+                    _fp = json.dumps(args or {}, sort_keys=True, ensure_ascii=False)[:256]
+                    if _fp in _research_seen:
+                        research_streak += 1
+                    else:
+                        _research_seen.add(_fp)
+                        research_streak = 0
                     if research_streak >= 6 and research_warns < 3:
                         research_warns += 1
-                        _disabled_tools.update(_RESEARCH)
+                        _disabled_tools.update(_RESEARCH_ALL)
                         _active_tools = [t for t in _active_tools
-                                         if t["function"]["name"] not in _RESEARCH]
+                                         if t["function"]["name"] not in _RESEARCH_ALL]
                         messages.append({"role":"user","content":
-                            f"⚠️ 你已连续 {research_streak} 次使用网络工具且尚未产出任何文件。web_search/web_fetch 已被禁用:"
-                            f"立即综合已有搜索结果,用 create_file 写报告/文件,然后调用 finish。"})
+                            f"⚠️ 你已连续 {research_streak} 次重复完全相同的网络查询且尚未产出任何文件。"
+                            f"网络工具已被禁用:换一个具体不同的查询角度,或先用 create_file 把已发现的"
+                            f"线索写成文件,然后调用 finish。被禁用后如需继续搜索,请改写查询词并调用 "
+                            f"enable_tools 重新启用。"})
                         research_streak = 0
+                        _research_seen.clear()
                 elif name in ("create_file", "edit_file", "append_file", "finish", "run_bash"):
                     research_streak = 0   # 仅产出型工具清零;todo/skills/enable 等 meta 工具不影响
                 # todo 循环检测:任务开局"建计划+连续勾选"是合法动作(WF-08 实证 6 连勾被误禁),
