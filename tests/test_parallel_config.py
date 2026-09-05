@@ -53,7 +53,9 @@ def test_kill_switch_and_depth():
     assert PC.hard_disabled({"AGENT_PARALLEL": "false"}) is True
     assert PC.hard_disabled({}) is False
     assert PC.current_depth({}) == 0
-    assert PC.current_depth({"HUMMINGBIRD_DEPTH": "2"}) == 2
+    assert PC.current_depth({"MINGBIRD_DEPTH": "2"}) == 2
+    assert PC.current_depth({"HUMMINGBIRD_DEPTH": "2"}) == 2  # 旧品牌名兼容读取
+    assert PC.current_depth({"MINGBIRD_DEPTH": "3", "HUMMINGBIRD_DEPTH": "1"}) == 3
     assert PC.current_depth({"HUMMINGBIRD_DEPTH": "garbage"}) == 0
 
 

@@ -88,7 +88,8 @@ class TestHappyPath:
         env = rec.envs[0]
         assert env["AGENT_CHILD_SANDBOX"] == "1"
         assert env["AGENT_PARALLEL"] == "0"
-        assert env["HUMMINGBIRD_DEPTH"] == "1"
+        assert env["MINGBIRD_DEPTH"] == "1"
+        assert "HUMMINGBIRD_DEPTH" not in env  # 旧名不得残留,防止新旧值打架
         assert "AGENT_STREAM" not in env
         cmd = rec.spawns[0]
         assert cmd[2] == "gemma4:e2b" and cmd[4].endswith("task01")

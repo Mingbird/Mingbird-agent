@@ -1,7 +1,7 @@
-﻿; Hummingbird v1.1.0 EN installer (Inno Setup)
+﻿; Mingbird v1.4.0 EN installer (Inno Setup)
 #define MyAppVersion "1.3.0"
-#define MyAppName "Hummingbird"
-#define MyAppFullName "Hummingbird · Local AI Assistant"
+#define MyAppName "Mingbird"
+#define MyAppFullName "Mingbird · Local AI Assistant"
 #define MyAppExe "LocalAgent.exe"
 
 [Setup]
@@ -9,12 +9,12 @@ AppId={{B7E4F2B1-8C9D-4A5B-9E8F-1A2B3C4D5E6F}
 AppName={#MyAppFullName}
 AppVersion={#MyAppVersion}
 AppPublisher=Gustor-Wang
-AppPublisherURL=https://github.com/Gustor-Wang/hummingbird-agent
-DefaultDirName={localappdata}\Hummingbird
+AppPublisherURL=https://github.com/Gustor-Wang/mingbird-agent
+DefaultDirName={localappdata}\Mingbird
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
-OutputBaseFilename=Hummingbird-v1.3.0-EN-Setup
+OutputBaseFilename=Mingbird-v1.4.0-EN-Setup
 OutputDir=dist
 SetupIconFile=app.ico
 Compression=lzma2

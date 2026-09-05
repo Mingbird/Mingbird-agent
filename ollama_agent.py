@@ -29,7 +29,8 @@ try:
 except Exception:
     pass
 
-AGENT_HOME = os.environ.get("HUMMINGBIRD_HOME") or os.path.expanduser("~/.ollama_agent")
+AGENT_HOME = (os.environ.get("MINGBIRD_HOME") or os.environ.get("HUMMINGBIRD_HOME")
+              or os.path.expanduser("~/.ollama_agent"))
 MEMORY_FILE = os.path.join(AGENT_HOME, "memory.json")
 SESSIONS_DIR = os.path.join(AGENT_HOME, "sessions")
 SKILLS_DIR_HOME = os.path.join(AGENT_HOME, "skills")
@@ -235,7 +236,7 @@ RULES:
 # 问答模式:聊天级 prefill(根治小模型"加戏"死循环)。
 # 根因:任务向系统提示+全量工具+Continue 注入,把"你好"逼成工具演示死循环。
 # 问答 → 换聊天提示+只读工具,答完即停。
-CHAT_SYSTEM = """你是本地 AI 助手 Ant-agent,正在和用户对话。
+CHAT_SYSTEM = """你是鸣鸟(Mingbird),本地 AI 助手,正在和用户对话。
 - 直接、自然、简洁地回答用户的问题。像真人聊天。
 - 普通寒暄/问句,直接回答即可,一句话或几句话都行,不要长篇大论。
 - 只有需要查资料/读文件/搜索时才用工具,其余情况纯粹用文字回答。
@@ -962,7 +963,7 @@ _SENSITIVE_PATTERNS = (".ssh\\", ".aws\\", ".gnupg\\", ".env", ".pem", "id_rsa",
                        "credentials\\", "\\token", "secrets", ".wav", "gui_prefs.json",
                        "mcp.json", "config.json", "memory.json",
                        "app_lang.txt", "\\program files\\", "\\windows\\", "\\system32\\")
-# 注意:.agent_state.json 是蜂鸟自己的运行时检查点(会话历史),模型写它属于正常工作,
+# 注意:.agent_state.json 是鸣鸟自己的运行时检查点(会话历史),模型写它属于正常工作,
 # 不能列入敏感模式(否则检查点保存失败,崩溃无法续跑)。真正的隐私文件用上面的列表保护。
 # run_bash 里疑似访问工作目录之外的命令模式(全小写匹配;命中→走确认通道)
 _BASH_ESCAPE_PATTERNS = (
@@ -1099,7 +1100,7 @@ def _gate_check(name, args, workdir):
 def run_tool(name, args, workdir):
     try:
         # 工具名别名:小模型常输出业界通名(write_file/list_directory 等),
-        # 自动映射到蜂鸟内置工具,而非拒绝("工具已禁用"会让小模型陷入死循环)。
+        # 自动映射到鸣鸟内置工具,而非拒绝("工具已禁用"会让小模型陷入死循环)。
         _TOOL_ALIASES = {
             "write_file": "create_file", "save_file": "create_file",
             "read_text_file": "read_file", "cat": "read_file",

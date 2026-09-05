@@ -1,5 +1,16 @@
 # 变更日志 (CHANGELOG)
 
+## v1.4.0 (开发中 — 品牌更名发布)
+
+### 🎀 品牌更名:蜂鸟/Hummingbird → 鸣鸟/Mingbird
+- 英文名、GUI 标题、安装器、门面文档全链路更名。新名在 GitHub/npm/PyPI/crates 四注册表零冲突,中文「鸣鸟」零软件占用。
+- 用户数据零迁移:配置目录 `~/.ollama_agent` 与 `%LOCALAPPDATA%\LocalAgent` 不变;新增环境变量 `MINGBIRD_HOME`/`MINGBIRD_DEPTH`,旧名 `HUMMINGBIRD_*` 继续兼容读取。
+- Inno 安装目录改名 `{localappdata}\Mingbird`:旧 `%LOCALAPPDATA%\Hummingbird` 不自动清理(升级须知写入发布说明)。
+- 下文历史条目中的「蜂鸟/Hummingbird」为当时名称实录,不改写。
+
+### 交付自查门禁(finish 回读)
+- 任务收尾触发 finish 时,动态回注一次任务原文,要求模型对照题面自查格式/单位/点名子项后重新 finish(防长任务末尾语义漂移)。仅在全部存在性门禁通过后触发,单任务一次性,问答/子 agent 豁免;静态 prefill 净增 0。
+
 ## v1.3.0 (2026-09-01)
 
 ### todolist 计划管线(重点修复)

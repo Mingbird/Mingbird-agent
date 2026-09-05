@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-r"""蜂鸟/Hummingbird 安装器:把内嵌 app 复制到 %LOCALAPPDATA%\LocalAgent,写语言标记,建桌面快捷方式。
-打包: pyinstaller --onefile --add-data "dist/LocalAgent;app" installer.py --name Hummingbird-Setup
-语言: 安装包名含 EN/英文 → 强制英文;含 中文 → 强制中文;否则自动。
+r"""鸣鸟/Mingbird 安装器:把内嵌 app 复制到 %LOCALAPPDATA%\LocalAgent,写语言标记,建桌面快捷方式。
+打包: pyinstaller --onefile --add-data "dist/LocalAgent;app" installer.py --name Mingbird-Setup
+语言: 安装包名含 CN/中文/鸣鸟 → 强制中文;含 EN/英文 → 强制英文;否则自动。
+(旧品牌名 蜂鸟/Hummingbird 的安装包名仍按原规则识别。)
 """
 import os, sys, shutil, subprocess
 
@@ -11,12 +12,13 @@ def main():
     dest = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "LocalAgent")
     # 根据安装包名判断语言
     self_name = os.path.basename(sys.argv[0] if sys.argv else "setup.exe").upper()
-    if "EN" in self_name or "HUMBINGBIRD" in self_name or "ENGLISH" in self_name:
-        lang = "en"; label = "Hummingbird"; lnk = "Hummingbird.lnk"
-    elif "ZH" in self_name or "CN" in self_name or "中文" in self_name or "蜂鸟" in self_name:
-        lang = "zh"; label = "蜂鸟"; lnk = "蜂鸟.lnk"
+    # 注:旧代码 "HUMBINGBIRD" 是笔误(从未匹配过),更名时一并修正为 HUMMINGBIRD/MINGBIRD
+    if "ZH" in self_name or "CN" in self_name or "中文" in self_name or "鸣鸟" in self_name or "蜂鸟" in self_name:
+        lang = "zh"; label = "鸣鸟"; lnk = "鸣鸟.lnk"
+    elif "EN" in self_name or "ENGLISH" in self_name or "MINGBIRD" in self_name or "HUMMINGBIRD" in self_name:
+        lang = "en"; label = "Mingbird"; lnk = "Mingbird.lnk"
     else:
-        lang = ""; label = "蜂鸟"; lnk = "蜂鸟.lnk"
+        lang = ""; label = "鸣鸟"; lnk = "鸣鸟.lnk"
 
     print(f"Installing to: {dest}  |  Language: {lang or 'auto'}")
     # 先结束正在运行的 LocalAgent,避免其占用文件导致拷贝中断成残缺安装

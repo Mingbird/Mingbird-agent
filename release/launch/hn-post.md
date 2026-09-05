@@ -4,7 +4,7 @@
 
 ## 标题(选一)
 
-1. **Show HN: Hummingbird — an AI agent that runs on the laptop you already own**
+1. **Show HN: Mingbird — an AI agent that runs on the laptop you already own**
 2. Show HN: A local AI agent built for small models (0.5–9B) on iGPU laptops
 3. Show HN: I built an agent harness that compensates for what small models can't do
 
@@ -27,9 +27,9 @@ Other bits: streaming with visible thinking that folds away, local STT voice inp
 
 **Honest limits**: a 2B model won't rewrite your codebase in one shot. It reliably does the 80% of everyday agent work — files, research, scripts, tests, organizing — and fails loudly when it can't, instead of silently doing the wrong thing.
 
-Two installers: 蜂鸟 (中文) and Hummingbird (EN). Apache-2.0, no telemetry, no account, no cloud.
+Two installers: 鸣鸟 (Chinese) and Mingbird (English). Apache-2.0, no telemetry, no account, no cloud. It shipped earlier this year as "蜂鸟 / Hummingbird"; same bird, new name.
 
-Downloads: [GitHub](https://github.com/Gustor-Wang/hummingbird-agent) · Release v1.0.0
+Downloads: [GitHub](https://github.com/Gustor-Wang/mingbird-agent) · Release v1.4.0
 
 Curious what people think — especially anyone who's tried local agents on low-end hardware and hit the "it loops forever / it silently does the wrong thing" wall.
 

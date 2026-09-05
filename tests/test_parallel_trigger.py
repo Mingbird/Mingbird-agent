@@ -165,7 +165,7 @@ class TestShouldDispatch:
     def test_depth_limit_blocks_children(self, tmp_path):
         c = cfg(enabled=True, child_model="gemma4:e2b")
         plan = PT.should_dispatch(StubProbe(), self._todo(tmp_path), c,
-                                  environ={"HUMMINGBIRD_DEPTH": "1"})
+                                  environ={"MINGBIRD_DEPTH": "1"})
         assert not plan.should and "depth_limit" in plan.reasons[0]
 
     def test_no_child_model_means_off(self, tmp_path):

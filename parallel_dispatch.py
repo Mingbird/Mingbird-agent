@@ -4,7 +4,7 @@
 
 派发:harness spawn N 个 headless ollama_agent 子进程(小模型),每个子 agent 一个独立
 分区目录,深度限制 1(子进程 env 双闸:AGENT_CHILD_SANDBOX=1 + AGENT_PARALLEL=0 +
-HUMMINGBIRD_DEPTH+1),硬超时,可中止,审计采样。
+MINGBIRD_DEPTH+1),硬超时,可中止,审计采样。
 整合:确定性校验(exit code / TASK COMPLETE / 产物核对 / 审计复核)→ 拷回父目录
 (默认不覆盖)→ 失败重试一次 → 再失败回退主模型串行。
 
@@ -162,7 +162,8 @@ class ParallelDispatcher:
         env = dict(self._env)
         env["AGENT_CHILD_SANDBOX"] = "1"          # 子 agent 安全模型(default-deny)
         env["AGENT_PARALLEL"] = "0"               # 深度闸之二:子 agent 禁止再派
-        env["HUMMINGBIRD_DEPTH"] = str(int(depth) + 1)
+        env["MINGBIRD_DEPTH"] = str(int(depth) + 1)
+        env.pop("HUMMINGBIRD_DEPTH", None)        # 旧品牌名,防止新旧值不一致
         env.pop("AGENT_STREAM", None)             # 子进程不开流式(headless)
         # 2026-09-01 整合遗留①:子 agent 不继承主任务的时间预算——A2 的
         # 50/75/90% 档位是按主任务总预算算的,子任务的真实时限是派发层的

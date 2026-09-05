@@ -24,7 +24,7 @@ import time
 # ---------------- 出厂默认:敏感目录/文件模式(最严档) ----------------
 # 两张清单,分工不同(见设计文档 §3.2):
 #  (1) sensitive_dir_patterns —— 即使落在 workdir 内也必须拒:凭据/密钥/agent 数据/VM 磁盘/
-#      蜂鸟自身文件。这是"在 workdir 内也有意义"的清单。
+#      鸣鸟自身文件。这是"在 workdir 内也有意义"的清单。
 #  (2) system_dir_patterns —— 绝对系统位置(WSL/VM 子系统、Windows、Program Files、AppData…)。
 #      它们天然落在 workdir 之外,由"workdir 之外一律拒写"的兜底条款覆盖;这张清单的作用是
 #      ① 给审计行一个精确原因;② 防 workdir 本身被误配到系统区(此时全拒)。
@@ -36,7 +36,7 @@ DEFAULT_SENSITIVE_DIR_PATTERNS = [
     # 凭据/密钥/敏感配置
     ".ssh", ".aws", ".gnupg", ".gpg", ".env", "credentials", "credential",
     ".ollama", ".myagents", "id_rsa", "id_ed25519", ".pem", ".key", ".kube", "secrets",
-    # 蜂鸟自身与宿主工作区
+    # 鸣鸟自身与宿主工作区
     "mcp.json", "config.json", "gui_prefs.json", "memory.json", "sessions", ".git",
     "node_modules",
 ]

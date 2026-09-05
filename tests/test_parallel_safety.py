@@ -156,7 +156,7 @@ class TestSensitiveDirs:
         sb = make_sandbox(tmp_path)
         assert sb.check_tool("create_file", {"path": ".myagents\\config.json"})[0] == "severe"
 
-    def test_hummingbird_own_files_write_severe(self, tmp_path):
+    def test_mingbird_own_files_write_severe(self, tmp_path):
         sb = make_sandbox(tmp_path)
         for p in ("config.json", "mcp.json", "memory.json"):
             assert sb.check_tool("create_file", {"path": p})[0] == "severe", p
