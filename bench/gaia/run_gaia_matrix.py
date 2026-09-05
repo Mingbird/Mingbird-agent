@@ -322,6 +322,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0,
                     help="run at most N unfinished cells (smoke mode)")
+    ap.add_argument("--models", default="",
+                    help="comma-separated model override (subset of MODELS)")
+    ap.add_argument("--agents", default="",
+                    help="comma-separated agent override (subset of AGENTS)")
+    ap.add_argument("--task-sample", type=int, default=0, dest="task_sample",
+                    help="keep only N evenly-spaced tasks (probe viability "
+                         "before committing to the full run)")
     a = ap.parse_args()
 
     os.makedirs(BASE, exist_ok=True)
@@ -330,15 +337,27 @@ def main():
     sys.stderr = _Tee(sys.__stderr__, logfile)
     proxy = prep_env()
     keep_awake_thread()
-    log("=== gaia_l1_matrix driver boot | proxy=%s | budget=%dmin ==="
-        % (proxy or "none", BUDGET_MIN))
+    models = ([m.strip() for m in a.models.split(",") if m.strip()]
+              if a.models else MODELS)
+    log("=== gaia_l1_matrix driver boot | proxy=%s | budget=%dmin | "
+        "models=%s ===" % (proxy or "none", BUDGET_MIN, ",".join(models)))
 
-    plan = build_plan()
+    plan = [c for c in build_plan() if c[0] in models]
+    if a.agents:
+        agents = {x.strip() for x in a.agents.split(",") if x.strip()}
+        plan = [c for c in plan if c[1] in agents]
+    if a.task_sample:
+        tasks = sorted({tp for _, _, tp in plan})
+        step = max(1, len(tasks) // a.task_sample)
+        keep = set(tasks[::step][:a.task_sample])
+        plan = [c for c in plan if c[2] in keep]
+        log("task sample: %d of %d tasks (step %d)"
+            % (len(keep), len(tasks), step))
     total = len(plan)
     done = sum(1 for m, ag, tp in plan
                if os.path.exists(cell_paths(m, ag, tp)[1]))
     log("plan: %d cells, %d already done, %d to run" % (total, done, total - done))
-    if total != 424:
+    if not a.models and not a.task_sample and total != 424:
         log("WARNING: expected 424 cells, got %d -- task dir mismatch?" % total)
 
     if not wait_for_search(max_hours=48, interval_min=5):
@@ -428,7 +447,7 @@ def main():
             sys.exit(1)
 
     with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
-        json.dump({"protocol": {"budget_min": BUDGET_MIN, "models": MODELS,
+        json.dump({"protocol": {"budget_min": BUDGET_MIN, "models": models,
                                 "agents": AGENTS, "tasks": "GAIA-L1-01..53",
                                 "timeout": "no total key", "resume":
                                 "latest-attempt-wins per DONE.json"},
