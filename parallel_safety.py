@@ -344,7 +344,8 @@ class ChildSandbox:
         elif name in ("read_file", "list_dir", "search_files"):
             action = "read"
         else:
-            return "allow", "", name
+            # fail-closed:未映射工具不允许免检放行(显式加白名单才是放行通道)
+            return "deny", "unmapped tool · 未映射工具,默认拒绝(default-deny)", name
         path = (args.get("path") or args.get("dir") or args.get("filepath") or "")
         verdict, real, reason = self.check_path(path, action)
         self._register(verdict)

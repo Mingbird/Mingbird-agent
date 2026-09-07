@@ -9,7 +9,7 @@
 - 会话:JSON + 侧车元数据(供 GUI 浏览/搜索)
 
 环境变量(可被 GUI 设置面板覆盖):
-  AGENT_CTX         上下文窗口(默认 16384;本机 32768 会让 ollama 内存打满死锁)
+  AGENT_CTX         上下文窗口(默认 131072;过低会频繁压缩,过高在 UMA 机器有内存墙)
   AGENT_TEMP        温度(默认 0)
   AGENT_NUMPREDICT  输出上限(默认 2048)
   AGENT_THINK=1     开启思考模型 thinking(默认关)
@@ -164,8 +164,9 @@ def restart_ollama(timeout=40):
     if os.name == "nt":
         subprocess.run(["taskkill", "/F", "/IM", "ollama.exe"],
                        capture_output=True, shell=False)
-    else:  # macOS and Linux both ship pkill
-        subprocess.run(["pkill", "-f", "ollama"], capture_output=True)
+    else:  # macOS and Linux both ship pkill; match the serve process only,
+        # never our own agent cmdline (ollama_agent.py contains the substring)
+        subprocess.run(["pkill", "-f", "ollama serve"], capture_output=True)
     # 2) 等 API 死透(最多 15s)
     import urllib.request as _ur
     host = appconfig.ollama_host()
@@ -1294,9 +1295,30 @@ def run_tool(name, args, workdir):
             # 非 python 程序在中文 Windows 上输出 GBK 字节 → reader 线程
             # UnicodeDecodeError 炸死,run_bash 挂掉。显式 utf-8 + replace:
             # 非 UTF-8 输出降级为替换符(乱码可见),永不崩。
-            r=subprocess.run(cmd,shell=True,capture_output=True,timeout=300,cwd=workdir,env=_env,
-                             encoding="utf-8", errors="replace")
-            out = _format_bash_out(r.returncode, r.stdout or "", r.stderr or "",
+            proc = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,cwd=workdir,env=_env,
+                                    encoding="utf-8", errors="replace",
+                                    start_new_session=(os.name!="nt"))
+            try:
+                out_s, err_s = proc.communicate(timeout=300)
+            except subprocess.TimeoutExpired:
+                # 只杀 shell 会留孤儿孙进程(握住 stdout 管道让本调用永久挂住):
+                # Windows 按进程树杀;POSIX 已设进程组,组杀。
+                if os.name=="nt":
+                    subprocess.run(["taskkill","/F","/T","/PID",str(proc.pid)],
+                                   capture_output=True, shell=False)
+                else:
+                    import signal as _sig
+                    try: os.killpg(os.getpgid(proc.pid), _sig.SIGKILL)
+                    except Exception: proc.kill()
+                try: out_s, err_s = proc.communicate(timeout=10)
+                except Exception: out_s, err_s = "", ""
+                note = "\n[已超时:300 秒上限,进程树已终止 · timed out after 300s]"
+                return _format_bash_out(proc.returncode or 1,
+                                        (out_s or "")[:4000] + note,
+                                        err_s or "", small_model=_SMALL_MODEL_MODE)
+            rc = proc.returncode
+            out = _format_bash_out(rc, out_s or "", err_s or "",
                                    small_model=_SMALL_MODEL_MODE)
             # 常见 Linux 绝对路径幻觉(/workspace /data /tmp 等),给提示
             if re.search(r"(^|\s)(cd|mkdir|ls|rm|cat|touch)\s+/(?!Users|home|[A-Za-z]:)", cmd) or "cd /workspace" in cmd:
@@ -1433,8 +1455,8 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
     if stream:
         parts, thinks, tool_calls = [], [], None
         prompt_ev, eval_ev = None, None
-        # 生成超时 240s:正常 35B 生成足够,卡死(模型不吐 token)能兜底退出,避免无限等
-        resp = urllib.request.urlopen(req, timeout=240)
+        # resp 已在上方 try/except 中打开(流式只发一次请求;此前的二次 urlopen 会
+        # 让同一 prompt 推理两遍并泄漏第一个连接)
         for line in resp:
             line = line.strip()
             if not line: continue
@@ -1479,6 +1501,7 @@ def _estimate_messages_tokens(messages, tools=None):
     total = 0
     for m in messages or []:
         total += _estimate_tokens(str(m.get("content", "")))
+        total += sum(len(b) for b in (m.get("images") or [])) // 4   # base64 图片按 ~4 字符/token 计入
         for tc in (m.get("tool_calls") or []):
             total += _estimate_tokens(str(tc.get("function", {}).get("name", "")))
             total += _estimate_tokens(str(tc.get("function", {}).get("arguments", "")))
@@ -1520,7 +1543,7 @@ def compact_history(model, messages, level=3, todo_text=None, files_text=None):
         keep_tail = messages[-2:]   # 保留最近 2 条(通常是刚发生的 tool+assistant)
         for i, m in enumerate(messages[1:], 1):
             m = dict(m)
-            is_recent = any(m is orig for orig in keep_tail)
+            is_recent = i >= len(messages) - 2   # 按下标判"最近",dict 拷贝后 identity 必 False
             if m.get("role") == "tool" and not is_recent:   # 旧 tool 结果截断
                 c = str(m.get("content", ""))
                 if len(c) > _MAX_TOOL:
@@ -1683,14 +1706,22 @@ def main():
             # 对话延续:优先已保存会话,其次检查点,都没有则新建;新消息必须追加
             msgs = load_session(session)
             if not msgs and os.path.exists(ckpt):
-                msgs = sanitize_ckpt(json.load(open(ckpt, encoding="utf-8")))
+                try:
+                    msgs = sanitize_ckpt(json.load(open(ckpt, encoding="utf-8")))
+                except Exception:
+                    os.replace(ckpt, ckpt + ".corrupt")   # 留证并回退全新会话
+                    msgs = []
             if msgs:
                 print(f"[RESUMED: {len(msgs)} msgs + 追加新消息]", flush=True)
                 msgs.append({"role":"user","content":append_text})
             else:
                 msgs = [{"role":"system","content":system_prompt()},{"role":"user","content":append_text}]
         elif os.path.exists(ckpt):
-            msgs = sanitize_ckpt(json.load(open(ckpt, encoding="utf-8")))
+            try:
+                msgs = sanitize_ckpt(json.load(open(ckpt, encoding="utf-8")))
+            except Exception:
+                os.replace(ckpt, ckpt + ".corrupt")
+                msgs = []
             print(f"[RESUMED checkpoint: {len(msgs)} msgs]", flush=True)
         elif session and load_session(session):
             msgs = load_session(session)
@@ -2434,6 +2465,7 @@ def _maybe_parallel_dispatch(model, messages, workdir, session):
 
 def agent_loop(model, messages, workdir, session, budget_sec=None):
     global _active_tools
+    _allow_all.clear()   # "允许全部(本轮)"以任务为界:新任务重新计数
     fails = 0
     fail_count = {}           # 工具名 -> 连续失败次数(同工具无成功则累计)
     redirect_warns = 0
@@ -2678,7 +2710,13 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                 print(f"[{i}] ⚡ 抢救到文本工具调用: {', '.join(n for n,_ in salvaged)}", flush=True)
         if tcs: messages.append({"role":"assistant","content":content,"tool_calls":tcs})
         else: messages.append({"role":"assistant","content":content})
-        json.dump(messages, open(os.path.join(workdir,".agent_state.json"),"w",encoding="utf-8"), ensure_ascii=False)
+        _ckpt = os.path.join(workdir,".agent_state.json")
+        try:
+            with open(_ckpt + ".tmp","w",encoding="utf-8") as _f:
+                json.dump(messages, _f, ensure_ascii=False)
+            os.replace(_ckpt + ".tmp", _ckpt)   # 原子替换:强杀不会留下半截 JSON
+        except Exception:
+            pass
         if tcs:
             for tc in tcs:
                 fn=tc["function"]; name=fn["name"]; args=fn.get("arguments",{})
@@ -2787,13 +2825,16 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     # 测试验证守护:目录有 test_*.py 时,harness 亲自跑 pytest,不过则拒绝 finish
                     if glob.glob(os.path.join(workdir, "test_*.py")) and test_guard_warns < 3:
                         test_guard_warns += 1
-                        pr = subprocess.run("python -m pytest -q", shell=True,
-                                            capture_output=True, cwd=workdir, timeout=300,
-                                            encoding="utf-8", errors="replace")
-                        ok = pr.returncode == 0
+                        try:
+                            pr = subprocess.run("python -m pytest -q", shell=True,
+                                                capture_output=True, cwd=workdir, timeout=300,
+                                                encoding="utf-8", errors="replace")
+                        except subprocess.TimeoutExpired:
+                            pr = None
+                        ok = (pr is not None and pr.returncode == 0)
                         tail = ((pr.stdout or "").strip().splitlines() or [""])[-1][:120]
                         if not ok:
-                            h = _pytest_hint(pr.stdout or "")
+                            h = _pytest_hint((pr.stdout if pr is not None else "") or "")
                             bak_hint = ""
                             if "SyntaxError" in h or "IndentationError" in h:
                                 baks = glob.glob(os.path.join(workdir, "*.py.bak"))
