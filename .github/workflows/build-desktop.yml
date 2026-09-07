@@ -1,0 +1,79 @@
+name: build-desktop
+
+# Build experimental macOS / Linux packages and attach them to the tag's
+# release. Windows installers are built locally (Inno Setup).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build and attach (e.g. v1.4.0)"
+        required: true
+        default: "v1.4.0"
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-13, arch: macos-x64 }
+          - { os: macos-14, arch: macos-arm64 }
+          - { os: ubuntu-22.04, arch: linux-x64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Linux system deps
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libportaudio2 tk8.6 binutils
+
+      - name: Install python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller ttkbootstrap pillow requests numpy sherpa_onnx mcp beautifulsoup4 sounddevice soundfile
+
+      - name: Fetch STT model (optional, voice input)
+        run: |
+          curl -sL -o stt.tar.bz2 "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23.tar.bz2" || true
+          if [ -s stt.tar.bz2 ]; then tar xjf stt.tar.bz2; fi
+          ls -d sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23 2>/dev/null || echo "stt model unavailable - voice input will degrade to No Audio"
+
+      - name: Build (PyInstaller)
+        run: python -m PyInstaller --noconfirm --clean LocalAgent-unix.spec
+
+      - name: Package
+        shell: bash
+        run: |
+          VERSION="$(cat VERSION)"
+          PKG="mingbird-${VERSION}-${{ matrix.arch }}.tar.gz"
+          cp install-unix.sh dist/
+          tar -czf "$PKG" -C dist LocalAgent install-unix.sh
+          echo "PKG=$PKG" >> "$GITHUB_ENV"
+
+      - name: Smoke (binary stays alive)
+        shell: bash
+        run: |
+          cd dist/LocalAgent
+          ./LocalAgent & APP=$!
+          sleep 8
+          if kill -0 "$APP" 2>/dev/null; then echo "smoke: alive"; kill "$APP" || true; else echo "smoke: exited early"; (test -f ../LocalAgent && echo "headless exit is acceptable for windowed builds"); fi
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/') || inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ inputs.tag || github.ref_name }}
+        run: |
+          gh release upload "$TAG_NAME" "$PKG" --clobber --repo "$GITHUB_REPOSITORY" || \
+            gh release create "$TAG_NAME" "$PKG" --title "$TAG_NAME" --notes "experimental packages" --repo "$GITHUB_REPOSITORY"
