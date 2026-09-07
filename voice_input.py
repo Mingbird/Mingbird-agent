@@ -155,7 +155,8 @@ def transcribe(model, wav_path):
 
 def transcribe_ollama(model, wav_path):
     """把 WAV 交给 ollama 音频模型转录。返回文本(可能为空)。"""
-    b64 = base64.b64encode(open(wav_path, "rb").read()).decode()
+    with open(wav_path, "rb") as _w:
+        b64 = base64.b64encode(_w.read()).decode()
     payload = {"model": model,
                "messages": [{"role": "user",
                              "content": "请把这段语音转录成文字,直接输出转录结果,不要解释。",

@@ -1,0 +1,9 @@
+ttkbootstrap
+pillow
+requests
+numpy
+sherpa-onnx
+mcp
+beautifulsoup4
+sounddevice
+soundfile

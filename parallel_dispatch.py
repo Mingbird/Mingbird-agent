@@ -219,7 +219,7 @@ class ParallelDispatcher:
                         ct.status = "running"
                         pool.submit(self._run_one, ct, run_dir, model, depth, result)
                         inflight.append(ct)
-                    time.sleep(0.05)
+                    self._sleep(0.05)
                     inflight = [c for c in inflight if c.status == "running"]
                 # 等待收尾(abort 时 _run_one 会被杀掉并落 status)
                 pool.wait()

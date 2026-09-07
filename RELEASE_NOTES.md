@@ -1,29 +1,26 @@
-# Hummingbird / 蜂鸟 v1.0.0 — Release Notes
+# Mingbird v1.4.0 — Release Notes · 发布说明
 
-## What is it
-A local, small-model-first AI agent for Windows. Runs fully offline on Ollama models (0.5–9B), tuned for modest hardware (AMD Radeon 680M iGPU, 16 GB RAM).
+EN
+--
+First release under the Mingbird name (formerly Hummingbird). Version line
+continues at 1.4.0.
 
-## Highlights
-- **Flat prefill architecture**: tools loaded by category on demand → 50%+ context reduction, faster every request.
-- **Q&A vs task layering**: casual chat answers instantly; real tasks get full tools. No more "greeting → 20-step tool demo" loops.
-- **Resilient harness**: `.bak` rollback, precise test-failure feedback, duplicate-call interception, safety gate (blocks rm -rf / system-path writes).
-- **Streaming output + visible thinking** (auto-folding reasoning).
-- **Voice input** (local STT ~20× real-time, bundled with the installer), model auto-detection, context up to 256K.
-- **VAD auto-stop voice**: just speak — recording ends ~1.2s after you stop talking. No need to click stop.
-- **Fully bilingual**: clean English UI in the EN build, clean Chinese UI in the ZH build (no mixed languages).
+- Benchmark evidence now shipped in-repo: LRAB-288 (4 harnesses x 4 open
+  models x 18 tasks), all per-cell results public.
+- Bundled voice input (local STT, pure CPU) with auto end-of-speech.
+- Task time-box (off by default; plain-language deadlines).
+- Mic-button i18n fix; desktop packages for Windows, Linux (experimental)
+  and macOS (experimental, CI-built).
 
-## Install
-1. Install [Ollama](https://ollama.com), pull a model (e.g. `ollama pull gemma4:e2b`).
-2. Run the setup.exe → "Hummingbird" desktop shortcut.
-3. Launch, pick a model, chat or assign a task.
+Full notes: see the GitHub release page for this tag.
 
-## Languages
-- **EN**: `Hummingbird-v1.0.0-EN-Setup.exe` (English UI)
-- **ZH**: `Hummingbird-v1.0.0-ZH-Setup.exe` (中文界面)
+中文
+--
+更名鸣鸟后的首个版本（前身蜂鸟），版本线接续 1.4.0。
 
-## Docs
-- `AGENTS.md` — full manual for AI agents (install skills / MCP / model selection)
-- `README_EN.md` / `README.md`
+- 基准证据随库公开：LRAB-288（4 harness × 4 模型 × 18 任务），逐格结果全公开。
+- 内置语音输入（本地 STT，纯 CPU），说完自动停。
+- 任务时限（基线默认关；支持自然语言时限）。
+- 麦克风按钮 i18n 修复；提供 Windows、Linux（实验）与 macOS（实验）桌面包。
 
-## License
-Apache-2.0
+完整说明见 GitHub 对应 tag 的 Release 页面。

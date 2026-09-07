@@ -243,7 +243,7 @@ class AgentGUI:
                     if v: return v
                 except Exception:
                     pass
-        return "v0.6.0"
+        return ""   # VERSION 缺失时不显示版本号(旧兜底 v0.6.0 误导)
 
     def refresh_models(self):
         """从 ollama 动态读取已安装模型,构建 显示名→tag 映射。
@@ -310,7 +310,10 @@ class AgentGUI:
         except Exception:
             root.geometry("1200x860")
         root.minsize(980, 680)
-        root.state("zoomed")   # Windows 下默认最大化
+        try:
+            root.state("zoomed")   # Windows 下默认最大化;Linux/mac Tk 不支持,失败保持默认尺寸
+        except Exception:
+            pass
 
         self._build_toolbar()
         self.refresh_models()          # 动态读取 ollama 里的模型
@@ -884,7 +887,7 @@ class AgentGUI:
 
     def view_transcript(self, name):
         win = tb.Toplevel(self.root); win.title(_t("会话回放: {name}").format(name=name)); win.geometry("760x560")
-        tb.Label(win, text=f_t("会话 {name} — 完整对话记录(Ctrl+F 搜索)").format(name=name), padding=6).pack(anchor="w")
+        tb.Label(win, text=_t("会话 {name} — 完整对话记录(Ctrl+F 搜索)").format(name=name), padding=6).pack(anchor="w")
         txt = scrolledtext.ScrolledText(win, font=("Consolas", 9), wrap="word")
         txt.pack(fill="both", expand=True, padx=6, pady=2)
         p = os.path.join(SESSION_DIR, name + ".json")
@@ -1036,7 +1039,20 @@ class AgentGUI:
             text = voice_input.transcribe(stt, wav)
             self.root.after(0, lambda: self._voice_done(text, stt))
         except Exception as e:
-            self.root.after(0, lambda: self._voice_done("", _t("转写失败: ") + str(e)))
+            _err = str(e)
+            self.root.after(0, lambda: self._voice_done("", _t("转写失败: ") + _err))
+    def _kill_tree(self):
+        """停止/关窗时按进程树终止(孙进程孤儿会占住 GPU 与管道)。"""
+        try:
+            if self.proc and self.proc.poll() is None:
+                if os.name == "nt":
+                    subprocess.run(["taskkill", "/F", "/T", "/PID", str(self.proc.pid)],
+                                   capture_output=True)
+                else:
+                    self.proc.kill()
+        except Exception:
+            pass
+
     def _voice_done(self, text, stt):
         self._voice_busy = False
         self._voice_rec = None
@@ -1134,7 +1150,7 @@ class AgentGUI:
 
     def stop(self):
         if self.proc and self.proc.poll() is None:
-            self.proc.kill(); self.log("\n" + _t("[已停止,重跑并勾选'续跑'可从中断处继续]"))
+            self._kill_tree(); self.log("\n" + _t("[已停止,重跑并勾选'续跑'可从中断处继续]"))
             self.log_note(_t("[已停止 — 重跑勾选'续跑'可从中断处继续]"))
 
     # ================= 流解析 =================
@@ -1161,7 +1177,7 @@ class AgentGUI:
         up = False; has_models = False
         try:
             import urllib.request as _ur
-            r = json.loads(_ur.urlopen("http://127.0.0.1:11434/api/tags", timeout=2).read())
+            r = json.loads(_ur.urlopen(appconfig.ollama_host().rstrip("/") + "/api/tags", timeout=2).read())
             up = True; has_models = bool(r.get("models"))
         except Exception:
             pass
@@ -1198,7 +1214,7 @@ class AgentGUI:
                                 _t("Ollama 已在线。本 agent 全离线运行,数据不离开本机。")
                                 if _LANG == "zh" else
                                 "Ollama is online. This agent runs fully offline — data never leaves your machine.")
-        self.root.after(1500, self._check_ollama)
+        # 状态立即刷新交由已有的 5s 自续链处理,这里不再叠加一条永久链
 
     def _stream_tok(self, tok):
         """流式回答 token:实时追加到当前助手气泡(跳过 markdown 渲染,保持打字机效果)。"""
@@ -1459,7 +1475,7 @@ class AgentGUI:
         self.plan_txt.config(state="disabled")
 
     def on_close(self):
-        if self.proc and self.proc.poll() is None: self.proc.kill()
+        if self.proc and self.proc.poll() is None: self._kill_tree()
         self.root.destroy()
 
 if __name__ == "__main__":
@@ -1476,7 +1492,7 @@ if __name__ == "__main__":
         print("\n".join(out))
         sys.exit(0)
     # 打包后:同 exe 以 agent CLI 模式运行(带 "ollama_agent.py" 标记),不弹 GUI 窗口
-    if len(sys.argv) > 1 and sys.argv[1] == "ollama_agent.py":
+    if len(sys.argv) > 1 and os.path.basename(sys.argv[1]) == "ollama_agent.py":
         try:
             import ollama_agent
             sys.argv = [sys.argv[0]] + sys.argv[2:]   # 去掉标记,main() 按 [model, task, workdir, ...] 解析

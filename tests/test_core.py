@@ -88,12 +88,24 @@ class TestCompactHistory:
             {"role": "assistant", "content": "plan"},
             {"role": "tool", "content": "x" * 500},
             {"role": "assistant", "content": "done"},
+            {"role": "user", "content": "next"},
         ]
 
     def test_l1_truncates_old_tool_output(self):
         out = A.compact_history("m", self._msgs(), level=1)
         tool = [m for m in out if m.get("role") == "tool"][0]
         assert "已截断" in tool["content"]
+
+    def test_l1_keeps_recent_tool_output(self):
+        # 最近 2 条(刚发生的 tool 结果与回应)不截断 —— 设计意图,回归钉死
+        msgs = self._msgs() + [
+            {"role": "tool", "content": "y" * 500},
+            {"role": "assistant", "content": "all done"},
+        ]
+        out = A.compact_history("m", msgs, level=1)
+        tools = [m for m in out if m.get("role") == "tool"]
+        assert "已截断" in tools[0]["content"]
+        assert "已截断" not in tools[1]["content"]
 
     def test_l3_produces_summary(self, monkeypatch):
         # L3 calls the model to summarize: mock call_chat (no ollama in CI)
