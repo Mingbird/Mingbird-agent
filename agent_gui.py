@@ -23,6 +23,24 @@ if getattr(sys, "frozen", False):
 else:
     AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
 AGENT_PY  = os.path.join(AGENT_DIR, "ollama_agent.py")
+
+
+def _file_manager_cmd(path):
+    """Open a directory in the platform file manager."""
+    if os.name == "nt":
+        return ["explorer", os.path.normpath(path)]
+    if sys.platform == "darwin":
+        return ["open", path]
+    return ["xdg-open", path]
+
+
+def _open_doc_cmd(path):
+    """Open a document with the platform default text viewer."""
+    if os.name == "nt":
+        return ["notepad", path]
+    if sys.platform == "darwin":
+        return ["open", "-t", path]
+    return ["xdg-open", path]
 # ============ 国际化:自动检测语言(OS 中文→中文,否则英文),可用 AGENT_LANG 强制 ============
 _LANG = os.environ.get("AGENT_LANG", "")
 if not _LANG:
@@ -492,6 +510,8 @@ class AgentGUI:
         d = self.wd_var.get(); os.makedirs(d, exist_ok=True)
         if os.name == "nt":
             subprocess.Popen(["explorer", os.path.normpath(d)])
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", d])
         else:
             subprocess.Popen(["xdg-open", d])
 
@@ -749,8 +769,7 @@ class AgentGUI:
             tb.Button(df, text=label, bootstyle="secondary-outline",
                       command=lambda n=fn: self._open_doc(n)).pack(side="left", padx=2)
         tb.Button(df, text=_t("打开安装目录"), bootstyle="secondary-outline",
-                  command=lambda: subprocess.Popen(
-                      ["explorer", AGENT_DIR] if os.name == "nt" else ["xdg-open", AGENT_DIR])).pack(side="left", padx=2)
+                  command=lambda: subprocess.Popen(_file_manager_cmd(AGENT_DIR))).pack(side="left", padx=2)
         tb.Button(win, text=_t("关闭"), bootstyle="primary",
                   command=win.destroy).pack(pady=(6, 10))
 
@@ -760,7 +779,7 @@ class AgentGUI:
                      getattr(sys, "_MEIPASS", "")):
             p = os.path.join(base, fn)
             if os.path.exists(p):
-                subprocess.Popen(["notepad", p] if os.name == "nt" else ["xdg-open", p])
+                subprocess.Popen(_open_doc_cmd(p))
                 return
         self.log(f"[文档未找到: {fn}]")
 
