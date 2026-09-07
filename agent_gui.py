@@ -490,7 +490,10 @@ class AgentGUI:
             self.att_lb.delete(0, "end"); self.attachments = []
     def open_dir(self):
         d = self.wd_var.get(); os.makedirs(d, exist_ok=True)
-        subprocess.Popen(["explorer", os.path.normpath(d)])
+        if os.name == "nt":
+            subprocess.Popen(["explorer", os.path.normpath(d)])
+        else:
+            subprocess.Popen(["xdg-open", d])
 
     # ================= 主题 =================
     def cycle_theme(self):
@@ -746,7 +749,8 @@ class AgentGUI:
             tb.Button(df, text=label, bootstyle="secondary-outline",
                       command=lambda n=fn: self._open_doc(n)).pack(side="left", padx=2)
         tb.Button(df, text=_t("打开安装目录"), bootstyle="secondary-outline",
-                  command=lambda: subprocess.Popen(["explorer", AGENT_DIR])).pack(side="left", padx=2)
+                  command=lambda: subprocess.Popen(
+                      ["explorer", AGENT_DIR] if os.name == "nt" else ["xdg-open", AGENT_DIR])).pack(side="left", padx=2)
         tb.Button(win, text=_t("关闭"), bootstyle="primary",
                   command=win.destroy).pack(pady=(6, 10))
 
@@ -756,7 +760,7 @@ class AgentGUI:
                      getattr(sys, "_MEIPASS", "")):
             p = os.path.join(base, fn)
             if os.path.exists(p):
-                subprocess.Popen(["notepad", p])
+                subprocess.Popen(["notepad", p] if os.name == "nt" else ["xdg-open", p])
                 return
         self.log(f"[文档未找到: {fn}]")
 
