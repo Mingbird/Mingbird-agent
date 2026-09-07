@@ -161,8 +161,11 @@ def restart_ollama(timeout=40):
     import time as _t
     exe = _find_ollama_exe()
     # 1) 杀掉现有 ollama(serve 与 runner 子进程)
-    subprocess.run(["taskkill", "/F", "/IM", "ollama.exe"],
-                   capture_output=True, shell=False)
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/F", "/IM", "ollama.exe"],
+                       capture_output=True, shell=False)
+    else:
+        subprocess.run(["pkill", "-f", "ollama"], capture_output=True)
     # 2) 等 API 死透(最多 15s)
     import urllib.request as _ur
     host = appconfig.ollama_host()
