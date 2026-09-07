@@ -952,7 +952,7 @@ class AgentGUI:
             model = self._model_map.get(self.model_var.get())
             ok = voice_input.local_stt_available() or (model and voice_input.model_audio_capable(model))
             self.mic_btn.config(state="normal" if ok else "disabled")
-            self.mic_btn.configure(text=_t("🎤 语音") if ok else "🎤 无音频")
+            self.mic_btn.configure(text=_t("🎤 语音") if ok else _t("🎤 无音频"))
             self.mic_btn.configure(bootstyle="info" if ok else "secondary")
         self.root.after(10, _check)
 
@@ -1018,7 +1018,7 @@ class AgentGUI:
         self._voice_busy = False
         self._voice_rec = None
         self.mic_btn.configure(text=_t("🎤 语音"), state="normal")
-        if self.mic_btn.cget("text") != "🎤 无音频":
+        if self.mic_btn.cget("text") != _t("🎤 无音频"):
             self.mic_btn.configure(bootstyle="info")
         if text:
             self.input.delete("1.0", "end")
