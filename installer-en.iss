@@ -1,5 +1,5 @@
 ﻿; Mingbird v1.4.0 EN installer (Inno Setup)
-#define MyAppVersion "1.3.0"
+#define MyAppVersion "1.4.0"
 #define MyAppName "Mingbird"
 #define MyAppFullName "Mingbird · Local AI Assistant"
 #define MyAppExe "LocalAgent.exe"
@@ -9,7 +9,7 @@ AppId={{B7E4F2B1-8C9D-4A5B-9E8F-1A2B3C4D5E6F}
 AppName={#MyAppFullName}
 AppVersion={#MyAppVersion}
 AppPublisher=Gustor-Wang
-AppPublisherURL=https://github.com/Gustor-Wang/mingbird-agent
+AppPublisherURL=https://github.com/Mingbird/Mingbird-agent
 DefaultDirName={localappdata}\Mingbird
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
