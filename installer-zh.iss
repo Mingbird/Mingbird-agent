@@ -1,5 +1,5 @@
 ﻿; 鸣鸟 v1.4.0 中文安装程序(2026-09 品牌更名;输出文件名用 ASCII,GitHub Release 资产名不支持中文) (Inno Setup)
-#define MyAppVersion "1.3.0"
+#define MyAppVersion "1.4.0"
 #define MyAppName "鸣鸟"
 #define MyAppFullName "鸣鸟 · 本地 AI 助手"
 #define MyAppExe "LocalAgent.exe"
@@ -9,7 +9,7 @@ AppId={{C8F5A3C2-9D0E-4B6C-8F9A-2B3C4D5E6F70}
 AppName={#MyAppFullName}
 AppVersion={#MyAppVersion}
 AppPublisher=Gustor-Wang
-AppPublisherURL=https://github.com/Gustor-Wang/mingbird-agent
+AppPublisherURL=https://github.com/Mingbird/Mingbird-agent
 DefaultDirName={localappdata}\Mingbird
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
