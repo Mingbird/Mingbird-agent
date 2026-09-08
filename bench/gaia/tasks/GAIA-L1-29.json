@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-29",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "cabe07ed-9eca-40ea-8ead-410ef5e83f91",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat is the surname of the equine veterinarian mentioned in 1.E Exercises from the chemistry materials licensed by Marisa Alviar-Agnew & Henry Agnew under the CK-12 license in LibreText's Introductory Chemistry materials as compiled 08/21/2023?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Louvrier",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search for \"1.E Exercises LibreText Introductory Chemistry\"\\n2. Read to see the horse doctor mentioned.', 'Number of steps': '2', 'How long did this take?': '5 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

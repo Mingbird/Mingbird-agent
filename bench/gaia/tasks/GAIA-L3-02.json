@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L3-02",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "bec74516-02fc-48dc-b202-55e78d0e17cf",
+  "level": 3,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\bec74516-02fc-48dc-b202-55e78d0e17cf.jsonld"
+  ],
+  "gaia_file_name": "bec74516-02fc-48dc-b202-55e78d0e17cf.jsonld",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat is the average number of pre-2020 works on the open researcher and contributor identification pages of the people whose identification is in this file?\n\nThe task includes the file `bec74516-02fc-48dc-b202-55e78d0e17cf.jsonld` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "26.4",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Opened the JSONLD file.\\n2. Opened each ORCID ID.\\n3. Counted the works from pre-2022.\\n4. Took the average: (54 + 61 + 1 + 16 + 0) / 5 = 132 / 5 = 26.4.', 'Number of steps': '4', 'How long did this take?': '15 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Calculator\\n4. JSONLD file access', 'Number of tools': '4'}"
+}

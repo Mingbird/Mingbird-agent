@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-47",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "08f3a05f-5947-4089-a4c4-d4bcfaa6b7a0",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nGiven $x_0 = -5$ and $f(x) = x^3 + 4x^2 - 3x + 8$, what is the smallest $n$ where using Newton's Method $n = n+1$ after rounding to four decimal places?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "2",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': \"1. Verify Netwon's method as x_(n+1) = x_n - f(x_n)/f'(x_n) by searching\\n2. Calculate the derivative: f'(x) = 3x^2 + 8x - 3\\n3. Find x_1 using the given x_0 value: x_1 = -5 - ((-5)^3 + 4(-5)^2 - 3(-5) + 8)/(3(-5)^2 + 8(-5) - 3) = -79/16 ≈ -4.9375\\n4. Iterate: x_2 = -79/16 - ((-79/16)^3 + 4(-79/16)^2 - 3(-79/16) + 8)/(3(-79/16)^2 + 8(-79/16) - 3) = -309711/62744 ≈ -4.9361\\n5. They are not the same, so iterate: x_3 = -309711/62744 - ((-309711/62744)^3 + 4(-309711/62744)^2 - 3(-309711/62744) + 8)/(3(-309711/62744)^2 + 8(-309711/62744) - 3) = -18658881319456319/3780082116675876 ≈ -4.9361\\n6. They are the same, so we stop and know n = 2 is the smallest value where this occurs.\", 'Number of steps': '6', 'How long did this take?': '15 minutes', 'Tools': '1. computer algebra system', 'Number of tools': '1'}"
+}

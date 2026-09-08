@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L3-14",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "8d46b8d6-b38a-47ff-ac74-cda14cf2d19b",
+  "level": 3,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\8d46b8d6-b38a-47ff-ac74-cda14cf2d19b.csv"
+  ],
+  "gaia_file_name": "8d46b8d6-b38a-47ff-ac74-cda14cf2d19b.csv",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat percentage of the total penguin population according to the upper estimates on english Wikipedia at the end of 2012 is made up by the penguins in this file that don't live on Dream Island or have beaks longer than 42mm? Round to the nearest five decimal places.\n\nThe task includes the file `8d46b8d6-b38a-47ff-ac74-cda14cf2d19b.csv` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "0.00033",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Opened the file in Excel.\\n2. Counted the penguins that are not on Dream Island with bills shorter than 42mm using `COUNTIFS(C1:C345, \">42\", B1:B345, \"<>Dream\")` (132).\\n3. Searched \"wikipedia penguin populations\" on Google search.\\n4. Opened the \"List of Sphenisciformes by population\" Wikipedia page.\\n5. Clicked \"View history\" to see the history of the page.\\n6. Opened the last 2012 version.\\n7. Added up the penguin species populations (39808770).\\n8. Calculated the percentage (132 / 39808770 * 100% = 0.00033158%).\\n9. Converted to scientific notation (3.3 x 10^-4%).', 'Number of steps': '9', 'How long did this take?': '15 minutes', 'Tools': '1. CSV file access\\n2. Web browser\\n3. Search engine\\n4. Calculator (or use Excel)', 'Number of tools': '4'}"
+}

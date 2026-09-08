@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L3-07",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "9b54f9d9-35ee-4a14-b62f-d130ea00317f",
+  "level": 3,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\9b54f9d9-35ee-4a14-b62f-d130ea00317f.zip"
+  ],
+  "gaia_file_name": "9b54f9d9-35ee-4a14-b62f-d130ea00317f.zip",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhich of the text elements under CATEGORIES in the XML would contain the one food in the spreadsheet that does not appear a second time under a different name?\n\nThe task includes the file `9b54f9d9-35ee-4a14-b62f-d130ea00317f.zip` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Soups and Stews",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Open the spreadsheet.\\n2. Go through each item, eliminating ones that have duplicates under a different name (e.g. clam = geoduck, sandwich = hoagie, dried cranberries = craisins...).\\n3. (Optional) Look up any unrecognizable food names.\\n4. Note the remaining unique food (turtle soup).\\n5. Open the XML.\\n6. Find the CATEGORIES label.\\n7. Note the matching text element for the food (Soups and Stews).', 'Number of steps': '7', 'How long did this take?': '15 minutes', 'Tools': '1. Excel file access\\n2. XML file access\\n3. (Optional) Web browser\\n4. (Optional) Search engine', 'Number of tools': '4'}"
+}

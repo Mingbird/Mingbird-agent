@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-07",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "7619a514-5fa8-43ef-9143-83b66a43d7a4",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nAccording to github, when was Regression added to the oldest closed numpy.polynomial issue that has the Regression label in MM/DD/YY?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "04/15/18",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"numpy github\" on Google search.\\n2. Opened the NumPy GitHub page.\\n3. Clicked \"Issues\" in the repo tabs.\\n4. Clicked \"Closed\" on the filter bar.\\n5. Set the filter to the \"numpy.polynomial\" label.\\n6. Set the filter to the \"06 - Regression\" label.\\n7. Opened the oldest Regression post.\\n8. Scrolled down to find when the Regression label was added (Apr 15, 2018).\\n9. Converted to MM/DD/YY (04/15/18).', 'Number of steps': '9', 'How long did this take?': '10 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

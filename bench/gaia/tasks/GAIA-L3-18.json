@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L3-18",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "872bfbb1-9ccf-49f6-8c5f-aa22818ccd66",
+  "level": 3,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhich of the fruits shown in the 2008 painting \"Embroidery from Uzbekistan\" were served as part of the October 1949 breakfast menu for the ocean liner that was later used as a floating prop for the film \"The Last Voyage\"? Give the items as a comma-separated list, ordering them in clockwise order based on their arrangement in the painting starting from the 12 o'clock position. Use the plural form of each fruit.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "pears, bananas",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Use search engine to search for \"2008 painting Embroidery from Uzbekistan\".\\n2. Open the top result, a link to the painting\\'s page on the Dayton Art Institute website, and verify that the painting has the specified title and year.\\n3. Identify the fruits in the painting as watermelon, pear, lemon, and banana, which can be verified by either watching the video on the page or reading its linked transcript.\\n4. Use search engine to search for \"ocean liner floating prop The Last Voyage\".\\n5. Note from the results that this ocean liner was the SS Île de France.\\n6. Use search engine to search for \"October 1949 breakfast menu SS Île de France\".\\n7. Go to the result that shows the vintage SS Île de France breakfast menu for October 1949.\\n8. Search the menu for each of the four fruits from the painting, finding \"Pear\" and \"Bananas\" but no matches for \"lemon\" or \"watermelon\".\\n9. Check the positions of the fruits in the painting to find that the pears come before the bananas in clockwise order starting from the 12 o\\'clock position.\\n10. Format the final answer as specified using the correct ordering: pears, bananas', 'Number of steps': '10', 'How long did this take?': '6', 'Tools': '1. Web browser\\n2. Search engine\\n3. Image recognition and processing tools', 'Number of tools': '3'}"
+}

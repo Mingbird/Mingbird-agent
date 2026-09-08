@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-70",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "0bb3b44a-ede5-4db5-a520-4e844b0079c5",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nConsider the following symbols: 𒐜  𒐐𒐚\n\nThis is a number written using the Mesopotamian/Babylonian number system and represented with Sumerian cuneiform. Convert this number into Arabic numerals as a decimal number.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "536",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Look up Babylonian number system (base 60, using uniform \\'hashmarks\\' as counters)\\n2. Converted the Cuniform to Arabic (8 56)\\n3. Since Babylonian is a base 60 system, converted the \"60\"\\'s place to decimal (8*60=480)\\n4. Added 56 to 480 (536).', 'Number of steps': '4', 'How long did this take?': '10 minutes', 'Tools': '1. Bablyonian cuniform -> arabic legend', 'Number of tools': '1'}"
+}

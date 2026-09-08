@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-25",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "b9763138-c053-4832-9f55-86200cb1f99c",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nCompute the check digit the Tropicos ID for the Order Helotiales would have if it were an ISBN-10 number.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "3",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search \"Tropicos ID Order Helotiales\"\\n2. Find the correct ID on the first result\\n3. Search \"isbn 10 check digit calculator\" or calculate check digit by hand', 'Number of steps': '3', 'How long did this take?': '5 minutes', 'Tools': '1. web browser\\n2. search engine\\n3. calculator', 'Number of tools': '3'}"
+}

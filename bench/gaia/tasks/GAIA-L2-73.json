@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-73",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "a56f1527-3abf-41d6-91f8-7296d6336c3f",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe cover of the August 2021 issue of Vogue shows a famous landmark in the background behind some trees. How tall is this monument in yards, rounded to the nearest yard? Give the number only.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "185",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Use search engine to search for \"Vogue August 2021 cover\".\\n2. Find the result from Vogue\\'s archive for the August 2021 issue and go to the webpage.\\n3. Identify the monument in the cover image as the Washington Monument.\\n4. Go to the Wikipedia page for the Washington Monument.\\n5. In the infobox, note that the height is 555 ft. \\n6. Convert 555 ft to yards using a conversion factor of 1 yd / 3 ft: 555 ft * 1 yd / 3 ft = 185 yd, giving a final answer of 185.', 'Number of steps': '6', 'How long did this take?': '5 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Image recognition tools\\n4. Calculator', 'Number of tools': '4'}"
+}

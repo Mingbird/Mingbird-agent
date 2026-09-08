@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-64",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "4d51c4bf-4b0e-4f3d-897b-3f6687a7d9f2",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\4d51c4bf-4b0e-4f3d-897b-3f6687a7d9f2.xlsx"
+  ],
+  "gaia_file_name": "4d51c4bf-4b0e-4f3d-897b-3f6687a7d9f2.xlsx",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThis spreadsheet contains a list of clients for a retractable awning company. Each client has ordered a new awning for the back of their house within the last 90 days. The company makes different designs depending on whether the awning is made to block sunrises or sunsets. In this region, houses with odd-numbered street addresses face east, and houses with even-numbered street addresses face west. How many of these clients will be receiving the sunset awning design?\n\nThe task includes the file `4d51c4bf-4b0e-4f3d-897b-3f6687a7d9f2.xlsx` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "8",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Open the attached spreadsheet.\\n2. Count the number of even and odd street addresses: 4 are even and 8 are odd. So, 4 houses face west and 8 houses face east.\\n3. Since these awnings are for the backyard, the houses that face east have a back facing west, and vice-versa. Since the sun sets in the west, the 8 east-facing houses need the sunset-style awning.', 'Number of steps': '3', 'How long did this take?': '5 minutes', 'Tools': '1. Microsoft Excel / Google Sheets', 'Number of tools': '1'}"
+}

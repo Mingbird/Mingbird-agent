@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L3-11",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "ebbc1f13-d24d-40df-9068-adcf735b4240",
+  "level": 3,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe Latin root of the Yola word \"gimlie\" shares a spelling with a Spanish word. What is the Google translation of the source title for the 1994 example sentence for that word in the Collins Spanish-to-English dictionary online? Answer in plain text, without punctuation.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "The World of the Twenty First Century",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"Yola gimlie\" on Google.\\n2. Opened https://en.wiktionary.org/wiki/gimlie#Yola.\\n3. Noted the Latin root \"caminata\".\\n4. Searched \"Collins Spanish-to-English dictionary caminata\" on Google.\\n5. Opened https://www.collinsdictionary.com/dictionary/spanish-english/caminata.\\n6. Scrolled down to the 1994 example.\\n7. Searched \"El Mundo del Siglo Veintiuno translation\" on Google.\\n8. Noted the result in the Translate widget.', 'Number of steps': '8', 'How long did this take?': '15 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Google Translate access', 'Number of tools': '3'}"
+}

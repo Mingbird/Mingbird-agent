@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-08",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "7dd30055-0198-452e-8c25-f73dbe27dcb8",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\7dd30055-0198-452e-8c25-f73dbe27dcb8.pdb"
+  ],
+  "gaia_file_name": "7dd30055-0198-452e-8c25-f73dbe27dcb8.pdb",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nUsing the Biopython library in Python, parse the PDB file of the protein identified by the PDB ID 5wb7 from the RCSB Protein Data Bank. Calculate the distance between the first and second atoms as they are listed in the PDB file. Report the answer in Angstroms, rounded to the nearest picometer.\n\nThe task includes the file `7dd30055-0198-452e-8c25-f73dbe27dcb8.pdb` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "1.456",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for \"PDB ID 5wb7\"\\n2. Navigate to https://www.rcsb.org/structure/5wb7 from the search results page\\n3. Download the PDB file from the landing page.\\n4. Process the PDB file using Python and Biopython to calculate the distance between the first two atoms listed in the file. (1.4564234018325806 Å)\\nfrom Bio.PDB import PDBParser\\nparser = PDBParser()\\nstructure = parser.get_structure(\"5wb7\", \"5wb7.pdb\")\\nfor atom in structure.get_atoms():\\n    atom1 = atom\\n    break\\nfor atom in structure.get_atoms():\\n    if atom != atom1:\\n        atom2 = atom\\n        break\\ndistance = atom1 - atom2\\nprint(f\"{distance}\")\\n5. Round the result to the nearest picometer (1.456)', 'Number of steps': '5', 'How long did this take?': '45 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. File handling\\n4. Python\\n5. Calculator ', 'Number of tools': '5'}"
+}

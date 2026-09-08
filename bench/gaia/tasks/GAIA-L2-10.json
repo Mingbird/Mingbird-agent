@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-10",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "87c610df-bef7-4932-b950-1d83ef4e282b",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn April of 1977, who was the Prime Minister of the first place mentioned by name in the Book of Esther (in the New International Version)?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Morarji Desai",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for “Book of Esther NIV”.\\n2. Click search result to read the text of the first chapter.\\n3. Note the first place named, India.\\n4. Search the web for “prime ministers of India list”.\\n5. Click Wikipedia result.\\n6. Scroll down to find the prime minister during the specified timeframe, Morarji Desai.', 'Number of steps': '6', 'How long did this take?': '5 minutes', 'Tools': '1. Search engine\\n2. Web browser', 'Number of tools': '2'}"
+}

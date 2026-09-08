@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-09",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "2d83110e-a098-4ebb-9987-066c06fa42d0",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\n.rewsna eht sa \"tfel\" drow eht fo etisoppo eht etirw ,ecnetnes siht dnatsrednu uoy fI\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Right",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Read the instructions in reverse', 'Number of steps': '1', 'How long did this take?': '1 minute', 'Tools': '1. A word reversal tool / script', 'Number of tools': '0'}"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-58",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "b7f857e4-d8aa-4387-af2a-0e844df5b9d8",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\b7f857e4-d8aa-4387-af2a-0e844df5b9d8.png"
+  ],
+  "gaia_file_name": "b7f857e4-d8aa-4387-af2a-0e844df5b9d8.png",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe attached image contains a Python script. Run the Python code against an array of strings, listed below. The output of the Python script will be a URL containing C++ source code. Compile and run this C++ code against the array [35, 12, 8, 99, 21, 5] and return the sum of the third and fifth integers in the sorted list.\n\narr = ['_alg', 'ghi', 'C++', 'jkl', 'tps', '/Q', 'pqr', 'stu', ':', '//', 'rose', 'vwx', 'yz1', '234', 'tta', '567', '890', 'cod', 'e.', 'or', 'g/', 'wiki', '/', 'ing', 'sort', 'abc' , 'or', 'it', 'hms', 'mno' , 'uic', 'ksort', '#', 'ht' ]\n\nThe task includes the file `b7f857e4-d8aa-4387-af2a-0e844df5b9d8.png` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "47",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Extract the Python code from the image\\n2. Run the code against the provided array. \\n3. Navigate to the returned URL (https://web.archive.org/web/20230609112831/https://rosettacode.org/wiki/sorting_algorithms/Quicksort#C++)\\n4. Extract the C++ code from the page.\\n5. Insert the provided array into the C++ source code:\\nint main() {\\n    std::vector<int> arr = {35, 12, 8, 99, 21, 5};\\n    quicksort(arr.begin(), arr.end());\\n    for (const auto& num : arr) {\\n        std::cout << num << \" \";\\n    }\\n    std::cout << \"\\\\n\";\\n      return 0;\\n}\\n6. Compile the edited code.\\n7. Run the compiled binary', 'Number of steps': '7', 'How long did this take?': '45 minutes', 'Tools': '1. File handling\\n2. Computer vision or OCR\\n3. Web browser\\n4. Python\\n5. C++ compiler\\n6. Calculator ', 'Number of tools': '6'}"
+}

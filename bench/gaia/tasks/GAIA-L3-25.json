@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L3-25",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "0512426f-4d28-49f0-be77-06d05daec096",
+  "level": 3,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn the YouTube 360 VR video from March 2018 narrated by the voice actor of Lord of the Rings' Gollum, what number was mentioned by the narrator directly after dinosaurs were first shown in the video?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "100000000",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"gollum voice actor\" on Google search.\\n2. Noted the answer.\\n3. Searched \"youtube 360 vr andy serkis\" on Google search.\\n4. Opened the top result (We Are Stars with Andy Serkis - 360 VR Video).\\n5. Confirmed the date was in March 2018.\\n6. Watched the video until dinosaurs appeared (approximately 8:45).\\n7. Recorded the narrated number.', 'Number of steps': '7', 'How long did this take?': '15 minutes', 'Tools': '1. Search engine\\n2. Web browser\\n3. Audio capability\\n4. Video capability', 'Number of tools': '4'}"
+}

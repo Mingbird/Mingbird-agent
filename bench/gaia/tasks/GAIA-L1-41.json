@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-41",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "7d4a7d1d-cac6-44a8-96e8-ea9584a70825",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nAccording to Girls Who Code, how long did it take in years for the percentage of computer scientists that were women to change by 13% from a starting point of 37%?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "22",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"Girls Who Code\" on Google.\\n2. Opened https://girlswhocode.com/.\\n3. Clicked \"About Us\".\\n4. Noted that the chart started at 37% and declined to 24%.\\n5. Subtracted the marked years to find the number of years (2017 - 1995 = 22).', 'Number of steps': '5', 'How long did this take?': '10 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Calculator', 'Number of tools': '3'}"
+}

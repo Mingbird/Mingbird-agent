@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-68",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "0a65cb96-cb6e-4a6a-8aae-c1084f613456",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nDuring the first week of August 2015, one of the NASA Astronomy Pictures of the Day shows the lights of a city on the horizon. The namesake of this city also has a landmark building in Chicago named after him. What is the name of the architectural firm that designed this landmark building? Give the first name appearing in the name of the firm as of June 2023.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Holabird",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Use search engine to search for \"NASA Astronomy Pictures of the Day August 2015\".\\n2. Navigate to the NASA Astronomy Picture of the Day Archive.\\n3. Open the Astronomy Picture of the Day for 2015 August 1-7.\\n4. Read the descriptions to check which picture shows the lights of a city on the horizon (2015 August 3) and note the name of the city (Marquette, Michigan, USA).\\n5. Go to the Wikipedia article for Marquette, Michigan and note that the city was named after Jacques Marquette.\\n6. Go to the Wikipedia article for Jacques Marquette and note that the Marquette Building in Chicago was named after him.\\n7. Go to the Wikipedia page for the Marquette Building and verify that it is a Chicago landmark.\\n8. Read the article and note that it was designed by architects Holabird & Roche.\\n9. Go to the Wikipedia page for Holabird & Roche.\\n10. Under \"View history\", select the latest version of the page revised during or before June 2023.\\n11. Note that the name of the firm is Holabird & Root as of June 2023.', 'Number of steps': '11', 'How long did this take?': '15 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

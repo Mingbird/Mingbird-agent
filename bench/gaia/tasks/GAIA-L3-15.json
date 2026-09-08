@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L3-15",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "e961a717-6b25-4175-8a68-874d28190ee4",
+  "level": 3,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nAccording to wikipedia, how many Asian countries still have a monarchy and access to the sea in 2021?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "12",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the internet for \"asian monarchies\"\\n2. Navigate to from the search results \\n3. Switch to the history tab\\n4. Locate and navigate to a revision from 2021\\n5. Open the articles for each listed monarchy in new tabs\\n6. Verify access to the sea for each country using the provided maps and optionally Google Maps', 'Number of steps': '6', 'How long did this take?': '10 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Computer vision\\n3. Google Maps', 'Number of tools': '4'}"
+}

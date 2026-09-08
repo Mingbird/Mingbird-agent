@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-51",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "a0c07678-e491-4bbc-8f0b-07405144218f",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWho are the pitchers with the number before and after Taishō Tamai's number as of July 2023? Give them to me in the form Pitcher Before, Pitcher After, use their last names only, in Roman characters.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Yoshida, Uehara",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Look up Taishō Tamai on Wikipedia\\n2. See the pitcher with the number 18 (before) is Kōsei Yoshida and number 20 (after) is Kenta Uehara', 'Number of steps': '2', 'How long did this take?': '5 minutes', 'Tools': '1. Wikipedia', 'Number of tools': '1'}"
+}

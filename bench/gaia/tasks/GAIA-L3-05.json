@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L3-05",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "de9887f5-ead8-4727-876f-5a4078f8598c",
+  "level": 3,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat integer-rounded percentage of the total length of the harlequin shrimp recorded in Omar Valencfia-Mendez 2017 paper was the sea star fed to the same type of shrimp in G. Curt Fiedler's 2002 paper?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "22",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"Omar Valencfia-Mendez 2017 shrimp paper\" on Google.\\n2. Opened \"Decapoda: Palaemonidae: Hymenocera picta Dana, 1852) ...\" on https://www.threatenedtaxa.org/index.php/JoTT/article/view/3238.\\n3. Clicked \"PDF/A\".\\n4. Found the length of the recorded shrimp as TL in the paper (4.5cm).\\n5. Searched \"G. Curt Fiedler 2002 shrimp paper\" on Google.\\n6. Opened \"(PDF) The influence of social environment on sex ...\" on https://www.researchgate.net/publication/232696279_The_influence_of_social_environment_on_sex_determination_in_harlequin_shrimp_Hymenocera_picta_Decapoda_Gnathophyllidae.\\n7. Found the size of the sea star fed to the shrimp (1cm).\\n8. Took the percentage (1 / 4.5 * 100% = 22.22222%).\\n9. Rounded to the nearest integer (22%).', 'Number of steps': '9', 'How long did this take?': '15 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. PDF access\\n4. Calculator', 'Number of tools': '4'}"
+}

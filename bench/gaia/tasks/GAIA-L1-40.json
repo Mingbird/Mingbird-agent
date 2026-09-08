@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-40",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "c365c1c7-a3db-4d5e-a9a1-66f56eae7865",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nOf the cities within the United States where U.S. presidents were born, which two are the farthest apart from the westernmost to the easternmost going east, giving the city names only? Give them to me in alphabetical order, in a comma-separated list\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Braintree, Honolulu",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"cities where us presidents are born\" on Google.\\n2. Opened \"List of presidents of the United States by home state\" on Wikipedia.\\n3. Searched the eastern cities to find the easternmost one (Braintree, MA).\\n4. Checked the westernmost city (Honolulu, HI).', 'Number of steps': '4', 'How long did this take?': '8 minutes', 'Tools': '1. Search engine\\n2. Web browser', 'Number of tools': '3'}"
+}

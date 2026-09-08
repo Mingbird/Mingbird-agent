@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L1-25",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "a3fbeb63-0e8c-4a11-bff6-0e3b484c3e9c",
+  "level": 1,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\a3fbeb63-0e8c-4a11-bff6-0e3b484c3e9c.pptx"
+  ],
+  "gaia_file_name": "a3fbeb63-0e8c-4a11-bff6-0e3b484c3e9c.pptx",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nHow many slides in this PowerPoint presentation mention crustaceans?\n\nThe task includes the file `a3fbeb63-0e8c-4a11-bff6-0e3b484c3e9c.pptx` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "4",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Open the provided file.\\n2. Scroll through the presentation, noting the animal names on each slide.\\n3. Search the web for “crayfish” to verify that they are crustaceans.\\n4. Read the results, noting that they are crustaceans.\\n5. Search the web for “isopods” to verify whether they are crustaceans.\\n6. Read the results, noting that they are.\\n7. Since I’m confident that I know whether all of the other animals are crustaceans, I count the ones that are to get the answer, 4.', 'Number of steps': '7', 'How long did this take?': '5 minutes', 'Tools': '1. PowerPoint viewer', 'Number of tools': '1'}"
+}

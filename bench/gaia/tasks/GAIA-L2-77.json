@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-77",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "4d0aa727-86b1-406b-9b33-f870dd14a4a5",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\4d0aa727-86b1-406b-9b33-f870dd14a4a5.xlsx"
+  ],
+  "gaia_file_name": "4d0aa727-86b1-406b-9b33-f870dd14a4a5.xlsx",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe attached file lists the locomotives owned by a local railroad museum. It gives each locomotive’s identifying number, operating status, and the name of the daily excursion it heads, if operational. What are the odds that today’s Sunset Picnic Trip will use a steam locomotive? Assume that each day’s excursion picks one of its assigned locomotives at random, and express the answer in the form “1 in 4”, “1 in 5”, etc.\n\nThe task includes the file `4d0aa727-86b1-406b-9b33-f870dd14a4a5.xlsx` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "1 in 3",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Open the provided file.\\n2. Count the number of locomotives with “Sunset Picnic Trip” listed in the excursion column, 3.\\n3. Count the number of those locomotives that are listed in the “Steam” section, 1.\\n4. Since there are three total locomotives used for the Sunset Picnic Trip, and one is a steam locomotive, the odds are 1 in 3.', 'Number of steps': '4', 'How long did this take?': '5 minutes', 'Tools': '1. Microsoft Excel', 'Number of tools': '1'}"
+}

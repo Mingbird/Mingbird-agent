@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-02",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "17b5a6a3-bc87-42e8-b0fb-6ab0781ef2cc",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nI’m researching species that became invasive after people who kept them as pets released them. There’s a certain species of fish that was popularized as a pet by being the main character of the movie Finding Nemo. According to the USGS, where was this fish found as a nonnative species, before the year 2020? I need the answer formatted as the five-digit zip codes of the places the species was found, separated by commas if there is more than one place.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "34689",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for “finding nemo main character”.\\n2. Note the results, which state that the main character is a clownfish.\\n3. Search the web for “usgs nonnative species database”.\\n4. Click result for the Nonindigenous Aquatic Species site.\\n5. Click “Marine Fishes”.\\n6. Click “Species List of Nonindigenous Marine Fish”.\\n7. Scroll through the list until I find the clown anenomefish, and click “Collection info”.\\n8. Note the place that a clown anenomefish was found, in Fred Howard Park at the Gulf of Mexico.\\n9. Search the web for “fred howard park florida zip code”.\\n10. Note the zip code, 34689. Since only one clownfish was found before the year 2020, this is the answer.', 'Number of steps': '10', 'How long did this take?': '5 minutes', 'Tools': '1. Search engine\\n2. Web browser', 'Number of tools': '2'}"
+}

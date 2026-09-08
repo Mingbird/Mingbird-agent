@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L3-04",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "384d0dd8-e8a4-4cfe-963c-d37f256e7662",
+  "level": 3,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn the NCATS PubChem compound database for Food Additive Status classification, find the compound that has a molecular weight of 100 g/mol or less, 6 heavy atoms, 1 or fewer hydrogen bond acceptors, and a complexity between 10 and 15. Of the shared gene-chemical co-occurrences between its two possible enzyme transformations, what is the PubChem CID of the heaviest by molecular weight?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "4192",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"NCATS PubChem compound database\" on Google.\\n2. Opened \"PubChem\" on the NCATS NIH website.\\n3. Clicked on the \"PubChem Compound\" link.\\n4. Clicked on the \"Classification Browser\" link.\\n5. Expanded \"Food Additives and Ingredients\" in the list.\\n6. Clicked on the number link next to \"Food Additive Status\".\\n7. Opened the filters and set them to maximum 100 g/mol weight, minimum 6 heavy atoms, maximum 1 H-bond acceptor, complexity 10-15.\\n8. Opened the resulting \"HEXANE\" page.\\n9. Scrolled to 10.6 Pharmacology and Biochemistry > Transformations.\\n10. Opened the two enzyme transformations\\' pages (CYP2B6 and CYP2E1).\\n11. Opened each one\\'s gene-chemical co-occurrences full list.\\n12. Opened each chemical they shared a co-occurrence with.\\n13. Compared the weights to find the heaviest (Midazolam).\\n14. Noted its PubChem CID (4192).', 'Number of steps': '14', 'How long did this take?': '20 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

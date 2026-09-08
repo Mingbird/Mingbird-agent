@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-21",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "6f37996b-2ac7-44b0-8e68-6d28256631b4",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nGiven this table defining * on the set S = {a, b, c, d, e}\n\n|*|a|b|c|d|e|\n|---|---|---|---|---|---|\n|a|a|b|c|b|d|\n|b|b|c|a|e|c|\n|c|c|a|b|b|a|\n|d|b|e|b|e|d|\n|e|d|b|a|d|c|\n\nprovide the subset of S involved in any possible counter-examples that prove * is not commutative. Provide your answer as a comma separated list of the elements in the set in alphabetical order.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "b, e",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Compile the markdown.\\n2. Look at the table across the diagonal to see if any portions are not symmetrical.\\n3. See that b * e != e * b, but all others are symmetrical.', 'Number of steps': '3', 'How long did this take?': '5 minutes', 'Tools': '1. Markdown', 'Number of tools': '1'}"
+}

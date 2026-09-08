@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L3-10",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "72c06643-a2fa-4186-aa5c-9ec33ae9b445",
+  "level": 3,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat is the volume in milliliters of a system comprised of 0.312 kg Freon-12 refrigerant when placed at the bottom of the Marianas Trench and allowed to stabilize at the Trench's peak temperature, rounded to the nearest mL? Provide your answer as just an integer value.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "55",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"volume from pressure, temperature, mass\" on Google.\\n2. Opened the \"Specific Volume: Definition, Formulas, Examples - ThoughtCo\" page.\\n3. Noted that PV = nRT where V is volume, R is the ideal gas constant, T is temperature, P is pressure, and M is moles.\\n4. Followed the \"gas constant\" link.\\n5. Noted that R = 8.31446261815324 J/K-mol.\\n6. Searched \"Freon-12\" on Google.\\n7. Opened the \"Dichlorodifluoromethane\" on Wikipedia.\\n8. Noted the molar mass of 120.91 g/mol.\\n9. Converted 0.312 kg = 312 g.\\n10. Calculated moles: 312 g / 120.91 g/mol = 2.58 mol.\\n11. Searched \"Marianas Trench pressure\" on Google.\\n12. Noted the pressure in the featured text snippet of 15,750 psi.\\n13. Searched \"psi to atm\" on Google.\\n14. Noted 1 psi = 0.068046 atm.\\n15. Converted psi to atm: 15,750 * 0.068046 = 1071.7245 atm.\\n16. Searched \"Marianas Trench temperature\" on Google.\\n17. Noted the temperature range from 34-39F.\\n18. Searched \"F to K\" on Google.\\n19. Noted that K equals F plus 459.67 times 5/9 from the conversion tool.\\n20. Converted temperature to K: 39 + 459.67 * 5/9 = 277.039K.\\n21. Searched \"joules to atm\" on Google and noted the conversion of 1 Joule = 0.0098692326671601 Liter Atmosphere from the featured text snippet.\\n22. Converted 8.31446261815324 * 0.0098692326671601 = 0.08205736608096 L-atm/K-mol.\\n21. Changed PV = nRT to V = nRT/P\\n22. Plugged numbers into the ideal gas equation: V = (0.08205736608096 L-atm/K-mol * 277.039K * 2.58 mol) / (1071.7245 atm) = 0.05473 L.\\n23. Converted to mL: 0.05473 L = 54.73.\\n24. Rounded to the nearest mL.', 'Number of steps': '24', 'How long did this take?': '20 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Calculator', 'Number of tools': '3'}"
+}

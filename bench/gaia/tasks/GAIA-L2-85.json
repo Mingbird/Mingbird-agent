@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-85",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "853c8244-429e-46ca-89f2-addf40dfb2bd",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn the 2015 Metropolitan Museum of Art exhibition titled after the Chinese zodiac animal of 2015, how many of the \"twelve animals of the Chinese zodiac\" have a hand visible?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "11",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search \"2015 Chinese zodiac animal\" on Google search.\\n2. Note the animal (ram).\\n3. Search \"Metropolitan Museum of Art\" on Google search.\\n4. Open the Metropolitan Museum of Art website.\\n5. Click \"Exhibitions\" under \"Exhibitions and Events\" \\n6. Click \"Past\".\\n7. Set the year to 2015.\\n8. Scroll to find the exhibit mentioning rams and click \"Celebration of the Year of the Ram\".\\n9. Click \"View All Objects\".\\n10. Click \"Twelve animals of the Chinese zodiac\" to open the image.\\n11. Count how many have a visible hand.', 'Number of steps': '11', 'How long did this take?': '10 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Image recognition tools', 'Number of tools': '3'}"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-31",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "076c8171-9b3b-49b9-a477-244d2a532826",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\076c8171-9b3b-49b9-a477-244d2a532826.xlsx"
+  ],
+  "gaia_file_name": "076c8171-9b3b-49b9-a477-244d2a532826.xlsx",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe attached file contains a list of vendors in the Liminal Springs mall, along with each vendor’s monthly revenue and the rent they pay the mall. I want you to find the vendor that makes the least money, relative to the rent it pays. Then, tell me what is listed in the “type” column for that vendor.\n\nThe task includes the file `076c8171-9b3b-49b9-a477-244d2a532826.xlsx` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Finance",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Open the attached spreadsheet.\\n2. Write formulas that divide each row’s revenue by its rent. This will tell me how much each vendor makes relative to its rent.\\n3. Note the value in the type column for the lowest result, Finance.', 'Number of steps': '3', 'How long did this take?': '5 minutes', 'Tools': '1. Microsoft Excel\\n2. Calculator', 'Number of tools': '2'}"
+}

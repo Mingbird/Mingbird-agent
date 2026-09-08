@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-83",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "08c0b6e9-1b43-4c2e-ae55-4e3fce2c2715",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn the film Goldfinger, what color was the object that James Bond concealed himself and his companion Pussy Galore at the end of the film? If there are multiple colors, put them in a comma-separated list in alphabetical order.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "orange, white",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': 'Step 1: Conduct a web search for the Goldfinger film screenplay.\\nStep 2: Navigate to the top result, https://www.universalexports.net/scripts/goldfinger.pdf\\nStep 3: Review the screenplay pdf. Navigate to the final page of the screenplay, looking for mentions and combinations of \"conceal\" \"James\" \"James Bond\" \"Pussy\" \"Pussy Galore\"\\nStep 4: After reviewing the line: \"Bond grabs the edge of the parachute and pulls it over them.\" search the rest of the screenplay for any description of the parachute.\\nStep 5: Failing to locate a description of the parachute in the screenplay, conduct a web search for \"James Bond Goldfinger parachute\"\\nStep 6: Navigate to the English language Wikipedia article for the film, Goldfinger (film), https://en.wikipedia.org/wiki/Goldfinger_(film)\\nStep 7: Review the article for information regarding the parachute used to conceal the characters at the end of the film.\\nStep 8: Failing to locate a description of the parachute, conduct a web search for \"James Bond Goldfinger parachute image\"\\nStep 9: Navigate to the Wikimedia.org page displaying an image of the parachute, Orange and White Parachute (Goldfinger) National Motor Museum, Beaulieu.jpg, https://commons.wikimedia.org/wiki/File:Orange_and_White_Parachute_(Goldfinger)_National_Motor_Museum,_Beaulieu.jpg\\nStep 10: Evaluate the image to determine its color, orange and white.\\nStep 11: Review the text summary of the image for confirmation of the details shown in the image.\\nStep 12: Return the requested information: \"orange, white\"', 'Number of steps': '12', 'How long did this take?': '3 minutes', 'Tools': 'A web browser\\nA search engine\\nImage recognition software', 'Number of tools': '3'}"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-74",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "42d4198c-5895-4f0a-b0c0-424a66465d83",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nI'm curious about how much information is available for popular video games before their release. Find the Wikipedia page for the 2019 game that won the British Academy Games Awards. How many revisions did that page have before the month listed as the game's release date on that Wikipedia page (as of the most recent entry from 2022)?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "60",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for British Academy Video Games Award for Best Game 2019\\n2. Find the answer, Outer Wilds\\n3. Find the Wikipedia page for Outer Wilds\\n4. Go to the last revision from 2022.\\n5. Note the release date, May 29, 2019\\n6. View the page history\\n7. Count how many edits were made to the page before May 2019\\n8. Arrive at the answer, 60', 'Number of steps': '8', 'How long did this take?': '30 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Access to Wikipedia\\n4. Calculator or counting function', 'Number of tools': '4'}"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-55",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "0b260a57-3f3a-4405-9f29-6d7a1012dbfb",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nOn ScienceDirect, what is the difference to 3 decimal places in the sample standard deviations of the number of Reference Works in each Life Science domain compared to Health Sciences as of 2022?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "0.269",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"ScienceDirect\" on Google.\\n2. Opened the ScienceDirect website.\\n3. Clicked on the top listed domain in the Life Science section on the main page (Agricultural and Biological Sciences).\\n4. Clicked on \"Reference works\" in the filters.\\n5. Noted the number at the top.\\n6. Subtracted the number that had 2023 or later as a date.\\n7. Changed the domain to the following one and noted the number.\\n8. Repeated step 6 for all Life Science domains.\\n9. Calculated the sample standard deviation (16.195678435929).\\n10. Went back to the home page.\\n11. Repeated steps 3-9 for Health Science (15.926916420534).\\n12. Subtracted 16.195678435929 - 15.926916420534.\\n13. Rounded to the third decimal place.', 'Number of steps': '13', 'How long did this take?': '15 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Calculator', 'Number of tools': '3'}"
+}

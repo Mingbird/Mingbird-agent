@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-46",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "d1af70ea-a9a4-421a-b9cc-94b5e02f1788",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nAs of the 2020 census, what was the population difference between the largest county seat and smallest county seat, by land area of the county seat, in Washington state? For population figures, please use the official data from data.census.gov. Please report the integer difference.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "736455",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': 'Step 1: Using a web browser, access a search engine and conduct a search, \"Washington cities by area\"\\nStep 2: Navigate to the second search result, https://en.wikipedia.org/wiki/List_of_municipalities_in_Washington\\nStep 3: Evaluate the page contents, finding the largest and smallest county seats by land area, Seattle and Cathlamet\\nStep 4: Using a web browser, navigate to https://data.census.gov/\\nStep 5: Using the website\\'s search area, conduct a search, Seattle, Washington\\nStep 6: Record the reported 2020 Decennial Census population of Seattle, Washington, 737,015\\nStep 7: Using the website\\'s search area, conduct a search, Cathlamet, Washington\\nStep 8: Record the reported 2020 Decennial Census population of Cathlamet, Washington, 560\\nStep 9: Using a calculator, find the difference in populations,\\n\\n737,015 - 560\\n736,455\\nStep 10: Report the correct answer to my user in the requested format, \"736,455\"', 'Number of steps': '10', 'How long did this take?': '5 minutes', 'Tools': '1. A web browser\\n2. A search engine\\n3. A calculator', 'Number of tools': '3'}"
+}

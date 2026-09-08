@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-65",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "65638e28-7f37-4fa7-b7b9-8c19bb609879",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe book with the doi 10.1353/book.24372 concerns a certain neurologist. According to chapter 2 of the book, what author influenced this neurologist’s belief in “endopsychic myths”? Give the last name only.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Kleinpaul",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for 10.1353/book.24372.\\n2. Click link to read the book.\\n3. Click link for the second chapter.\\n4. Ctrl-F for “endopsychic” to find a relevant passage.\\n5. Read the passage to find the author the question is asking about, Kleinpaul.', 'Number of steps': '5', 'How long did this take?': '5 minutes', 'Tools': '1. Search engine\\n2. Web browser\\n3. PDF viewer', 'Number of tools': '3'}"
+}

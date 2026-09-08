@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-21",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "33d8ea3b-6c6b-4ff1-803d-7e270dea8a57",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat is the minimum number of page links a person must click on to go from the english Wikipedia page on The Lord of the Rings (the book) to the english Wikipedia page on A Song of Ice and Fire (the book series)? In your count, include each link you would click on to get to the page. Use the pages as they appeared at the end of the day on July 3, 2023.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "2",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for “lord of the rings wikipedia”.\\n2. Click on Wikipedia result.\\n3. Click “View history” to see if the page has been edited since July 3, 2023.\\n4. Since it hasn’t been, return to the current revision.\\n5. Ctrl-F for “song” to see if A Song of Ice and Fire is linked to on this page.\\n6. Not seeing A Song of Ice and Fire on the current page, search for a link to a page that will likely mention A Song of Ice and Fire.\\n7. Click the link for “High fantasy”.\\n8. Click “View history” to see if the page has been edited since July 3, 2023.\\n9. Since it hasn’t been, return to the current revision.\\n10. Ctrl-F for “song”, and find a link to A Song of Ice and Fire.\\n11. Count the links: the High fantasy page and the A Song of Ice and Fire page make two.', 'Number of steps': '11', 'How long did this take?': '5 minutes', 'Tools': '1. Search engine\\n2. Web browser\\n3. Counter', 'Number of tools': '3'}"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-49",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "ded28325-3447-4c56-860f-e497d6fb3577",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThis is a secret message my friend gave me. It says where we should meet for our picnic on Friday. The only problem is, it’s encrypted in the Caesar cipher, so I can’t read it. Can you tell me what it says? This is the message:\n\nZsmxsm sc sx Zyvilsec Zvkjk.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Picnic is in Ploybius Plaza.",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for “Caesar cipher decrypt”.\\n2. Click on top result, a decoding website.\\n3. Enter the message into the text box.\\n4. Click “DECRYPT (BRUTEFORCE)” to get all possible decryptions.\\n5. Scroll through the results, noting that one possibility matches the user’s scenario of having a picnic.', 'Number of steps': '5', 'How long did this take?': '5 minutes', 'Tools': '1. Search engine\\n2. Web browser', 'Number of tools': '2'}"
+}

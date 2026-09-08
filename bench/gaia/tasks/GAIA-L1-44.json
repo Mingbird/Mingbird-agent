@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-44",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "23dd907f-1261-4488-b21c-e9185af91d5e",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn Audre Lorde’s poem “Father Son and Holy Ghost”, what is the number of the stanza in which some lines are indented?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "2",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for “Audre Lorde Father Son and Holy Ghost”.\\n2. Click on Poetry Foundation result.\\n3. Note the stanza that appears to have lines indented, the second one.\\n4. Return to search results to confirm.\\n5. Click on second result.\\n6. Confirm that the indentation appears in the second stanza here as well.', 'Number of steps': '6', 'How long did this take?': '5 minutes', 'Tools': '1. Search engine\\n2. Web browser', 'Number of tools': '2'}"
+}

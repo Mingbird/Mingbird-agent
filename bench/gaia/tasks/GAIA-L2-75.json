@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-75",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "edd4d4f2-1a58-45c4-b038-67337af4e029",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\edd4d4f2-1a58-45c4-b038-67337af4e029.xlsx"
+  ],
+  "gaia_file_name": "edd4d4f2-1a58-45c4-b038-67337af4e029.xlsx",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe attached spreadsheet lists the locomotives owned by a local railroad museum. What is the typical American name for the type of locomotive this museum uses for the Murder Mystery Express?\n\nThe task includes the file `edd4d4f2-1a58-45c4-b038-67337af4e029.xlsx` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Berkshire",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Open the provided spreadsheet.\\n2. Locate the locomotive used for the Murder Mystery Express, which is listed as a steam locomotive with a 2-8-4 wheel configuration.\\n3. Search the web for “2-8-4 steam locomotive”.\\n4. Note the most common name for a locomotive with this wheel configuration, a Berkshire.', 'Number of steps': '4', 'How long did this take?': '5 minutes', 'Tools': '1. Microsoft Excel\\n2. Search engine', 'Number of tools': '2'}"
+}

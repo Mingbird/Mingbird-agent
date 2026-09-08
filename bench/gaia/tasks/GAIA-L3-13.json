@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L3-13",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "3da89939-209c-4086-8520-7eb734e6b4ef",
+  "level": 3,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\3da89939-209c-4086-8520-7eb734e6b4ef.xlsx"
+  ],
+  "gaia_file_name": "3da89939-209c-4086-8520-7eb734e6b4ef.xlsx",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nI was referencing each of the tables in the file from papers that were cited by the \"Trans fatty acid contents in chocolates and chocolate wafers in Turkey\" paper. I lost my own reference sheet and need to know which of the papers each table came from. The file may not use the full table caption. If the references in the\"Trans fatty acid\" paper bibliography were numbered starting with 1, give me the numbers in the order that they would be used to fill the cells in the Excel file from top to bottom, as a comma separated list.\n\nThe task includes the file `3da89939-209c-4086-8520-7eb734e6b4ef.xlsx` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "8, 29, 22, 1, 8, 26",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"Trans fatty acid contents in chocolates and chocolate wafers in Turkey\" on Google.\\n2. Opened https://www.researchgate.net/publication/234034780_Trans_fatty_acid_contents_in_chocolates_and_chocolate_wafers_in_Turkey.\\n3. Opened the Excel file.\\n4. Searched each reference in the paper on Google.\\n5. Checked any free-to-access reference for a table similar to the titles in the Excel file.\\n6. Added the numbers of the references to the Excel file.\\n7. Copied the numbers into a comma-separated list.', 'Number of steps': '7', 'How long did this take?': '30 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. PDF access\\n4. XLSX file access', 'Number of tools': '4'}"
+}

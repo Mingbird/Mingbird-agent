@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-14",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "f0f46385-fc03-4599-b5d3-f56496c3e69f",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn terms of geographical distance between capital cities, which 2 countries are the furthest from each other within the ASEAN bloc according to wikipedia? Answer using a comma separated list, ordering the countries by alphabetical order.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Indonesia, Myanmar",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for \"ASEAN bloc\".\\n2. Click the Wikipedia result for the ASEAN Free Trade Area.\\n3. Scroll down to find the list of member states.\\n4. Click into the Wikipedia pages for each member state, and note its capital.\\n5. Search the web for the distance between the first two capitals. The results give travel distance, not geographic distance, which might affect the answer.\\n6. Thinking it might be faster to judge the distance by looking at a map, search the web for \"ASEAN bloc\" and click into the images tab.\\n7. View a map of the member countries. Since they\\'re clustered together in an arrangement that\\'s not very linear, it\\'s difficult to judge distances by eye.\\n8. Return to the Wikipedia page for each country. Click the GPS coordinates for each capital to get the coordinates in decimal notation.\\n9. Place all these coordinates into a spreadsheet.\\n10. Write formulas to calculate the distance between each capital.\\n11. Write formula to get the largest distance value in the spreadsheet.\\n12. Note which two capitals that value corresponds to: Jakarta and Naypyidaw.\\n13. Return to the Wikipedia pages to see which countries those respective capitals belong to: Indonesia, Myanmar.', 'Number of steps': '13', 'How long did this take?': '45 minutes', 'Tools': '1. Search engine\\n2. Web browser\\n3. Microsoft Excel / Google Sheets', 'Number of tools': '3'}"
+}

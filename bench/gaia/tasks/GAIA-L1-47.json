@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-47",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "a0068077-79f4-461a-adfe-75c1a4148545",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat was the actual enrollment count of the clinical trial on H. pylori in acne vulgaris patients from Jan-May 2018 as listed on the NIH website?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "90",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"nih\" on Google search.\\n2. Clicked the top link to nih.gov.\\n3. Searched \"h pylori acne\" in the search box.\\n4. Clicked \"More\" and selected \"Clinical Trials\".\\n5. Clicked the result about H. Pylori and acne.\\n6. Checked the date to confirm it was January to May 2018.\\n7. Opened \"Tabular View\".\\n8. Scrolled down to Actual Enrollment and recorded the number.', 'Number of steps': '8', 'How long did this take?': '8 minutes', 'Tools': '1. Search engine\\n2. Web browser', 'Number of tools': '2'}"
+}

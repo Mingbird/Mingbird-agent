@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-04",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "14569e28-c88c-43e4-8c32-097d35b9a67d",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn Unlambda, what exact charcter or text needs to be added to correct the following code to output \"For penguins\"? If what is needed is a character, answer with the name of the character. If there are different names for the character, use the shortest. The text location is not needed. Code:\n\n`r```````````.F.o.r. .p.e.n.g.u.i.n.si\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "backtick",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"Unlambda syntax\" online (optional).\\n2. Opened https://en.wikipedia.org/wiki/Unlambda.\\n3. Note that the hello world program is very similar in syntax to the code in this question.\\n4. Go to the source referenced by the hello world program.\\n5. From the referenced source, read what the components of the program do to understand that each period needs a backtick after the initial `r.\\n6. Observe that in the given code, there are 12 periods but only 11 backticks after the initial `r, so the missing character is a backtick.', 'Number of steps': '6', 'How long did this take?': '15 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Unlambda compiler (optional)', 'Number of tools': '3'}"
+}

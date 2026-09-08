@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L1-17",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "cca530fc-4052-43b2-b130-b30968d8aa44",
+  "level": 1,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\cca530fc-4052-43b2-b130-b30968d8aa44.png"
+  ],
+  "gaia_file_name": "cca530fc-4052-43b2-b130-b30968d8aa44.png",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nReview the chess position provided in the image. It is black's turn. Provide the correct next move for black which guarantees a win. Please provide your response in algebraic notation.\n\nThe task includes the file `cca530fc-4052-43b2-b130-b30968d8aa44.png` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Rd5",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': 'Step 1: Evaluate the position of the pieces in the chess position\\nStep 2: Report the best move available for black: \"Rd5\"', 'Number of steps': '2', 'How long did this take?': '10 minutes', 'Tools': '1. Image recognition tools', 'Number of tools': '1'}"
+}

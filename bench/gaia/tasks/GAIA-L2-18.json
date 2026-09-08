@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-18",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "0ff53813-3367-4f43-bcbd-3fd725c1bf4b",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat two-word type of model did Manash Pratim Kashyap's and PS Fader's studies in customer retention studies published during 2018-2019 have in common (no punctuation)?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "beta geometric",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"Manash Pratim Kashyap customer retention\" on Google.\\n2. Opened https://www.journalijar.com/article/26843/a-simple-model-for-analyzing-the-customer-retention-comparing-rural-and-urban-store/.\\n3. Noted \"discrete time beta geometric model\" in the abstract.\\n4. Searched \"PS Fader customer retention\" on Google.\\n5. Opened https://www.sciencedirect.com/science/article/abs/pii/S1094996807700233.\\n6. Noted \"basic model (known as a “shifted-beta-geometric”)\" in the abstract.\\n7. Extracted the two words in common.', 'Number of steps': '6', 'How long did this take?': '10 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

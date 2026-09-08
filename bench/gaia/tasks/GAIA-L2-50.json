@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-50",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "6359a0b1-8f7b-499b-9336-840f9ab90688",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\6359a0b1-8f7b-499b-9336-840f9ab90688.png"
+  ],
+  "gaia_file_name": "6359a0b1-8f7b-499b-9336-840f9ab90688.png",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat is the area of the green polygon in the attached file? The numbers in purple represent the lengths of the side they are next to.\n\nThe task includes the file `6359a0b1-8f7b-499b-9336-840f9ab90688.png` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "39",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Open the attached file.\\n2. Split the shape into five rectangles.\\n3. Find the missing side lengths from the side lengths that are given.\\n4. Find the area for each rectangle.\\n5. Add the areas together to get the area of the entire shape, 39.', 'Number of steps': '5', 'How long did this take?': '5-10 minutes', 'Tools': '1. Image recognition\\n2. OCR\\n3. Calculator', 'Number of tools': '3'}"
+}

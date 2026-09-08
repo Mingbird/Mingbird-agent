@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-19",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "4fc2f1ae-8625-45b5-ab34-ad4433bc21f8",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWho nominated the only Featured Article on English Wikipedia about a dinosaur that was promoted in November 2016?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "FunkMonk",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search \"Wikipedia featured articles promoted in november 2016\"\\n2. Click through to the appropriate page and find the person who nominated Giganotosaurus.', 'Number of steps': '2', 'How long did this take?': '5 minutes', 'Tools': '1. web browser\\n2. search engine', 'Number of tools': '2'}"
+}

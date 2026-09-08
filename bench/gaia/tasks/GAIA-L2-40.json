@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-40",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "8f80e01c-1296-4371-9486-bb3d68651a60",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\8f80e01c-1296-4371-9486-bb3d68651a60.png"
+  ],
+  "gaia_file_name": "8f80e01c-1296-4371-9486-bb3d68651a60.png",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nUsing bass clef notes, what is the age of someone who has experienced the word spelled out in the sheet music by the note letters the total number of lines and notes minus the number of notes on lines in the image?\n\nThe task includes the file `8f80e01c-1296-4371-9486-bb3d68651a60.png` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "90",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Open the file.\\n2. Translate the letters to bass notes (\"D E C A D E\").\\n3. Count the lines (5).\\n4. Count the notes (6).\\n5. Count the notes on lines (2).\\n6. Add the lines and notes (11).\\n7. Subtract the notes on lines (11 - 2).\\n8. Multiply 10 by 9 (90).\\n9. Note the age given.', 'Number of steps': '9', 'How long did this take?': '5 minutes', 'Tools': '1. Image recognition\\n2. Bass note data\\n3. Calculator', 'Number of tools': '3'}"
+}

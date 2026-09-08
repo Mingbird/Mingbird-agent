@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-17",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "8b3379c0-0981-4f5b-8407-6444610cb212",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat is the maximum length in meters of #9 in the first National Geographic short on YouTube that was ever released according to the Monterey Bay Aquarium website? Just give the number.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "1.8",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"National Geographic YouTube\" on Google search.\\n2. Opened the National Geographic YouTube channel.\\n3. Clicked \"Shorts\".\\n4. Watched the oldest short (\"Which shark species is the most massive? #SharkFest #Shorts\") and noted #9 (Blacktip Reef).\\n5. Searched \"blacktip reef monterey bay aquarium\" on Google search.\\n6. Opened \"Blacktip reef shark\" on the Monterey Bay Aquarium website and noted the maximum length.', 'Number of steps': '6', 'How long did this take?': '10 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Video recognition tools', 'Number of tools': '3'}"
+}

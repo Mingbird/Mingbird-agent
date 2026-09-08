@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-86",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "7a4a336d-dcfa-45a0-b014-824c7619e8de",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nAt the two-minute mark in the YouTube video uploaded by the channel “GameGrumps” on May 14, 2017 as part of their playthrough of the game Mario Kart 8 Deluxe, the shows’ hosts are competing on one of the game’s racetracks. What was the world record time for that track in the game’s 150cc mode as of June 7, 2023? Express your answer in minutes and seconds, rounding the seconds to the nearest hundredth, e.g. 1:01.001.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "1:41.614",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for “gamegrumps mario kart 8 deluxe may 14 2017”.\\n2. Click on the YouTube video result.\\n3. Navigate to two minutes into the video.\\n4. Scroll further back until I see the name of the racecourse, Yoshi Circuit.\\n5. Search the web for “mario kart 8 deluxe yoshi circuit world record 150cc”\\n6. Scroll down until I find a reliable world record listing site.\\n7. Navigate through the site until I find the record that meets the specified criteria.\\n8. Read the date the record was set to confirm that it applies to the question’s specified date.', 'Number of steps': '8', 'How long did this take?': '5-10 minutes', 'Tools': '1. Search engine\\n2. Web browser\\n3. YouTube\\n4. OCR', 'Number of tools': '4'}"
+}

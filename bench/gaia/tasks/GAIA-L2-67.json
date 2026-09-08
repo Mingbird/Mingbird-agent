@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-67",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "708b99c5-e4a7-49cb-a5cf-933c8d46470d",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nOn the DeepFruits fruit detection graph on Connected Papers from 2016, what feature caused the largest bubble to be the size it is?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Citations",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"connected papers deepfruits\" on Google search.\\n2. Opened the \"DeepFruits: A Fruit Detection System Using Deep Neural Networks\" graph on ConnectedPapers.com.\\n3. Clicked on the largest bubble (Redmon, 2015).\\n4. Clicked on other bubbles to compare their features.\\n5. Noted that Citations was the feature where the Redmon bubble exceeded all the others.', 'Number of steps': '5', 'How long did this take?': '7 minutes', 'Tools': '1. Graph interaction tools\\n2. Web browser\\n3. Search engine', 'Number of tools': '3'}"
+}

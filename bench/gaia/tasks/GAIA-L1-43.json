@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-43",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "3f57289b-8c60-48be-bd80-01f8099ca449",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nHow many at bats did the Yankee with the most walks in the 1977 regular season have that same season?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "519",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search \"yankee stats\" to find their MLB stats page.\\n2. Set the data to the 1977 regular season.\\n3. Sort to find the most walks.\\n4. See how many at bats the player had.', 'Number of steps': '4', 'How long did this take?': '5 minutes', 'Tools': '1. web browser\\n2. search engine', 'Number of tools': '2'}"
+}

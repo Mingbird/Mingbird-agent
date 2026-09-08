@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-80",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "b2c257e0-3ad7-4f05-b8e3-d9da973be36e",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\b2c257e0-3ad7-4f05-b8e3-d9da973be36e.jpg"
+  ],
+  "gaia_file_name": "b2c257e0-3ad7-4f05-b8e3-d9da973be36e.jpg",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIf this whole pint is made up of ice cream, how many percent above or below the US federal standards for butterfat content is it when using the standards as reported by Wikipedia in 2020? Answer as + or - a number rounded to one decimal place.\n\nThe task includes the file `b2c257e0-3ad7-4f05-b8e3-d9da973be36e.jpg` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "+4.6",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Open the image.\\n2. Search \"butterfat wikipedia\" on Google search.\\n3. Open the Butterfat Wikipedia page.\\n4. Click \"View history\" on the page.\\n5. Scroll down to the end of 2020 and click the last 2020 version of the page.\\n6. Check the ice cream requirement for fat content (10%).\\n7. Click \"View history\" on the page.\\n8. Scroll down to the beginning of 2020 and click the last 2019 version of the page.\\n9. Check the ice cream requirement for fat content to ensure it\\'s the same (10%).\\n10. Calculate the fat percentage of the pint of ice cream from the image of the nutrition panel (21g fat per serving / 144g ice cream per serving = 14.6%).\\n11. Calculate the difference from the standard (14.6% - 10% = 4.6%).', 'Number of steps': '11', 'How long did this take?': '5 minutes', 'Tools': '1. Image recognition tools\\n2. Calculator\\n3. Web browser\\n4. Search engine', 'Number of tools': '4'}"
+}

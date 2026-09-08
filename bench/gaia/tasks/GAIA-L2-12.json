@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-12",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "dd3c7503-f62a-4bd0-9f67-1b63b94194cc",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nUse density measures from the chemistry materials licensed by Marisa Alviar-Agnew & Henry Agnew under the CK-12 license in LibreText's Introductory Chemistry materials as compiled 08/21/2023.\n\nI have a gallon of honey and a gallon of mayonnaise at 25C. I remove one cup of honey at a time from the gallon of honey. How many times will I need to remove a cup to have the honey weigh less than the mayonaise? Assume the containers themselves weigh the same.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "6",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search \"LibreText density mayonnaise\"\\n2. Click result, confirm the correct license.\\n3. Search \"cm^3 to 1 cup\"\\n4. Use results with density measures to form the equation (16*236.588)(1.420 - 0.910)/(236.588*1.420)\\n5. Round up', 'Number of steps': '5', 'How long did this take?': '20 minutes', 'Tools': '1. Search engine\\n2. Web browser\\n3. Calculator', 'Number of tools': '3'}"
+}
