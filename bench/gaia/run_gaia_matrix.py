@@ -50,11 +50,11 @@ import gaia_scorer                # noqa: E402
 # The full 4-model gradient lives in the LRAB 288 matrix; GAIA here is an
 # external anchor, so both ends suffice for the release narrative. Disclose
 # as "two-end L1 anchor" in METHODS -- not a full gradient.
-MODELS = ["gemma4:e2b", "ornith-1.5:35b"]
+MODELS = ["gemma4:e2b", "qwen3.5:4b", "ornith-1.5:35b"]  # 4b added 2026-09-06 (4-agent discrimination campaign)
 AGENTS = ["hummingbird", "opencode", "goose", "agent-mini"]
 TASKS_DIR = os.path.join(HERE, "tasks")
 BASE = os.path.join(HB_ROOT, "eval_results", "gaia_l1_matrix")
-BUDGET_MIN = 30
+BUDGET_MIN = 60   # 30→60 (2026-09-05 用户定): give stuck cells a fairer window
 SEARCH_CHECK_EVERY = 10   # cells between live search-health probes
 LOG_PATH = os.path.join(BASE, "driver_log.txt")
 PROGRESS_PATH = os.path.join(BASE, "GAIA_PROGRESS.json")
