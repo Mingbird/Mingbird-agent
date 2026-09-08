@@ -1,68 +1,96 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""GAIA scorer: deterministic port of the official gaia-benchmark/GAIA
-validation question_scorer (rules only, NO LLM judge).
+"""GAIA scorer: verbatim port of the OFFICIAL leaderboard scorer
+(gaia-benchmark/leaderboard space, scorer.py @ main, retrieved 2026-09-08
+via hf-mirror; the original file is archived at
+bench/gaia/official_leaderboard_scorer.reference.py).
 
-Faithful to the official rules:
-- numeric ground truth -> normalize_number_str (strip $ , % €) + float equality
-- list ground truth ("," or ";") -> per-element normalized match, fuzzy ratio
-  >= 85 accepted (difflib.SequenceMatcher, deterministic, no fuzzywuzzy dep)
-- otherwise -> normalize_str (lowercase, strip punctuation, drop articles
-  a/an/the, collapse whitespace) equality
+Rules (exact port):
+- numeric ground truth -> normalize_number_str (strip $ % ,) float equality
+- list ground truth ("," or ";") -> equal element count, element-wise compare
+  (numeric elements via normalize_number_str, string elements via
+  normalize_str with punctuation KEPT)
+- otherwise -> normalize_str equality (ALL whitespace removed, lowercase,
+  punctuation stripped)
 
-Deliberate deviation (disclosed in methods): strict answer.txt-only protocol —
-the model answer is read from workdir/answer.txt (all four agents can write
-files; identical requirement, byte-identical prompt). No transcript parsing.
+Deliberate deviations (disclosed in methods):
+- answer.txt-only protocol — the model answer is read from
+  workdir/answer.txt (all four agents can write files; identical
+  requirement, byte-identical prompt). No transcript parsing.
+- the wrapper accepts either the last non-empty line or the full text.
+
+NOTE (2026-09-08): an earlier local port followed the 2023-era official
+rules (article removal + fuzzywuzzy list matching). The official scorer
+has since changed; this file tracks the current leaderboard semantics.
 """
-import difflib
+import re
 import string
-
-ARTICLES = {"a", "an", "the"}
 
 
 def normalize_number_str(number_str: str) -> float:
-    for char in ["$", "%", ",", "€"]:
+    # we replace these common units and commas to allow
+    # conversion to float
+    for char in ["$", "%", ","]:
         number_str = str(number_str).replace(char, "")
     try:
         return float(number_str)
     except ValueError:
-        return float("nan")
+        return float("inf")
 
 
-def normalize_str(input_str: str, remove_punct: bool = True) -> str:
-    s = str(input_str)
+def split_string(s: str, char_list: list = None) -> list:
+    char_list = char_list or [",", ";"]
+    pattern = f"[{''.join(char_list)}]"
+    return re.split(pattern, s)
+
+
+def normalize_str(input_str, remove_punct=True) -> str:
+    """Official normalization: remove ALL white spaces, optionally remove
+    punctuation, lowercase. (No article removal in the current official
+    scorer.)"""
+    no_spaces = re.sub(r"\s", "", input_str)
     if remove_punct:
-        s = s.translate(str.maketrans("", "", string.punctuation))
-    words = [w for w in s.lower().split() if w not in ARTICLES]
-    return " ".join(words)
-
-
-def _is_float(x) -> bool:
-    try:
-        float(x)
-        return True
-    except (ValueError, TypeError):
-        return False
-
-
-def _ratio(a: str, b: str) -> float:
-    return difflib.SequenceMatcher(None, a, b).ratio()
+        translator = str.maketrans("", "", string.punctuation)
+        return no_spaces.lower().translate(translator)
+    return no_spaces.lower()
 
 
 def question_scorer(model_answer, ground_truth) -> bool:
-    gt = str(ground_truth).strip()
-    ma = str(model_answer).strip()
-    if _is_float(gt):
-        return normalize_number_str(ma) == float(gt)
-    if any(c in gt for c in [",", ";"]):
-        import re
-        gt_list = [normalize_str(s) for s in re.split(r"[,;]", gt) if s.strip()]
-        ans_list = [normalize_str(s) for s in re.split(r"[,;]", ma) if s.strip()]
-        for g in gt_list:
-            if not any(g == a or _ratio(g, a) >= 0.85 for a in ans_list):
-                return False
-        return True
-    return normalize_str(ma) == normalize_str(gt)
+    def is_float(element) -> bool:
+        try:
+            float(element)
+            return True
+        except (ValueError, TypeError):
+            return False
+
+    if model_answer is None:
+        model_answer = "None"
+
+    # if gt is a number
+    if is_float(ground_truth):
+        normalized_answer = normalize_number_str(model_answer)
+        return normalized_answer == float(ground_truth)
+
+    # if gt is a list
+    elif any(char in ground_truth for char in [",", ";"]):
+        gt_elems = split_string(ground_truth)
+        ma_elems = split_string(model_answer)
+        if len(gt_elems) != len(ma_elems):
+            return False
+        comparisons = []
+        for ma_elem, gt_elem in zip(ma_elems, gt_elems):
+            if is_float(gt_elem):
+                comparisons.append(normalize_number_str(ma_elem) == float(gt_elem))
+            else:
+                # punctuation is kept for list elements (official behavior)
+                comparisons.append(
+                    normalize_str(ma_elem, remove_punct=False)
+                    == normalize_str(gt_elem, remove_punct=False)
+                )
+        return all(comparisons)
+
+    # if gt is a str
+    return normalize_str(model_answer) == normalize_str(ground_truth)
 
 
 def score_answer(workdir, gold_answer):
@@ -88,20 +116,21 @@ def score_answer(workdir, gold_answer):
 
 
 if __name__ == "__main__":
-    # self-test on hand cases mirroring official scorer expectations
+    # self-test on hand cases mirroring the CURRENT official leaderboard
+    # scorer semantics (whitespace-removed equality; no articles; no fuzzy;
+    # order- and length-sensitive lists)
     cases = [
         ("17", "17", True), ("17.0", "17", True), ("$17", "17", True),
         ("1,234", "1234", True), ("50%", "50", True),
         ("17 hours", "17", False),              # units on numeric GT = wrong (official strict)
-        ("The Blue Whale", "blue whale", True),
-        ("a blue whale", "blue whale", True),
-        ("in the morning", "morning", False),   # extra word: official normalize_str is whole-string
-        ("yes", "no", False),
+        ("Sea Gull", "seagull", True),          # official removes ALL whitespace
+        ("the blue whale", "blue whale", False),  # official keeps articles, removes spaces
         ("Paris", "paris!", True),
-        ("red, green, blue", "blue, red, green", True),   # order-insensitive list
-        ("red, green", "red, green, blue", False),        # missing element
-        ("Mercury and Venus", "venus; mercury", False),   # non-list answer vs list GT: official fails too
+        ("red, green, blue", "blue, red, green", False),  # list order matters now
+        ("red, green", "red, green, blue", False),        # list length mismatch
+        ("Mercury and Venus", "venus; mercury", False),   # single answer vs list GT
         ("venus, mercury", "venus; mercury", True),       # list vs ;-list: ok
+        ("yes", "no", False),
     ]
     bad = 0
     for ma, gt, want in cases:
@@ -109,5 +138,5 @@ if __name__ == "__main__":
         mark = "ok" if got == want else "MISMATCH"
         if got != want:
             bad += 1
-        print(f"{mark:9s} scorer({ma!r:>24}, {gt!r:>22}) = {got} (want {want})")
+        print(f"{mark:9s} scorer({ma!r:>22}, {gt!r:>22}) = {got} (want {want})")
     print("SELF-TEST:", "PASS" if bad == 0 else f"{bad} FAILURES")
