@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-11",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "624cbf11-6a41-4692-af9c-36b3e5ca3130",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat's the last line of the rhyme under the flavor name on the headstone visible in the background of the photo of the oldest flavor's headstone in the Ben & Jerry's online flavor graveyard as of the end of 2022?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "So we had to let it die.",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"ben and jerrys flavor graveyard\" on Google search.\\n2. Opened \"Flavor Graveyard\" on www.benjerry.com.\\n3. Opened each flavor to find the oldest one (Dastardly Mash).\\n4. Deciphered the blurry name on the headstone behind it (Miz Jelena\\'s Sweet Potato Pie).\\n5. Scrolled down to Miz Jelena\\'s Sweet Potato Pie.\\n6. Copied the last line of the rhyme.\\n7. (Optional) Copied the URL.\\n8. Searched \"internet archive\" on Google search.\\n9. Opened the Wayback Machine.\\n10. Entered the URL.\\n11. Loaded the last 2022 page.\\n12. Confirmed the information was the same.', 'Number of steps': '6', 'How long did this take?': '7 minutes', 'Tools': '1. Image recognition tools\\n2. Web browser\\n3. Search engine', 'Number of tools': '3'}"
+}

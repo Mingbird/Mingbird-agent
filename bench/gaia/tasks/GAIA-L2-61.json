@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-61",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "023e9d44-96ae-4eed-b912-244ee8c3b994",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIt's May 2023, and I'm about to drive across the U.S. from California to Maine. I always recycle my water bottles at the end of a trip, and I drink 5 12-ounce water bottles for every 100 miles I travel, rounded to the nearest 100. Assuming I follow I-40 from Los Angeles to Cincinnati, then take I-90 from Cincinnati to Augusta, how many dollars will I get back according to Wikipedia?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "8",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Looked up the route from Los Angeles to Cincinnati on Google.\\n2. Noted the miles (2,180 mi) and the states traveled.\\n3. Looked up the route from Cincinnati to Augusta on Google.\\n4. Noted the miles (1,035.4 mi) and the states traveled.\\n5. Searched \"us bottle deposit\" on Google.\\n6. Opened the \"Container deposit legislation in the United States\" page on Wikipedia.\\n7. Clicked \"View history\" for the page.\\n8. Opened the last version from May 2023.\\n9. Found Maine\\'s bottle deposit as of May 2023 (5 cents)\\n10. Added the miles (2,180 + 1,035 = 3,215).\\n11. Rounded the miles to the nearest 100 (3,200).\\n12. Calculated the number of bottles (3,200 / 100 = 32, 32 * 5 = 160 bottles).\\n13. Multiplied bottles by bottle deposit (160 * 5 = 800).\\n14. Converted cents to dollars ($8).', 'Number of steps': '14', 'How long did this take?': '15 minutes', 'Tools': '1. Search engine\\n2. Web browser\\n3. Calculator', 'Number of tools': '3'}"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-49",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "50ec8903-b81f-4257-9450-1085afd2c319",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nA standard Rubik’s cube has been broken into cubes making up its sides. The cubes are jumbled, and one is removed. There are 6 cubes with one colored face, 12 edge cubes with two colored faces, and 8 corner cubes with three colored faces. All blue cubes have been found. All cubes directly left, right, above, and below the orange center cube have been found, along with the center cube. The green corners have all been found, along with all green that borders yellow. For all orange cubes found, the opposite face’s cubes have been found. The removed cube has two colors on its faces. What are they? Answer using a comma separated list, with the colors ordered alphabetically.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "green, white",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': \"1. Set up a standard Rubik's cube (red opposite orange, white opposite yellow, green opposite blue).\\n2. Eliminated blue cubes, along with adjacent colors.\\n3. Eliminated orange cubes, along with adjacent colors.\\n4. Eliminated green corners and the green/yellow edge.\\n5. Eliminated red, opposite of orange, cubes and adjacent colors.\\n6. Identified the last possible two-face cube.\", 'Number of steps': '6', 'How long did this take?': '10 minutes', 'Tools': \"1. Rubik's cube model\", 'Number of tools': '1'}"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-32",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "d0633230-7067-47a9-9dbf-ee11e0a2cdd6",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn the Scikit-Learn July 2017 changelog, what other predictor base command received a bug fix? Just give the name, not a path.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "BaseLabelPropagation",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"Scikit-Learn July 2017 changelog\" on Google.\\n2. Opened \"Release History\" from the Scikit-Learn website.\\n3. Clicked \"Other versions\" in the upper left.\\n4. Opened the links, starting from the bottom, until one was found that included the \"July 2017\" changelog under the News.\\n5. Looked for the \"Bug fixes\" section.\\n6. Looked under \"Other predictors\" in that section.', 'Number of steps': '6', 'How long did this take?': '5 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

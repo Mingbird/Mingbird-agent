@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L3-22",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "5b2a14e8-6e59-479c-80e3-4696e8980152",
+  "level": 3,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\5b2a14e8-6e59-479c-80e3-4696e8980152.jpg"
+  ],
+  "gaia_file_name": "5b2a14e8-6e59-479c-80e3-4696e8980152.jpg",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe brand that makes these harnesses the dogs are wearing in the attached pic shares stories from their ambassadors on their website. What meat is mentioned in the story added Dec 8th 2022?\n\nThe task includes the file `5b2a14e8-6e59-479c-80e3-4696e8980152.jpg` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "bacon",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Use image search for \"dog harness brands with yellow logos\"\\n2. Look at harnesses until a similar harness shows up\\n3. Click through to see the harness\\n4. Search \"ruffwear\"\\n5. Go to the website\\n6. Navigate to stories\\n7. Find the story posted Dec 8th 2022\\n8. Read the story to find any meats mentioned', 'Number of steps': '8', 'How long did this take?': '15 minutes', 'Tools': '1. image recognition tools\\n2. image search tools\\n3. web browser\\n4. search engine', 'Number of tools': '4'}"
+}

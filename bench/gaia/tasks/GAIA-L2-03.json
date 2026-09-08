@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-03",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "04a04a9b-226c-43fd-b319-d5e89743676f",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIf we assume all articles published by Nature in 2020 (articles, only, not book reviews/columns, etc) relied on statistical significance to justify their findings and they on average came to a p-value of 0.04, how many papers would be incorrect as to their claims of statistical significance? Round the value up to the next integer.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "41",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Find how many articles were published in Nature in 2020 by Googling \"articles submitted to nature 2020\"\\n2. Click through to Nature\\'s archive for 2020 and filter the results to only provide articles, not other types of publications: 1002\\n3. Find 4% of 1002 and round up: 40.08 > 41', 'Number of steps': '3', 'How long did this take?': '5 minutes', 'Tools': '1. search engine\\n2. calculator', 'Number of tools': '2'}"
+}

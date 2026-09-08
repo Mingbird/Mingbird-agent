@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-01",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "e1fc63a2-da7a-432f-be78-7c4a95598703",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIf Eliud Kipchoge could maintain his record-making marathon pace indefinitely, how many thousand hours would it take him to run the distance between the Earth and the Moon its closest approach? Please use the minimum perigee value on the Wikipedia page for the Moon when carrying out your calculation. Round your result to the nearest 1000 hours and do not use any comma separators if necessary.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "17",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Googled Eliud Kipchoge marathon pace to find 4min 37sec/mile\\n2. Converted into fractions of hours.\\n3. Found moon periapsis in miles (225,623 miles).\\n4. Multiplied the two to find the number of hours and rounded to the nearest 100 hours.', 'Number of steps': '4', 'How long did this take?': '20 Minutes', 'Tools': '1. A web browser.\\n2. A search engine.\\n3. A calculator.', 'Number of tools': '3'}"
+}

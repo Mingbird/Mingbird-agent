@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L1-23",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "389793a7-ca17-4e82-81cb-2b3a2391b4b9",
+  "level": 1,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\389793a7-ca17-4e82-81cb-2b3a2391b4b9.txt"
+  ],
+  "gaia_file_name": "389793a7-ca17-4e82-81cb-2b3a2391b4b9.txt",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nYou are a telecommunications engineer who wants to build cell phone towers on a stretch of road. In the reference file is a layout of the road and nearby houses. Each dash, \"-\", is a marker indicating a mile. Each capital H indicates a house located next to a mile marker, appearing above or below the stretch of road. Each cell phone tower can cover houses located next to the road within a 4-mile radius. Find the minimum number of cell phone towers needed to cover all houses next to the road. Your answer should be a positive numerical integer value.\n\nThe task includes the file `389793a7-ca17-4e82-81cb-2b3a2391b4b9.txt` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "3",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': \"1. Determine the diameter of each cell phone tower's coverage: 2 x 4 miles radius = 8 miles diameter.\\n2. Use the diameter to maximize the coverage of each tower by capturing houses 4 miles to the left and 4 miles to the right.\\n3. Start from the furthest left side of the road at the first house.\\n4. Place the first tower 4 miles in to cover the first house.\\n5. Move forward 4 miles from the first tower. The first tower also covers the house above mile marker 8. \\n6. Find the next uncovered house below mile marker 12.\\n7. Move 4 miles in from the uncovered house and place a second tower. The house is now covered. \\n8. Move forward 4 miles from the second tower. The second tower also covers the house above mile marker 16.\\n9. Find the next uncovered house below mile marker 25.\\n10. Move 4 miles in from the uncovered house and place a third tower. The third tower also covers the house above marker 28.\\n11. Move forward 4 miles from the third tower. The third tower also covers the last house below marker 30.\\n12. The final number of cell phone towers erected is 3.\\n\\n\", 'Number of steps': '12', 'How long did this take?': '30 minutes', 'Tools': '1. Text Editor', 'Number of tools': '1'}"
+}

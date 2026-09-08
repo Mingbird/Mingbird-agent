@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-44",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "48eb8242-1099-4c26-95d4-ef22b002457a",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nHow many nonindigenous crocodiles were found in Florida from the year 2000 through 2020? You can get the data from the USGS Nonindigenous Aquatic Species database.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "6",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for “usgs nonnative aquatic species database”.\\n2. Navigate to the database of reptiles.\\n3. For each species called a “crocodile”, click Collection Info.\\n4. Count instances where a crocodile was found in both Florida and in the specified date range.', 'Number of steps': '4', 'How long did this take?': '5 minutes', 'Tools': '1. Search engine\\n2. Web browser', 'Number of tools': '2'}"
+}

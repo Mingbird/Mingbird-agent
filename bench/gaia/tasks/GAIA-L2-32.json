@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-32",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "08cae58d-4084-4616-b6dd-dd6534e4825b",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nAccording to Google Finance, when was the first year the Apple stock went above $50 (without adjusting for stock split)?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "2018",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. typed in \"Google finance apple\" on browser\\n2. clicked first link\\n3. clicked \"max\" to display entire history of apple stock\\n4. hovered mouse around the area that line crosses over $50\\n5. noted the date', 'Number of steps': '5', 'How long did this take?': '4 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. code/data analysis tools', 'Number of tools': '2'}"
+}

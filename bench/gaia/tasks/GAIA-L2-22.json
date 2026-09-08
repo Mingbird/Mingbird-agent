@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-22",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "e8cb5b03-41e0-4086-99e5-f6806cd97211",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nI went to Virtue restaurant & bar in Chicago for my birthday on March 22, 2021 and the main course I had was delicious!  Unfortunately, when I went back about a month later on April 21, it was no longer on the dinner menu.  Using the Wayback Machine, can you help me figure out which main course was on the dinner menu for Virtue on March 22, 2021 but not April 21, 2021? Answer using the singular form, without articles.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "shrimp",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for \"Virtue restaurant & bar Chicago\"\\n2. Find the restaurant\\'s website, https://www.virtuerestaurant.com\\n3. Find the page for the dinner menu, https://www.virtuerestaurant.com/menus/\\n4. Paste the URL of this page into the Wayback Machine at web.archive.org\\n5. Open the versions of the page archived on March 22, 2021 and April 21, 2021\\n6. Ensure that both pages are open to the \"dinner menu\" tab\\n7. Find the \"large ration\" that was present on the March 22 version of the menu but not April 21: shrimp', 'Number of steps': '7', 'How long did this take?': '30 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Access to the Internet Archive, web.archive.org\\n4. Text processing/diff tool', 'Number of tools': '4'}"
+}

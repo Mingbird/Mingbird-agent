@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-09",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "2a649bb1-795f-4a01-b3be-9a01868dae73",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat are the EC numbers of the two most commonly used chemicals for the virus testing method in the paper about SPFMV and SPCSV in the Pearl Of Africa from 2016? Return the semicolon-separated numbers in the order of the alphabetized chemicals.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "3.1.3.1; 1.11.1.7",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"Pearl of Africa\" on Google.\\n2. Noted the answer from the results.\\n3. Searched \"SPFMV and SPCSV in Uganda 2016 paper\" on Google.\\n4. Opened \"Effects of Sweet Potato Feathery Mottle Virus and ...\" at https://onlinelibrary.wiley.com/doi/full/10.1111/jph.12451.\\n5. Found the section on virus testing.\\n6. Searched \"most commonly used chemicals for ELISA\" on Google.\\n7. Noted horseradish peroxidase and alkaline phosphatase from the results.\\n8. Searched \"horseradish peroxidase EC number\" on Google.\\n9. Noted the answer from the featured text snippet (1.11.1.7).\\n10. Searched \"alkaline phosphatase EC number\" on Google.\\n11. Noted the answer from the featured text snippet (3.1.3.1).\\n12. Alphabetized the chemicals.\\n13. Put the numbers in the order of the chemicals.', 'Number of steps': '13', 'How long did this take?': '15 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

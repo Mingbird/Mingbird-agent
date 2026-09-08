@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-06",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "3627a8be-a77f-41bb-b807-7e1bd4c0ebdf",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species. According to the abstract of a research article published in Science Advances in 2021, beads made from the shells of this species were found that are at least how many thousands of years old?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "142",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Use search engine to search for \"British Museum search collection\" and navigate to the British Museum\\'s collection search webpage.\\n2. Select \"Museum number\" as search field and \"2012,5015.17\" in text box, then run search.\\n3. Open the page for the single result and note that the description says that this is the shell of an individual of the Nassa gibbosula species.\\n4. Use search engine to search for \"Nassa gibbosula\".\\n5. Note that according to the search result from the World Register of Marine Species website, Nassa gibbosula is not an accepted species name.\\n6. Open the page for Nassa gibbosula on the World Register of Marine Species website.\\n7. Scan the page and note that the accepted species name is Tritia gibbosula.\\n8. Use search engine to search for \"Science Advances 2021 Tritia gibbosula\".\\n9. Find that the top result is an article from 2021 in Science Advances titled \"Early Middle Stone Age personal ornaments from Bizmoune Cave, Essaouira, Morocco\".\\n10. Scan abstract and note that the article discusses beads made from Tritia gibbosula shells that date to at least 142 thousand years ago, giving a final answer of 142.', 'Number of steps': '10', 'How long did this take?': '12 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

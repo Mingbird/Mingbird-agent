@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-46",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "840bfca7-4f7b-481a-8794-c560c340185d",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nOn June 6, 2023, an article by Carolyn Collins Petersen was published in Universe Today. This article mentions a team that produced a paper about their observations, linked at the bottom of the article. Find this paper. Under what NASA award number was the work performed by R. G. Arendt supported by?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "80GSFC21M0002",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Google \"June 6, 2023 Carolyn Collins Petersen Universe Today\"\\n2. Find the relevant link to the scientific paper and follow that link\\n3. Open the PDF. \\n4. Search for NASA award number', 'Number of steps': '4', 'How long did this take?': '5 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Access to academic journal websites', 'Number of tools': '2'}"
+}

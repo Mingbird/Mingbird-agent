@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-06",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "46719c30-f4c3-4cad-be07-d5cb21eee6bb",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nOf the authors (First M. Last) that worked on the paper \"Pie Menus or Linear Menus, Which Is Better?\" in 2015, what was the title of the first paper authored by the one that had authored prior papers?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Mapping Human Oriented Information to Software Agents for Online Systems Usage",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"Pie Menus or Linear Menus, Which Is Better?\" on Google.\\n2. Opened \"Pie Menus or Linear Menus, Which Is Better?\" on https://oda.oslomet.no/oda-xmlui/handle/10642/3162.\\n3. Clicked each author\\'s name.\\n4. Noted the name that had no other papers listed.\\n5. Searched \"Murano, Pietro\" on Google.\\n6. Opened http://www.pietromurano.org/.\\n7. Clicked \"Publications\".\\n8. Found the earliest paper he contributed to.', 'Number of steps': '8', 'How long did this take?': '10 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

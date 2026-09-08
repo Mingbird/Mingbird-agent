@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-11",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "27d5d136-8563-469e-92bf-fd103c28b57c",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\n¬(A ∧ B) ↔ (¬A ∨ ¬B)\n¬(A ∨ B) ↔ (¬A ∧ ¬B)\n(A → B) ↔ (¬B → ¬A)\n(A → B) ↔ (¬A ∨ B)\n(¬A → B) ↔ (A ∨ ¬B)\n¬(A → B) ↔ (A ∧ ¬B)\n\nWhich of the above is not logically equivalent to the rest? Provide the full statement that doesn't fit.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "(¬A → B) ↔ (A ∨ ¬B)",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': \"1. Determine the truth values of the first statement: Recognize this is one of De Morgan's Laws showing how to distribute negation over the and conjunction - so it is a tautology.\\n2. Determine the truth values of the second statement: Recognize this is one of De Morgan's Laws showing how to distribute negation over the or - so it is a tautology.\\n3. Determine the truth values of the third statement: Recognize this is the definition of the contrapositive - so it is a tautology.\\n4. Determine the truth values of the fourth statement: Recognize this as an alternative way of stating the conditional - so it is a tautology.\\n5. Determine the truth values of the fifth statement: I don't recognize this, so check its truth values:\\n6. A: True, B: True |  (¬A → B) ↔ (A ∨ ¬B) = (¬T → T) ↔ (T ∨ ¬T) = (F → T) ↔ (T ∨ F) = T ↔ T = T\\n7. A: True, B: False |  (¬A → B) ↔ (A ∨ ¬B) = (¬T → F) ↔ (T ∨ ¬F) = (F → F) ↔ (T ∨ T) = T ↔ T = T\\n8. A: False, B: True |  (¬A → B) ↔ (A ∨ ¬B) = (¬F → T) ↔ (F ∨ ¬T) = (T → T) ↔ (F ∨ ¬T) = T ↔ (F ∨ F) = T ↔ F = F\\n9. The fifth statement is not a tautology so is the statement that is not logically equivalent. We were asked for only one statement, so can stop here.\", 'Number of steps': '9', 'How long did this take?': '5-20 minutes', 'Tools': 'None', 'Number of tools': '0'}"
+}

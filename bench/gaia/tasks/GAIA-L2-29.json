@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-29",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "544b7f0c-173a-4377-8d56-57b36eb26ddf",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn Valentina Re’s contribution to the 2017 book “World Building: Transmedia, Fans, Industries”, what horror movie does the author cite as having popularized metalepsis between a dream world and reality? Use the complete name with article if any.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "A Nightmare on Elm Street",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for “world building transmedia fans industries”.\\n2. Click link to PDF of the book.\\n3. Navigate to the Media Cited section of the essay written by Valentina Re.\\n4. Identify the horror movie, A Nightmare on Elm Street.\\n5. Navigate to its mention in the essay, to confirm that it does relate to metalepsis from a dream world.', 'Number of steps': '5', 'How long did this take?': '5-10 minutes', 'Tools': '1. Search engine\\n2. Web browser\\n3. PDF viewer', 'Number of tools': '3'}"
+}

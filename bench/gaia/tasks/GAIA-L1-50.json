@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-50",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "cf106601-ab4f-4af9-b045-5295fe67b37d",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat country had the least number of athletes at the 1928 Summer Olympics? If there's a tie for a number of athletes, return the first in alphabetical order. Give the IOC country code as your answer.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "CUB",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Look up the 1928 Summer Olympics on Wikipedia\\n2. Look at a table of athletes from countries.\\n3. See that two countries had 1 and 2 athletes, so disregard those and choose the Cuba as CUB.', 'Number of steps': '3', 'How long did this take?': '5 minutes', 'Tools': 'None', 'Number of tools': '0'}"
+}

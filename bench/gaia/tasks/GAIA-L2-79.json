@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-79",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "1dcc160f-c187-48c2-b68e-319bd4354f3d",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nAccording to Openreview.net, at the NeurIPS 2022 Conference, how many papers by an author named Yuri were accepted with a \"certain\" recommendation?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "3",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Went to openreview.net.\\n2. Scroll down and clicked the \"All venues\" link.\\n3. Clicked \"NeurIPS\".\\n4. Opened the \"2022\" toggle menu.\\n5. Clicked \"NeurIPS 2022 Conference\".\\n6. Opened the top paper.\\n7. Clicked \"Go to NeurIPS 2022 Conference homepage\".\\n8. Searched \"Yuri\" in the search box.\\n9. Opened each of the four papers and checked the Recommendation field.\\n10. Counted the \"Certain\" recommendations.', 'Number of steps': '8', 'How long did this take?': '10 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

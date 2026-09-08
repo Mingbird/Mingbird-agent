@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-35",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "ecbc4f94-95a3-4cc7-b255-6741a458a625",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nHow many images are there in the latest 2022 Lego english wikipedia article?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "13",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Open a web browser\\n2. Navigate to en.wikipedia.org\\n3. Search for \"lego\"\\n4. Click on \"View history\"\\n5. Click on \"Page statistics\"\\n6. Click on \"Month counts\"\\n7. In the \"Month counts\" table, click on the edits for the latest month in 2022 (2022-12)\\n8. Click on the latest link on the page, \"02:02, 21 December 2022\\u200e\"\\n9. Click on \"View source\"\\n10. Read to confirm if the source is from the given version (unable to determine)\\n11. Go back one page\\n12. Visually count the number of images displayed on the page', 'Number of steps': '12', 'How long did this take?': '6 minutes', 'Tools': '1. Web browser\\n2. Access to Wikipedia\\n3. Image recognition tools', 'Number of tools': '3'}"
+}

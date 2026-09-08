@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-38",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "7b5377b0-3f38-4103-8ad2-90fe89864c04",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nFind the value of x to the nearest tenth: Lx = (d/dx * (A * x-squared)) + 4-thousand'n'ninety-7 minus C\nWhere L is the last two digits of the year of the Venezuelan Declaration of Independence,\nA is the number of colors in the TikTok logo as of July 2023, excluding black and white,\nand C is the height of the average woman in the Philippines according to a July 2023 Business Insider article, rounded to the nearest whole centimeter\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "563.9",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Googled Venezuelan Declaration of Independence, found it to be in 1811, thus L = 11\\n2. Googled TikTok logo, found 4 colors, 2 of which are black and white, so A = 2\\n3. Googled average height of woman in Philippines, found it to be 149.6cm, so C = 150\\n4. Deciphered formula to mean 11x = (d/dx(2x^2)) + 4097 - 150\\n5. Used simple calculus and algebra to solve the equation', 'Number of steps': '5', 'How long did this take?': '40 minutes', 'Tools': '1. A web browser\\n2. A search engine\\n3. A calculator', 'Number of tools': '3'}"
+}

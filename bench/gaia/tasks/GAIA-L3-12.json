@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L3-12",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "c526d8d6-5987-4da9-b24c-83466fa172f3",
+  "level": 3,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\c526d8d6-5987-4da9-b24c-83466fa172f3.xlsx"
+  ],
+  "gaia_file_name": "c526d8d6-5987-4da9-b24c-83466fa172f3.xlsx",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn the NIH translation of the original 1913 Michaelis-Menten Paper, what is the velocity of a reaction to four decimal places using the final equation in the paper based on the information for Reaction 7 in the Excel file?\n\nThe task includes the file `c526d8d6-5987-4da9-b24c-83466fa172f3.xlsx` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "0.0424",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"NIH translation 1913 Michaelis-Menten Paper\" on Google.\\n2. Opened \"The Original Michaelis Constant: Translation of the 1913 Michaelis-Menten Paper\" on the NIH website.\\n3. Scrolled down to the final equation: v = (km ⋅ [S]) / (1 + (km/kcat) ⋅ [S]).\\n4. Opened the Excel file.\\n5. Searched \"Michaelis-Menten equation\" on Google to find the meaning of the variables.\\n6. Opened the Wikipedia \"Michaelis–Menten kinetics\" page.\\n7. Noted v = reaction rate (velocity of reaction) and kcat = catalytic rate constant (catalytic constant).\\n8. Returned to the NIH paper and found km = Menten constant and [S] = substrate concentration.\\n9. Plugged reaction 7\\'s values from the Excel file into the equation: v = (0.052 * 72.3) / (1 + (0.052 / 0.0429) * 72.3) = 0.042416.\\n10. Rounded to four decimal places (0.0424).', 'Number of steps': '10', 'How long did this take?': '20 minutes', 'Tools': '1. Excel file access\\n2. Web browser\\n3. Search engine\\n4. Calculator', 'Number of tools': '4'}"
+}

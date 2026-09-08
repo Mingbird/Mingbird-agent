@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-27",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "9d191bce-651d-4746-be2d-7ef8ecadb9c2",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nExamine the video at https://www.youtube.com/watch?v=1htKBjuUWec.\n\nWhat does Teal'c say in response to the question \"Isn't that hot?\"\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Extremely",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Follow the link\\n2. Watch the clip until the question \"Isn\\'t that hot\" is asked\\n3. Take note of the reply.', 'Number of steps': '3', 'How long did this take?': '2 minutes', 'Tools': '1. Web browser\\n2. Video processing software\\n3. Audio processing software', 'Number of tools': '1'}"
+}

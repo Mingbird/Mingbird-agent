@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-53",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "0a3cd321-3e76-4622-911b-0fda2e5d6b1a",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nAccording to the World Bank, which countries had gross savings of over 35% of GDP for every year in the period 2001-2010? Give your answer as a comma-separated list of countries in alphabetical order. Use the countries most common names in english when answering.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Brunei, China, Morocco, Singapore",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Use search engine to search for \"World Bank gross savings % of GDP\".\\n2. Open World Bank data webpage showing gross savings as % of GDP (https://data.worldbank.org/indicator/NY.GNS.ICTR.ZS).\\n3. Download data from webpage as Excel file and open it in a spreadsheet editor like Microsoft Excel.\\n4. Go to the file\\'s \"Data\" sheet.\\n5. Add columns with formulas indicating if the gross savings % of GDP figures in each of the years from 2001 to 2010 are greater than 35 for each row.\\n6. Add column computing AND of the boolean values from the previous step for each row.\\n7. Filter for rows where the output of the AND from the previous step is true.\\n8. Get the list of country names in the remaining rows, excluding non-country regions and categories.\\n9. Sort the list alphabetically and format it as a comma-separated list to get the final answer: Brunei Darussalam, China, Morocco, Singapore', 'Number of steps': '9', 'How long did this take?': '12 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Spreadsheet editor', 'Number of tools': '3'}"
+}

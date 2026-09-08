@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-33",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "2dfc4c37-fec1-4518-84a7-10095d30ad75",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nAccording to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing domestic movies? Your answer should be a numerical integer value.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "6",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Google searched \"Box Office Mojo\\'s 2020 Worldwide Box Office\".\\n2. Clicked on the first result: Box Office Mojo, https://www.boxofficemojo.com/year/world/2020/, 2020 Worldwide Box Office.\\n3. Looked at the top 10 highest-grossing worldwide movies of 2020: 1. The Eight Hundred, 2. Demon Slayer the Movie: Mugen Train, 3. Bad Boys for Life, 4. My People, My Homeland, 5. Tenet, 6. Sonic the Hedgehog, 7. Dolittle, 8. Legend of Deification, 9. A Little Red Flower, 10. The Croods: A New Age.\\n4. Clicked on the column labeled \"Domestic\" to sort by highest-grossing domestic movies of 2020.\\n5. Looked at the first 10 movies on the list: Bad Boys for Life, Sonic the Hedgehog, Birds of Prey, Dolittle, The Invisible Man, The Call of the Wild, Onward, The Croods: A New Age, Tenet, Demon Slayer the Movie: Mugen Train.\\n6. For each of these movies: If the number under \"Rank\" is less than or equal to 10, then the movie is also among the top 10 highest-grossing worldwide movies of 2020.\\n7. Form the final list: Bad Boys for Life, Sonic the Hedgehog, Dolittle, The Croods: A New Age, Tenet, Demon Slayer the Movie: Mugen Train.\\n8. Count the number of movies on the list: 6,', 'Number of steps': '8', 'How long did this take?': '15 minutes', 'Tools': '1. Web Browser\\n2. Search Engine', 'Number of tools': '2'}"
+}

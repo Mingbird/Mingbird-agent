@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-04",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "5d0080cb-90d7-4712-bc33-848150e917d3",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat was the volume in m^3 of the fish bag that was calculated in the University of Leicester paper \"Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet?\"\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "0.1777",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \\'\"Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet?\"\\' on Google.\\n2. Opened \"Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet?\" at https://journals.le.ac.uk/ojs1/index.php/jist/article/view/733.\\n3. Clicked \"PDF\".\\n4. Found the calculations for the volume of the fish bag and noted them.', 'Number of steps': '4', 'How long did this take?': '5 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. PDF access', 'Number of tools': '3'}"
+}

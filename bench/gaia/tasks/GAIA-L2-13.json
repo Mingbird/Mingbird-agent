@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-13",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "df6561b2-7ee5-4540-baab-5095f742716a",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\df6561b2-7ee5-4540-baab-5095f742716a.png"
+  ],
+  "gaia_file_name": "df6561b2-7ee5-4540-baab-5095f742716a.png",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhen you take the average of the standard population deviation of the red numbers and the standard sample deviation of the green numbers in this image using the statistics module in Python 3.11, what is the result rounded to the nearest three decimal points?\n\nThe task includes the file `df6561b2-7ee5-4540-baab-5095f742716a.png` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "17.056",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Opened the PNG file.\\n2. Made separate lists of the red numbers and green numbers.\\n3. Opened a Python compiler.\\n4. Ran the following code:\\n```\\nimport statistics as st\\nred = st.pstdev([24, 74, 28, 54, 73, 33, 64, 73, 60, 53, 59, 40, 65, 76, 48, 34, 62, 70, 31, 24, 51, 55, 78, 76, 41, 77, 51])\\ngreen = st.stdev([39, 29, 28, 72, 68, 47, 64, 74, 72, 40, 75, 26, 27, 37, 31, 55, 44, 64, 65, 38, 46, 66, 35, 76, 61, 53, 49])\\navg = st.mean([red, green])\\nprint(avg)\\n```\\n5. Rounded the output.', 'Number of steps': '5', 'How long did this take?': '20 minutes', 'Tools': '1. Python compiler\\n2. Image recognition tools', 'Number of tools': '2'}"
+}

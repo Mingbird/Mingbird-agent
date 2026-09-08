@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-41",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "ad37a656-079a-49f9-a493-7b739c9167d1",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nOn July 15, 2008, Phys.org published an article about a catastrophe. Find the explosive force of this catastrophe according to Encyclopedia Britannica, then find the name of the US nuclear test that had the same yield. Your answer should only be the last word of the name of the test.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Bravo",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search for \"phys org archive\"\\n2. Click on the link for https://phys.org/archive\\n3. Naviage to July 15, 2008\\n4. Search the articles for an article that mentions \"catastrophe\"\\n5. Note the name of the event (Tunguska catastrophe)\\n6. Search for \"Tunguska catastrophe britannica\"\\n7. Click on the link for Tunguska event\\n8. Locate the explosive force in the article (15 megatons)\\n9. Search for \"us nuclear test 15 megatons\"\\n10. Record the last word of the name of the test in the search results.', 'Number of steps': '10', 'How long did this take?': '4 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

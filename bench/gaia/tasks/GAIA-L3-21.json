@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L3-21",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "ad2b4d70-9314-4fe6-bfbe-894a45f6055f",
+  "level": 3,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nEva Draconis has a personal website which can be accessed on her YouTube page. What is the meaning of the only symbol seen in the top banner that has a curved line that isn't a circle or a portion of a circle? Answer without punctuation.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "War is not here this is a land of peace",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. By googling Eva Draconis youtube, you can find her channel.\\n2. In her about section, she has written her website URL, orionmindproject.com.\\n3. Entering this website, you can see a series of symbols at the top, and the text \"> see what the symbols mean here\" below it.\\n4. Reading through the entries, you can see a short description of some of the symbols.\\n5. The only symbol with a curved line that isn\\'t a circle or a portion of a circle is the last one.\\n6. Note that the symbol supposedly means \"War is not here, this is a land of peace.\"', 'Number of steps': '6', 'How long did this take?': '30 minutes.', 'Tools': '1. A web browser.\\n2. A search engine.\\n3. Access to YouTube\\n4. Image recognition tools', 'Number of tools': '4'}"
+}

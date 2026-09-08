@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L1-52",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "7bd855d8-463d-4ed5-93ca-5fe35145f733",
+  "level": 1,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\7bd855d8-463d-4ed5-93ca-5fe35145f733.xlsx"
+  ],
+  "gaia_file_name": "7bd855d8-463d-4ed5-93ca-5fe35145f733.xlsx",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe attached Excel file contains the sales of menu items for a local fast-food chain. What were the total sales that the chain made from food (not including drinks)? Express your answer in USD with two decimal places.\n\nThe task includes the file `7bd855d8-463d-4ed5-93ca-5fe35145f733.xlsx` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "89706.00",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Open the attached file.\\n2. Read the columns representing different menu items. Note that they all appear to be food except for the “soda” column.\\n3. Write a function to sum the relevant columns.\\n4. Ensure the answer follows the specified formatting.', 'Number of steps': '4', 'How long did this take?': '5 minutes', 'Tools': '1. Excel\\n2. Calculator', 'Number of tools': '2'}"
+}

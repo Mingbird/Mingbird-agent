@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-63",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "20194330-9976-4043-8632-f8485c6c71b2",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe YouTube channel Game Grumps began a Let’s Play of the game Sonic the Hedgehog (2006) in the year 2012. Thirty seconds into the first episode, a phrase is shown on the screen in white letters on a red background. How many times does the letter \"E\" appear in this phrase?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "4",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Look up \"Game grumps sonic 2006 playthrough\".\\n2. Click on the first result and verify that it matches the parameters from the question.\\n3. Scrub to the thirty-second mark in the video.\\n4. Note the letters in white on the red background.\\n5. Count the letter \"E\"\\'s in the phrase.', 'Number of steps': '5', 'How long did this take?': '5 minutes', 'Tools': '1. Web browser\\n2. YouTube player\\n3. Color recognition\\n4. OCR', 'Number of tools': '4'}"
+}

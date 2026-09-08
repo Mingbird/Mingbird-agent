@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-28",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "bfcd99e1-0690-4b53-a85c-0174a8629083",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\bfcd99e1-0690-4b53-a85c-0174a8629083.zip"
+  ],
+  "gaia_file_name": "bfcd99e1-0690-4b53-a85c-0174a8629083.zip",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nHow many applicants for the job in the PDF are only missing a single qualification?\n\nThe task includes the file `bfcd99e1-0690-4b53-a85c-0174a8629083.zip` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "17",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': \"1. Opened the Job Listing PDF.\\n2. Opened the Applicants Excel file.\\n3. Used conditional formatting to highlight rows in each column that don't meet a qualification.\\n4. Counted the rows with only one missing qualification.\", 'Number of steps': '4', 'How long did this take?': '8 minutes', 'Tools': '1. PDF access\\n2. Excel file access', 'Number of tools': '2'}"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-54",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "f2feb6a4-363c-4c09-a804-0db564eafd68",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nI’m thinking about selling my home, so I want to learn more about how homes in my area sold recently. I live in Pearl City, Hawaii, which is on the island of Oahu. I know two homes near me that sold in 2022 were 2072 Akaikai Loop, and 2017 Komo Mai Drive. Find which of those homes sold for more in 2022, and tell me how much it sold for. Don’t put commas or decimal places in the answer.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "900000",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for “2072 akaikai loop pearl city hi”.\\n2. Click Zillow result.\\n3. Navigate to “Price and tax history”.\\n4. Find the amount the house sold for when it was sold in 2022: $860,000.\\n5. Search the web for “2017 komo mai drive pearl city hi”.\\n6. Click Zillow result.\\n7. Navigate to “Price and tax history”.\\n8. Find the amount the house sold for when it was sold in 2022: $900,000.\\n9. Express the higher amount in the specified format, $900000.', 'Number of steps': '9', 'How long did this take?': '5 minutes', 'Tools': '1. Search engine\\n2. Web browser', 'Number of tools': '2'}"
+}

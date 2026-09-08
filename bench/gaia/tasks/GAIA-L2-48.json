@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-48",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "54612da3-fd56-4941-80f4-5eb82330de25",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\54612da3-fd56-4941-80f4-5eb82330de25.xlsx"
+  ],
+  "gaia_file_name": "54612da3-fd56-4941-80f4-5eb82330de25.xlsx",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe attached file shows the locomotives in the collection of a North American railroad museum. How many wheels do the listed steam locomotives have in total?\n\nThe task includes the file `54612da3-fd56-4941-80f4-5eb82330de25.xlsx` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "60",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Open the attached spreadsheet.\\n2. Examine its structure, with the steam locomotives listed together and a column denoting the wheel configuration.\\n3. Search the web for “steam locomotive wheel configuration”.\\n4. Click Wikipedia result.\\n5. Skim article to learn that the Whyte Notation is commonly used in North America.\\n6. Click link to Whyte Notation article.\\n7. Skim article to learn how to read the Whyte Notation: each number corresponds to the number of one type of wheel.\\n8. Count the wheels listed for steam locomotives in the spreadsheet to get the answer, 60.', 'Number of steps': '8', 'How long did this take?': '5-10 minutes', 'Tools': '1. Microsoft Excel\\n2. Search engine\\n3. Web browser\\n4. Calculator', 'Number of tools': '4'}"
+}

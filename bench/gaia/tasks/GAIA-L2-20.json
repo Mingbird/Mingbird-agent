@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-20",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "b4cc024b-3f5e-480e-b96a-6656493255b5",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe photograph in the Whitney Museum of American Art's collection with accession number 2022.128 shows a person holding a book. Which military unit did the author of this book join in 1813? Answer without using articles.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Russian-German Legion",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Use search engine to search for \"Whitney Museum of American Art collection search\".\\n2. Go to the Whitney Museum\\'s collection search webpage.\\n3. Enter 2022.128 in the search box and submit the search.\\n4. Open the single result, titled \"Rain in Rifle Season, Distributions from Split-Interest Trusts, Price Includes Uniform, Never Hit Soft, 2003\".\\n5. Verify that this photograph has the correct accession number.\\n6. Note that the subject of the photograph is holding the book \"On War\", by Carl von Clausewitz.\\n7. Go to the Wikipedia page for Carl von Clausewitz.\\n8. Search the page for 1813 to find that Carl von Clausewitz joined the Russian-German Legion in 1813.\\n9. Go to the Wikipedia page for Russian-German Legion to verify that this was a military unit.', 'Number of steps': '9', 'How long did this take?': '5 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Tool to extract text from images', 'Number of tools': '3'}"
+}

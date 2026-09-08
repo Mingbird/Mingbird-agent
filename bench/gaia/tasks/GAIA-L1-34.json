@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-34",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "0383a3ee-47a7-41a4-b493-519bdefe0488",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nOn the BBC Earth YouTube video of the Top 5 Silliest Animal Moments, what species of bird is featured?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Rockhopper penguin",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search \"top 5 silliest animal moments bbc earth youtube\" on Google search.\\n2. Open the top link to \"Top 5 Silliest Animal Moments! | BBC Earth - YouTube\".\\n3. Listen to the video until the species is named.', 'Number of steps': '3', 'How long did this take?': '3 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Video recognition tools', 'Number of tools': '3'}"
+}

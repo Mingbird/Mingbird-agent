@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-48",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "bda648d7-d618-4883-88f4-3466eabd860e",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhere were the Vietnamese specimens described by Kuznetzov in Nedoshivina's 2010 paper eventually deposited? Just give me the city name without abbreviations.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Saint Petersburg",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search \"Kuznetzov Nedoshivina 2010\"\\n2. Find the 2010 paper \"A catalogue of type specimens of the Tortricidae described by V. I. Kuznetzov from Vietnam and deposited in the Zoological Institute, St. Petersburg\"', 'Number of steps': '2', 'How long did this take?': '5 minutes', 'Tools': '1. search engine', 'Number of tools': '1'}"
+}

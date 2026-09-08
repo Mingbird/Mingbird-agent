@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-66",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "3ff6b7a9-a5bd-4412-ad92-0cd0d45c0fee",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe longest-lived vertebrate is named after an island.  According to Wikipedia as of January 1, 2021, what is the 2020 estimated population of that island, to the nearest thousand?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "56000",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Do a web search for \"longest-lived vertebrate\"\\n2. Find the answer, \"Greenland shark\"\\n3. Find the Wikipedia entry for Greenland\\n4. Look at the first revision dated January 1, 2021\\n5. Find the 2020 population estimate, 56081\\n6. Round to the nearest thousand, 56000', 'Number of steps': '6', 'How long did this take?': '30 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Access to Wikipedia\\n4. Natural language processor', 'Number of tools': '4'}"
+}

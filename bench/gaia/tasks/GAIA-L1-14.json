@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-14",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "72e110e7-464c-453c-a309-90a95aed6538",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nUnder DDC 633 on Bielefeld University Library's BASE, as of 2020, from what country was the unknown language article with a flag unique from the others?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Guatemala",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"Bielefeld University Library\\'s BASE\" on Google.\\n2. Opened https://www.base-search.net/.\\n3. Clicked \"Browsing\".\\n4. Selected Clicked \"Dewey Decimal Classification (DDC) > 6 > 63 > 633.\\n5. Refined to Unknown Language.\\n6. Found the only article with a flag unique from the others in the search from pre-2020.\\n7. Copied the country name from the institution.', 'Number of steps': '7', 'How long did this take?': '10 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

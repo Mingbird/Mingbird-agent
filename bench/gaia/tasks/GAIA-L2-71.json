@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-71",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "73c1b9fe-ee1d-4cf4-96ca-35c08f97b054",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nAccording to the USGS, in what year was the American Alligator first found west of Texas (not including Texas)?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "1954",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for “American Alligator USGS”.\\n2. Click result for the USGS Species Profile.\\n3. Click “Animated Map”.\\n4. Click the “Skip years with no recorded sightings” button.\\n5. Zoom out on the map to better view the whole U.S.\\n6. Move the slider back to the beginning, then advance it until I see a red dot pop up west of Texas.\\n7. Note the year that the dot appears, 1954.', 'Number of steps': '7', 'How long did this take?': '5 minutes', 'Tools': '1. Search engine\\n2. Web browser\\n3. Image recognition', 'Number of tools': '3'}"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-39",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "114d5fd0-e2ae-4b6d-a65a-870da2d19c08",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn the endnote found in the second-to-last paragraph of page 11 of the book with the doi 10.2307/j.ctv9b2xdv, what date in November was the Wikipedia article accessed? Just give the day of the month.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "4",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Look up the doi.\\n2. Click on the JSTOR result.\\n3. Find the chapter with page 11, and click to read it.\\n4. Navigate to page 11.\\n5. Identify the footnote in the second-to-last paragraph.\\n6. Scroll to the end of the chapter to read the footnote.\\n7. Note the date given after the Wikipedia link.', 'Number of steps': '7', 'How long did this take?': '5-10 minutes', 'Tools': '1. Search engine\\n2. Web browser\\n3. OCR', 'Number of tools': '3'}"
+}

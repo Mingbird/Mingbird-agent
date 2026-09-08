@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-82",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "e29834fd-413a-455c-a33e-c3915b07401c",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nI'd like to learn more about some popular reality television competition shows. As of the end of the 44th season of the American version of Survivor, how many more unique winners have there been compared to the number of winners of American Idol?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "21",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': 'Step 1: Using a web browser, access a search engine and conduct a search \"American Survivor Television Series winners\"\\nStep 2: Navigate to the first result, https://en.wikipedia.org/wiki/Survivor_(American_TV_series)\\nStep 3: Evaluate the article and count the number of unique winners of the program: 42 winners\\nStep 4: Navigate back to a search engine and conduct a search \"American Idol Winners\"\\nStep 5: Navigate to the first search result, https://www.etonline.com/gallery/the-complete-list-of-american-idol-winners-21116/season-21-iam-tongi-92872\\nStep 6: Evaluate the article and count the number of unique winners of the program: 21\\nStep 7: Using a calculator, subtract the number of American Idol winners from the number of Survivor winners, 42-21 = 21\\nStep 8: Report the correct response to my user, \"21\"', 'Number of steps': '8', 'How long did this take?': '5 minutes', 'Tools': '1. A web browser\\n2. A search engine\\n3. A calculator', 'Number of tools': '3'}"
+}

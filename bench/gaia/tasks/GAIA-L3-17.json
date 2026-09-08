@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L3-17",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "50f58759-7bd6-406f-9b0d-5692beb2a926",
+  "level": 3,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nHow many times was a Twitter/X post cited as a reference on the english Wikipedia pages for each day of August in the last June 2023 versions of the pages?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "3",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"August Wikipedia\" on Google search.\\n2. Opened the Wikipedia page for the month of August.\\n3. Clicked on \"View history\" on the \"August 1\" page.\\n4. Went back to the last edited version prior to July 2023.\\n5. Checked the references for Twitter posts.\\n6. Repeated the process for each day of August.\\n7. Counted the Twitter posts found.', 'Number of steps': '7', 'How long did this take?': '8 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

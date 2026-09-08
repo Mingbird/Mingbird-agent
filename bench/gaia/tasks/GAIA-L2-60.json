@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-60",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "67e8878b-5cef-4375-804e-e6291fdbe78a",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\67e8878b-5cef-4375-804e-e6291fdbe78a.pdf"
+  ],
+  "gaia_file_name": "67e8878b-5cef-4375-804e-e6291fdbe78a.pdf",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nThe attached PDF lists accommodations in the resort community of Seahorse Island. Which type of accommodation has a higher average rating in Seahorse Island?\n\nThe task includes the file `67e8878b-5cef-4375-804e-e6291fdbe78a.pdf` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Hotels",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Open the provided file.\\n2. Sum the ratings of the rows listed under Hotels, to get 19.\\n3. Divide this by the number of hotels, 5, to get an average rating of 3.8.\\n4. Sum the ratings of the rows listed under Rental Houses, to get 35.\\n5. Divide this by the number of rental houses, 10, to get an average rating of 3.5.\\n6. Since the average rating for hotels is higher than that for rental houses, answer “Hotels”.', 'Number of steps': '6', 'How long did this take?': '5 minutes', 'Tools': '1. PDF viewer\\n2. Calculator', 'Number of tools': '2'}"
+}

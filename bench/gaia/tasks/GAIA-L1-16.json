@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-16",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "b415aba4-4b68-4fc6-9b89-2c812e55a3e1",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn Nature journal's Scientific Reports conference proceedings from 2012, in the article that did not mention plasmons or plasmonics, what nano-compound is studied? Don't use the prefix nano in your answer if there is one.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "diamond",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"nature scientific reports\" on Google.\\n2. Opened https://www.nature.com/srep/.\\n3. Selected Explore Content > Research Articles.\\n4. Filtered for Conference Proceedings from 2012.\\n5. Opened each article link.\\n6. Checked for \"plasmon\" or \"plasmonic\".\\n7. Noted the nano-compound in the article that did not include either.', 'Number of steps': '7', 'How long did this take?': '10 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

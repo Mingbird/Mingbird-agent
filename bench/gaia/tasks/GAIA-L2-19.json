@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-19",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "a7feb290-76bb-4cb7-8800-7edaf7954f2f",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nHow many High Energy Physics - Lattice articles listed in January 2020 on Arxiv had ps versions available?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "31",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"arxiv\" on Google.\\n2. Opened the top result of https://arxiv.org/.\\n3. Opened the High Energy Physics - Lattice section.\\n4. Set the date to 2020 January.\\n5. Counted the number of articles with \"ps\" formats available on each page.\\n6. Added the numbers from each page to get the total.', 'Number of steps': '6', 'How long did this take?': '15 minutes', 'Tools': '1. Search engine\\n2. Web browser\\n3. Calculator', 'Number of tools': '3'}"
+}

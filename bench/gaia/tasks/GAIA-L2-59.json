@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-59",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "d8152ad6-e4d5-4c12-8bb7-8d57dc10c6de",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\d8152ad6-e4d5-4c12-8bb7-8d57dc10c6de.png"
+  ],
+  "gaia_file_name": "d8152ad6-e4d5-4c12-8bb7-8d57dc10c6de.png",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nI have the Standard plan in the image below, and I just uploaded 60 equally sized files and got a message that I'm 100GB over the limit. I have 980 more files of the same size to upload. What is the average additional cost per file in dollar that goes over my current plan limit rounded to the nearest cent if I have to upgrade to the minimum possible plan to store them all? Answer with the following format: x.xx\n\nThe task includes the file `d8152ad6-e4d5-4c12-8bb7-8d57dc10c6de.png` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "0.03",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Calculated the total GB of the 60 files based on the standard limit + 100 (2000 + 100 = 2100).\\n2. Calculated the size of each file (2100 GB / 60 = 35 GB).\\n3. Calculated the number of files over the limit (100 / 35 = 2.8, round up to 3).\\n4. Calculated the size of the remaining files (380 * 35 GB = 13,300 GB).\\n5. Calculate the plan size required (13,300 GB / 2000 GB/TB = 6.65 TB => Plus plan).\\n6. Calculate the additional cost ($19.99 - $9.99 = $10.00).\\n7. Calculate the number of files over the Standard limit (380 + 3 = 383).\\n8. Calculate the additional cost per added file ($10.00 / 383 = $0.026).\\n9. Round to the nearest cent ($0.03).', 'Number of steps': '9', 'How long did this take?': '8 minutes', 'Tools': '1. Image recognition tools\\n2. Calculator', 'Number of tools': '2'}"
+}

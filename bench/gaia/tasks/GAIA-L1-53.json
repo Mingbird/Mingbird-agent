@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-53",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "5a0c1adf-205e-4841-a666-7c3ef95def9d",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat is the first name of the only Malko Competition recipient from the 20th Century (after 1977) whose nationality on record is a country that no longer exists?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Claus",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Look at the Malko Competition page on Wikipedia\\n2. Scan the winners to see that the 1983 winner, Claus Peter Flor is stated to be from East Germany.', 'Number of steps': '2', 'How long did this take?': '5-10 minutes', 'Tools': 'None', 'Number of tools': '0'}"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-20",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "5188369a-3bbe-43d8-8b94-11558f909a08",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat writer is quoted by Merriam-Webster for the Word of the Day from June 27, 2022?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Annie Levin",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search \"merriam-webster word of the day\" on Google search.\\n2. Opened the top \"Word of the Day\" result from the Merriam-Webster dictionary online.\\n3. Clicked \"SEE ALL WORDS OF THE DAY\" at the bottom.\\n4. Scrolled down to June 27, 2022.\\n5. Opened the Word of the Day (\"jingoism\").\\n6. Scrolled down and identified context quote for \"jingoism\".\\n7. Noted the name attributed to the quote. ', 'Number of steps': '7', 'How long did this take?': '8 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Audio capability', 'Number of tools': '3'}"
+}

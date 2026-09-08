@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L2-57",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "cca70ce6-1952-45d2-acd4-80c903b0bc49",
+  "level": 2,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\cca70ce6-1952-45d2-acd4-80c903b0bc49.png"
+  ],
+  "gaia_file_name": "cca70ce6-1952-45d2-acd4-80c903b0bc49.png",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nLook at the attached image. The quiz is scored as follows:\n\nProblems that ask the student to add or subtract fractions: 5 points\nProblems that ask the student to multiply or divide fractions: 10 points\nProblems that ask the student to form an improper fraction: 15 points\nProblems that ask the student to form a mixed number: 20 points\n\nDue to a technical issue that delayed having students take the quiz, the teacher is giving everyone 5 bonus points.\n\nIf you graded the quiz in the attached image, how many points would the student have earned? There is no partial credit.\n\nThe task includes the file `cca70ce6-1952-45d2-acd4-80c903b0bc49.png` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "85",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': \"1. Check the student's answers.\\n2. Note problems 3 and 6 are incorrect.\\n3. Calculate the points gained based on the point values provided: 1. 10, 2. 10, 3. 0, 4. 5, 5. 20, 6. 0, 7. 5, 8. 10, 9. 15, 10. 5.\\n4. Sum them, then add the 5 bonus points: 10 + 10 + 0 + 5 + 20 + 0 + 5 + 10 + 15 + 5 + 5 = 85\", 'Number of steps': '4', 'How long did this take?': '10 minutes', 'Tools': '1. image recognition/OCR\\n2. calculator', 'Number of tools': '2'}"
+}

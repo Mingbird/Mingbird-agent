@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-33",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "305ac316-eef6-4446-960a-92d80d542f82",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWho did the actor who played Ray in the Polish-language version of Everybody Loves Raymond play in Magda M.? Give only the first name.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Wojciech",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search \"Polish-language version of Everybody Loves Raymond\" and pull up the Wiki page for Wszyscy kochają Romana.\\n2. See that Bartłomiej Kasprzykowski is marked as playing Ray and go to his Wiki page.\\n3. See that he is stated to have played Wojciech Płaska in Magda M.', 'Number of steps': '3', 'How long did this take?': '5 minutes', 'Tools': 'None', 'Number of tools': '0'}"
+}

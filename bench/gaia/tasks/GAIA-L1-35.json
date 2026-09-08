@@ -1,0 +1,15 @@
+{
+  "id": "GAIA-L1-35",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "f918266a-b3e0-4914-865d-4faa564f1aef",
+  "level": 1,
+  "fixtures": [
+    "..\\gaia\\2023\\validation\\f918266a-b3e0-4914-865d-4faa564f1aef.py"
+  ],
+  "gaia_file_name": "f918266a-b3e0-4914-865d-4faa564f1aef.py",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat is the final numeric output from the attached Python code?\n\nThe task includes the file `f918266a-b3e0-4914-865d-4faa564f1aef.py` in the current directory. Use it as needed.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "0",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Run the attached Python code', 'Number of steps': '1', 'How long did this take?': '30 seconds', 'Tools': '1. Python', 'Number of tools': '1'}"
+}

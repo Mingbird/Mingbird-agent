@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-36",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "11af4e1a-5f45-467d-9aeb-46f4bb0bf034",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nHow many more blocks (also denoted as layers) in BERT base encoder than the encoder from the architecture proposed in Attention is All You Need?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "6",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the internet for \"blocks in bert base\"\\n2. Examine the search results page to locate the answer (12)\\n3. Search the internet for \"attention is all you need layers\"\\n4, Navigate to https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf from the search results page\\n5. Examine the architecture section of the PDF to locate the answer (12)\\n6. Calculate the difference between the two numbers', 'Number of steps': '6', 'How long did this take?': '10 minutes', 'Tools': '1. Web browser\\n2. Search engine\\n3. Calculator', 'Number of tools': '3'}"
+}

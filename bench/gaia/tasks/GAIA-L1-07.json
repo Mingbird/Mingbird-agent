@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L1-07",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "4b6bb5f7-f634-410e-815d-e673ab7f8632",
+  "level": 1,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nIn Series 9, Episode 11 of Doctor Who, the Doctor is trapped inside an ever-shifting maze. What is this location called in the official script for the episode? Give the setting exactly as it appears in the first scene heading.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "THE CASTLE",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for “Doctor Who series 9 episode 11 official script”.\\n2. Click result on the BBC website.\\n3. Scroll through the PDF to read the script, noting that it takes place in a mechanical castle location.\\n4. Scroll back to the first scene heading to note the answer, THE CASTLE', 'Number of steps': '4', 'How long did this take?': '5 minutes', 'Tools': '1. Search engine\\n2. Web browser\\n3. PDF viewer', 'Number of tools': '3'}"
+}

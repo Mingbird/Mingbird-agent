@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-56",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "ed58682d-bc52-4baa-9eb0-4eb81e1edacc",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhat is the last word before the second chorus of the King of Pop's fifth single from his sixth studio album?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "stare",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Google searched \"King of Pop\".\\n2. Clicked on Michael Jackson\\'s Wikipedia.\\n3. Scrolled down to \"Discography\".\\n4. Clicked on the sixth album, \"Thriller\".\\n5. Looked under \"Singles from Thriller\".\\n6. Clicked on the fifth single, \"Human Nature\".\\n7. Google searched \"Human Nature Michael Jackson Lyrics\".\\n8. Looked at the opening result with full lyrics sourced by Musixmatch.\\n9. Looked for repeating lyrics to determine the chorus.\\n10. Determined the chorus begins with \"If they say\" and ends with \"Does he do me that way?\"\\n11. Found the second instance of the chorus within the lyrics.\\n12. Noted the last word before the second chorus - \"stare\".', 'Number of steps': '12', 'How long did this take?': '20 minutes', 'Tools': 'Web Browser', 'Number of tools': '1'}"
+}

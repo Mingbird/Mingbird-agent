@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-16",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "56137764-b4e0-45b8-9c52-1866420c3df5",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhich contributor to the version of OpenCV where support was added for the Mask-RCNN model has the same name as a former Chinese head of government when the names are transliterated to the Latin alphabet?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "Li Peng",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Use search engine to search for \"OpenCV change log\".\\n2. Open the top result from GitHub and search the page for \"Mask-RCNN\".\\n3. Observe that support for Mask-RCNN model was added in OpenCV version 4.0.0.\\n4. Expand the two lists of contributors for version 4.0.0.\\n5. Go to the Wikipedia page for head of government. \\n6. Scan through and note that for China, the head of government is the premier.\\n7. Go to the Wikipedia page for premier of the People\\'s Republic of China.\\n8. Go to the linked page for List of premiers of the People\\'s Republic of China.\\n9. Compare the list of OpenCV version 4.0.0 contributors\\' names and the list of premiers of China to find that Li Peng is present in both lists.', 'Number of steps': '9', 'How long did this take?': '5 minutes', 'Tools': '1. Web browser\\n2. Search engine', 'Number of tools': '2'}"
+}

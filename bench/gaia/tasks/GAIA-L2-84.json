@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-84",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "db4fd70a-2d37-40ea-873f-9433dc5e301f",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nAs of May 2023, how many stops are between South Station and Windsor Gardens on MBTA’s Franklin-Foxboro line (not included)?\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "10",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for “MBTA Franklin Foxboro line”.\\n2. Click on top result, on the MBTA website.\\n3. Scroll down on the list of stops, and count the current stops between South Station and Windsor Gardens.\\n4. Click the “Schedule & Maps” tab to view a map of the route.\\n5. Examine the map to confirm that the order of stops is the same as on the listing of stops.\\n6. Return to web search.\\n7. Click on Wikipedia article for Franklin line.\\n8. Read the article to check whether any stops were added or removed since the date given in the question.\\n9. Search the web for “MBTA Franklin Foxboro Line changes”.\\n10. Click News tab.\\n11. Click article about rail schedule changes.\\n12. Confirm that none of the changes affect the answer to the question.', 'Number of steps': '12', 'How long did this take?': '5-10 minutes', 'Tools': '1. Search engine\\n2. Web browser', 'Number of tools': '2'}"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L3-24",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "5f982798-16b9-4051-ab57-cfc7ebdb2a91",
+  "level": 3,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nI read a paper about multiwavelength observations of fast radio bursts back in March 2021 on Arxiv, and it had a fascinating diagram of an X-ray time profile. There was a similar burst-1 diagram in another paper from one of the same authors about fast radio bursts back in July 2020, but I can't recall what the difference in seconds in the measured time span was. How many more seconds did one measure than the other? Just give the number.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "0.2",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Searched \"arxiv\" on Google.\\n2. Opened arXiv.\\n3. Searched \"multiwavelength observations of fast radio bursts\" on arXiv.\\n4. Scrolled down to March 2021.\\n5. Opened the \"Multiwavelength observations of Fast Radio Bursts\" PDF in a new tab.\\n6. Opened each author\\'s name to find the one that had a July 2020 paper (Nicastro, L).\\n7. Opened the \"The lowest frequency Fast Radio Bursts: Sardinia Radio Telescope detection of the periodic FRB 180916 at 328 MHz\" PDF.\\n8. Searched \"time profile\" in the first paper.\\n9. Noted the time span of the diagram (0.3 s).\\n10. Searched \"burst-1 profile\" in the second paper.\\n11. Noted the time span of the diagram (0.5 s).\\n12. Subtracted the two (0.5 - 0.3 = 0.2 s).', 'Number of steps': '12', 'How long did this take?': '15 minutes', 'Tools': '1. PDF access\\n2. Calculator\\n3. Web browser\\n4. Search engine', 'Number of tools': '4'}"
+}

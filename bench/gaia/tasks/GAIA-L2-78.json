@@ -1,0 +1,13 @@
+{
+  "id": "GAIA-L2-78",
+  "domain": "gaia-external-anchor",
+  "version": "gaia-2023-validation",
+  "gaia_task_id": "d5141ca5-e7a0-469f-bf3e-e773507c86e2",
+  "level": 2,
+  "fixtures": [],
+  "gaia_file_name": "",
+  "prompt": "You are an autonomous agent working in the current directory.\n\nComplete the following task:\n\nWhen was a picture of St. Thomas Aquinas first added to the Wikipedia page on the Principle of double effect? Answer using the format DD/MM/YYYY.\n\nWhen you have determined the final answer, write ONLY the final answer itself to a file named `answer.txt` in the current directory. The final answer must be as short as possible: no explanation, no reasoning, no full sentence — just the answer the task asks for (a number, a name, a comma-separated list, etc.).",
+  "gold_answer": "19/02/2009",
+  "max_wall_minutes": 30,
+  "notes": "{'Steps': '1. Search the web for “principle of double effect wikipedia”.\\n2. Note a picture of St. Thomas Aquinas on the page, which is part of the Wikipedia “series on” template.\\n3. Click “View history” to see the page’s revision history.\\n4. Click to display more edits on the page.\\n5. Ctrl-F for “template”.\\n6. Browse the mentions of “template” until I find the revision that added the picture.\\n7. Note the date that the template was added, 19 February 2009.\\n8. Browse earlier revisions to ensure that a picture was not added earlier. ', 'Number of steps': '8', 'How long did this take?': '10 minutes', 'Tools': '1. Search engine\\n2. Web browser\\n3. Image recognition', 'Number of tools': '3'}"
+}
