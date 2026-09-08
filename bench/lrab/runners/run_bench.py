@@ -105,7 +105,13 @@ def _cmd_agent_mini(task, workdir, model):
                     f.write(backup)
             except Exception:
                 pass
-    return (["agent-mini", "chat", "--workspace", _win_path(workdir), "-m", task["prompt"]],
+    # 可移植口径:优先 PATH 上的 agent-mini;找不到则用当前解释器 -m 运行
+    # (GAIA 异机包:agent_mini 模块随内嵌运行时的 site-packages 分发,无 PATH 依赖)
+    if shutil.which("agent-mini"):
+        head = ["agent-mini"]
+    else:
+        head = [sys.executable, "-m", "agent_mini"]
+    return (head + ["chat", "--workspace", _win_path(workdir), "-m", task["prompt"]],
             env, workdir, _restore)
 
 
