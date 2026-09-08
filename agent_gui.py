@@ -341,8 +341,8 @@ class AgentGUI:
 
     # ================= 偏好 =================
     def load_prefs(self):
-        d = {"theme": "minty-light", "ctx": 65536, "temp": 0.0, "num_predict": 2048,
-             "sys_enable": False, "sys_text": ""}
+        d = {"theme": "minty-light", "ui_mode": "auto", "ctx": 65536, "temp": 0.0,
+             "num_predict": 2048, "sys_enable": False, "sys_text": ""}
         try:
             j = json.load(open(PREFS_FILE, encoding="utf-8")); d.update(j)
         except Exception:
@@ -352,18 +352,77 @@ class AgentGUI:
         json.dump(self.prefs, open(PREFS_FILE, "w", encoding="utf-8"),
                   ensure_ascii=False, indent=2)
 
-    # ================= 构建界面 =================
+    # ================= 构建界面(v2:导航轨 + 页面栈) =================
     def _build_toolbar(self):
-        bar = tb.Frame(self.root, padding=(8, 6)); bar.pack(fill="x")
-        tb.Label(bar, text=_t("鸣鸟 · 本地 AI 助手"), font=MINIMAL["font_title"],
-                 bootstyle="inverse-primary").pack(side="left", padx=(0, 10))
+        """v2 外壳:左侧导航轨。模型/目录/时限等对话要素并入对话页。"""
+        import ui_theme as _ut
+        self._ui = _ut
+        self.T = _ut.tokens("dark")   # 构建期临时配色;apply_theme 统一刷新
+        self._themable = []
+        self.pages = {}
+        self._rail_btns = {}
+        self._cur_page = "chat"
+
+        rail = tk.Frame(self.root, width=78, bd=0, highlightthickness=0)
+        rail.pack(side="left", fill="y")
+        rail.pack_propagate(False)
+        self.rail = rail
+        tk.Label(rail, text="🐦", font=("Segoe UI Emoji", 15),
+                 bg=self.T["elevated"], fg=self.T["text"]).pack(pady=(12, 0))
+        tk.Label(rail, text="MB", font=("Segoe UI", 9, "bold"),
+                 bg=self.T["elevated"], fg=self.T["muted"]).pack(pady=(0, 8))
+
+        def _nav(pid, icon, label, cmd):
+            b = tk.Button(rail, text=icon + "\n" + label,
+                          font=("Microsoft YaHei UI", 9), bd=0, relief="flat",
+                          bg=self.T["elevated"], fg=self.T["muted"],
+                          activebackground=self.T["sel"], activeforeground=self.T["text"],
+                          command=cmd)
+            b.pack(fill="x", padx=5, pady=3)
+            self._rail_btns[pid] = b
+
+        _nav("chat", "💬", _t("对话"), lambda: self.show_page("chat"))
+        _nav("history", "🕘", _t("历史"), lambda: self.show_page("history"))
+        _nav("logs", "🖥", _t("日志"), lambda: self.show_page("logs"))
+        tk.Frame(rail, bg=self.T["elevated"]).pack(fill="both", expand=True)
+        _nav("skills", "🧩", _t("技能"), self.show_skills)
+        _nav("settings", "⚙", _t("设置"), self.open_settings)
+        _nav("about", "ℹ", _t("关于"), self.show_about)
+        self.theme_lbl = tk.Label(rail, text="🌓", font=("Segoe UI Emoji", 12),
+                                  bg=self.T["elevated"], fg=self.T["muted"], cursor="hand2")
+        self.theme_lbl.pack(pady=(4, 10))
+        self.theme_lbl.bind("<Button-1>", lambda e: self.cycle_theme())
+
+        for pid in ("chat", "history", "logs"):
+            f = tk.Frame(self.root, bd=0, highlightthickness=0)
+            f.pack(fill="both", expand=True)
+            self.pages[pid] = f
+        self.show_page("chat")
+
+    def _build_body(self):
+        self._build_chat_page()
+        self._build_history_page()
+        self._build_logs_page()
+        self.show_page("chat")
+
+    def show_page(self, pid):
+        self._cur_page = pid
+        for k, f in self.pages.items():
+            if k == pid:
+                f.pack(fill="both", expand=True)
+            else:
+                f.pack_forget()
+        self.apply_theme()
+
+    def _build_chat_page(self):
+        page = self.pages["chat"]
+        bar = tb.Frame(page, padding=(12, 10, 12, 4)); bar.pack(fill="x")
         tb.Label(bar, text=self.app_version(), bootstyle="secondary",
-                 font=("Consolas", 9)).pack(side="left")
+                 font=("Consolas", 9)).pack(side="left", padx=(0, 10))
         tb.Label(bar, text=_t("模型:")).pack(side="left")
         _cfg_models = appconfig.model_map()
-        self._model_map = {_t(k): v for k, v in _cfg_models.items()}   # 初始用用户配置的模型;refresh_models 会动态刷新
-        _init_model = _t(next(iter(_cfg_models), ""))
-        self.model_var = tk.StringVar(value=_init_model)
+        self._model_map = {_t(k): v for k, v in _cfg_models.items()}
+        self.model_var = tk.StringVar(value=_t(next(iter(_cfg_models), "")))
         self.model_cb = tb.Combobox(bar, textvariable=self.model_var,
                                     values=[_t(k) for k in _cfg_models],
                                     state="readonly", width=13, bootstyle="primary")
@@ -372,17 +431,10 @@ class AgentGUI:
         self.think_var = tk.BooleanVar(value=True)
         tb.Checkbutton(bar, text=_t("关闭思考"), variable=self.think_var,
                        bootstyle="round-toggle").pack(side="left", padx=6)
-        tb.Button(bar, text=_t("⚙ 设置"), command=self.open_settings,
-                  bootstyle="secondary-outline").pack(side="left", padx=2)
-        tb.Button(bar, text=_t("🌓 主题"), command=self.cycle_theme,
-                  bootstyle="secondary-outline").pack(side="left", padx=2)
-        tb.Button(bar, text=_t("ℹ 关于"), command=self.show_about,
-                  bootstyle="secondary-outline").pack(side="left", padx=2)
         self.sess_lbl = tb.Label(bar, text=_t("会话:无"), bootstyle="secondary")
         self.sess_lbl.pack(side="right")
 
-        # 工作目录行
-        bar2 = tb.Frame(self.root, padding=(8, 0, 8, 4)); bar2.pack(fill="x")
+        bar2 = tb.Frame(page, padding=(12, 0, 12, 4)); bar2.pack(fill="x")
         tb.Label(bar2, text=_t("目录:")).pack(side="left")
         self.wd_var = tk.StringVar(value=os.path.join(DEFAULT_TASKS, "work"))
         self.wd_entry = tb.Entry(bar2, textvariable=self.wd_var)
@@ -391,82 +443,22 @@ class AgentGUI:
                   command=self.choose_dir).pack(side="left")
         tb.Button(bar2, text=_t("打开"), bootstyle="secondary-outline",
                   command=self.open_dir).pack(side="left", padx=(4, 0))
-        # 任务时限(Task #73):默认空=不限时;接受分钟/小时(40 / 1.5h / 90m / 半小时)。
-        # 任务描述里自述时限(如"尽量在30分钟内")会自动识别并回填到这里,优先于手填值。
         tb.Label(bar2, text=_t("任务时限:")).pack(side="left", padx=(10, 0))
         self.tb_var = tk.StringVar(value="")
         self.tb_entry = tb.Entry(bar2, textvariable=self.tb_var, width=9, bootstyle="info")
         self.tb_entry.pack(side="left", padx=(2, 4))
 
-    def _build_body(self):
-        pw = tb.Panedwindow(self.root, orient="horizontal")
+        pw = tb.Panedwindow(page, orient="horizontal")
         pw.pack(fill="both", expand=True)
-
-        # ---------- 侧边栏 ----------
-        side = tb.Frame(pw, width=250); side.pack_propagate(False)
-        pw.add(side, weight=0)
-        side.columnconfigure(0, weight=1)
-
-        tb.Button(side, text=_t("＋ 新对话"), bootstyle="primary",
-                  command=self.new_chat).grid(row=0, column=0, sticky="ew", padx=6, pady=3)
-        b2 = tb.Frame(side); b2.grid(row=1, column=0, sticky="ew", padx=6)
-        tb.Button(b2, text=_t("历史搜索"), bootstyle="info-outline",
-                  command=self.search_history).pack(side="left", fill="x", expand=True)
-        tb.Button(b2, text=_t("技能列表"), bootstyle="info-outline",
-                  command=self.show_skills).pack(side="left", padx=(4,0))
-
-        # 附件
-        att = tb.Labelframe(side, text=_t("添加附件"), padding=4)
-        att.grid(row=2, column=0, sticky="ew", padx=6, pady=4)
-        self.att_lb = tk.Listbox(att, height=3, font=("Consolas", 9), exportselection=False)
-        self.att_lb.pack(fill="x")
-        af = tb.Frame(att); af.pack(fill="x", pady=(3,0))
-        tb.Button(af, text=_t("添加"), bootstyle="success-outline",
-                  command=self.add_files).pack(side="left")
-        tb.Button(af, text=_t("清空"), bootstyle="danger-outline",
-                  command=self.clear_files).pack(side="left", padx=(4,0))
-
-        # 会话
-        se = tb.Labelframe(side, text=_t("会话"), padding=4)
-        se.grid(row=3, column=0, sticky="nsew", padx=6, pady=4)
-        side.rowconfigure(3, weight=1)
-        self.se_lb = tk.Listbox(se, font=("Consolas", 8), exportselection=False)
-        self.se_lb.pack(fill="both", expand=True)
-        sf = tb.Frame(se); sf.pack(fill="x", pady=(3,0))
-        tb.Button(sf, text=_t("载入"), bootstyle="primary-outline",
-                  command=self.load_selected_session).pack(side="left")
-        tb.Button(sf, text=_t("回放"), bootstyle="secondary-outline",
-                  command=self.replay_selected_session).pack(side="left", padx=(4,0))
-        self.se_lb.bind("<Double-1>", lambda e: self.load_selected_session())
-
-        # 计划
-        self.plan_frame = tb.Labelframe(side, text=_t("计划 (todo)"), padding=4)
-        self.plan_frame.grid(row=4, column=0, sticky="ew", padx=6, pady=(0,4))
-        pf = tb.Frame(self.plan_frame); pf.pack(fill="x")
-        self.plan_txt = tk.Text(pf, height=6, font=("Consolas", 8), state="disabled",
-                                relief="flat", wrap="word")
-        self.plan_sb = tk.Scrollbar(pf, command=self.plan_txt.yview)
-        self.plan_txt.configure(yscrollcommand=self.plan_sb.set)
-        self.plan_txt.pack(side="left", fill="x", expand=True)
-        self.plan_sb.pack(side="right", fill="y")
-
-        # ---------- 主区 ----------
-        main = tb.Frame(pw); pw.add(main, weight=1)
-        self.nb = tb.Notebook(main)
-        self.nb.pack(fill="both", expand=True)
-
-        # 对话页
-        tab_chat = tb.Frame(self.nb, padding=6)
-        self.nb.add(tab_chat, text=_t("💬 对话"))
-        self.transcript = tk.Text(tab_chat, font=("Microsoft YaHei UI", 10),
+        left = tb.Frame(pw); pw.add(left, weight=1)
+        self.transcript = tk.Text(left, font=("Microsoft YaHei UI", 10),
                                   state="disabled", wrap="word", relief="flat",
-                                  padx=10, pady=8)
+                                  padx=14, pady=10, bd=0)
         self.transcript.pack(fill="both", expand=True)
-        self.input = tk.Text(tab_chat, height=3, font=("Microsoft YaHei UI", 10),
+        self.input = tk.Text(left, height=3, font=("Microsoft YaHei UI", 10),
                              wrap="word", relief="solid", bd=1)
-        self.input.pack(fill="x", pady=(6,4))
-        self.input.insert("1.0", _t("输入任务或对话…(Ctrl+Enter 发送)"))
-        crow = tb.Frame(tab_chat); crow.pack(fill="x")
+        self.input.pack(fill="x", padx=(0, 6), pady=(6, 4))
+        crow = tb.Frame(left); crow.pack(fill="x", padx=(0, 6))
         tb.Button(crow, text=_t("添加附件"), bootstyle="secondary-outline",
                   command=self.add_files).pack(side="left")
         self.send_btn = tb.Button(crow, text=_t("发送"), bootstyle="primary",
@@ -482,15 +474,63 @@ class AgentGUI:
         tb.Button(crow, text=_t("清空对话"), bootstyle="secondary-outline",
                   command=self.clear_transcript).pack(side="right")
 
-        # 日志页
-        tab_log = tb.Frame(self.nb, padding=6)
-        self.nb.add(tab_log, text=_t("🖥 日志"))
-        self.console = tk.Text(tab_log, font=("Consolas", 9), state="disabled",
-                               wrap="word", relief="flat")
-        self.console.pack(fill="both", expand=True)
-        lf = tb.Frame(tab_log); lf.pack(fill="x", pady=(4,0))
-        tb.Button(lf, text=_t("清空输出"), bootstyle="secondary-outline",
+        right = tb.Frame(pw); pw.add(right, weight=0)
+        right.configure(width=250); right.pack_propagate(False)
+        tb.Button(right, text=_t("＋ 新对话"), bootstyle="primary",
+                  command=self.new_chat).pack(fill="x", padx=(2, 10), pady=(8, 6))
+        att = tb.Labelframe(right, text=_t("附件"), padding=6)
+        att.pack(fill="x", padx=(2, 10), pady=4)
+        self.att_lb = tk.Listbox(att, height=3, font=("Consolas", 9),
+                                 exportselection=False, relief="flat")
+        self.att_lb.pack(fill="x")
+        af = tb.Frame(att); af.pack(fill="x", pady=(3, 0))
+        tb.Button(af, text=_t("添加"), bootstyle="success-outline",
+                  command=self.add_files).pack(side="left")
+        tb.Button(af, text=_t("清空"), bootstyle="danger-outline",
+                  command=self.clear_files).pack(side="left", padx=(4, 0))
+        self.plan_frame = tb.Labelframe(right, text=_t("计划 (todo)"), padding=6)
+        self.plan_frame.pack(fill="both", expand=True, padx=(2, 10), pady=4)
+        pf = tb.Frame(self.plan_frame); pf.pack(fill="x")
+        self.plan_txt = tk.Text(pf, height=8, font=("Consolas", 9), state="disabled",
+                                relief="flat", wrap="word")
+        self.plan_sb = tk.Scrollbar(pf, command=self.plan_txt.yview)
+        self.plan_txt.configure(yscrollcommand=self.plan_sb.set)
+        self.plan_txt.pack(side="left", fill="both", expand=True)
+        self.plan_sb.pack(side="right", fill="y")
+
+    def _build_history_page(self):
+        page = self.pages["history"]
+        head = tb.Frame(page, padding=(12, 10, 12, 4)); head.pack(fill="x")
+        tb.Label(head, text=_t("历史会话"),
+                 font=("Segoe UI", 12, "bold")).pack(side="left")
+        self.history_search_var = tk.StringVar(value="")
+        ent = tb.Entry(head, textvariable=self.history_search_var)
+        ent.pack(side="right", fill="x", expand=True, padx=(16, 0))
+        ent.bind("<KeyRelease>", lambda e: self.refresh_sessions())
+        body = tb.Frame(page, padding=(12, 4)); body.pack(fill="both", expand=True)
+        self.se_lb = tk.Listbox(body, font=("Consolas", 10),
+                                exportselection=False, relief="flat")
+        self.se_lb.pack(side="left", fill="both", expand=True)
+        btns = tb.Frame(body); btns.pack(side="left", fill="y", padx=(10, 0))
+        tb.Button(btns, text=_t("载入"), bootstyle="primary-outline",
+                  command=self.load_selected_session).pack(fill="x", pady=(0, 4))
+        tb.Button(btns, text=_t("回放"), bootstyle="secondary-outline",
+                  command=self.replay_selected_session).pack(fill="x", pady=4)
+        tb.Button(btns, text=_t("查看对话"), bootstyle="secondary-outline",
+                  command=lambda: self.view_transcript(
+                      (self.se_lb.get(self.se_lb.curselection()) or " [").split(" [")[0]
+                  ) if self.se_lb.curselection() else None).pack(fill="x", pady=4)
+
+    def _build_logs_page(self):
+        page = self.pages["logs"]
+        bar = tb.Frame(page, padding=(12, 10, 12, 4)); bar.pack(fill="x")
+        tb.Label(bar, text=_t("运行日志"),
+                 font=("Segoe UI", 12, "bold")).pack(side="left")
+        tb.Button(bar, text=_t("清空输出"), bootstyle="secondary-outline",
                   command=self.clear_log).pack(side="right")
+        self.console = tk.Text(page, font=("Consolas", 9), state="disabled",
+                               wrap="word", relief="flat", padx=10, pady=8)
+        self.console.pack(fill="both", expand=True)
 
     def _build_statusbar(self):
         bar = tb.Frame(self.root, padding=(6, 3)); bar.pack(fill="x", side="bottom")
@@ -505,6 +545,7 @@ class AgentGUI:
         self.ollama_lbl.bind("<Button-1>", self._ollama_click)
         self.ollama_lbl.pack(side="right", padx=(0, 4))
         self.root.after(800, self._check_ollama)
+
 
     # ================= 目录 =================
     def choose_dir(self):
@@ -523,43 +564,76 @@ class AgentGUI:
 
     # ================= 主题 =================
     def cycle_theme(self):
-        try: idx = THEMES.index(self.prefs["theme"])
-        except ValueError: idx = 0
-        self.prefs["theme"] = THEMES[(idx + 1) % len(THEMES)]
-        self.root.style.theme_use(self.prefs["theme"])
-        self.apply_theme(); self.save_prefs()
+        order = ["auto", "light", "dark"]
+        cur = self.prefs.get("ui_mode", "auto")
+        if cur not in order:
+            cur = "auto"
+        self.prefs["ui_mode"] = order[(order.index(cur) + 1) % len(order)]
+        self.save_prefs()
+        self.apply_theme()
+        self.log_note(_t("[主题: ") + self.prefs["ui_mode"] + "]")
+
     def apply_theme(self):
-        st = self.style
-        M = MINIMAL
-        self.root.configure(bg=M["bg"])
-        for w in (self.transcript, self.console, self.plan_txt, self.att_lb, self.se_lb):
-            try:
-                w.configure(bg=M["bg"], fg=M["fg"], insertbackground=M["fg"],
-                            selectbackground=M["primary"], selectforeground="#FFFFFF")
-            except Exception:
-                pass
-        self.input.configure(bg=M["card"], fg=M["fg"], insertbackground=M["fg"])
-        # 对话标签配色(极简:用户块 = 褪色绿;工具 = 灰;代码 = 暖灰底)
-        self.transcript.tag_config("user", background="#EAF0E9", foreground="#23412B",
-                                   font=M["font_body"], lmargin1=12, lmargin2=12, rmargin=12,
-                                   spacing1=4, spacing3=4)
-        self.transcript.tag_config("asst", foreground="#2F3437", background="#FFFFFF",
-                                   font=M["font_body"], lmargin1=12, lmargin2=12, rmargin=12)
-        self.transcript.tag_config("tool", foreground="#6B4E2E", background="#FBF3E0",
-                                   font=M["font_mono"], lmargin1=12, lmargin2=12)
-        self.transcript.tag_config("note", foreground=M["muted"],
-                                   font=M["font_small"])
-        self.transcript.tag_config("done", foreground="#2E5A38", background="#EAF3EA",
+        """v2:双主题对等(auto=跟随系统)。颜色出自 ui_theme 令牌;排版沿用原版。"""
+        import ui_theme as _ut
+        mode = _ut.resolve_theme_mode(self.prefs.get("ui_mode", "auto"))
+        self.T = _ut.tokens(mode)
+        t = self.T
+        tool_fg = "#8A6508" if mode == "light" else "#E8C87A"
+        try:
+            self.style.theme_use(t["ttk_theme"])
+        except Exception:
+            pass
+        try:
+            self.root.configure(bg=t["bg"])
+            self.rail.configure(bg=t["elevated"])
+            for ch in self.rail.winfo_children():
+                try:
+                    ch.configure(bg=t["elevated"])
+                except Exception:
+                    pass
+            for k, b in self._rail_btns.items():
+                selc = (k == getattr(self, "_cur_page", "chat"))
+                b.configure(bg=t["sel"] if selc else t["elevated"],
+                            fg=t["text"] if selc else t["muted"])
+            self.theme_lbl.configure(bg=t["elevated"], fg=t["muted"])
+        except Exception:
+            pass
+        try:
+            self.transcript.configure(bg=t["bg"], fg=t["text"])
+            self.input.configure(bg=t["surface"], fg=t["text"],
+                                 insertbackground=t["text"])
+            for w, kind in getattr(self, "_themable", []):
+                if kind == "code":
+                    w.configure(bg=t["code_bg"], fg=t["text"])
+                elif kind == "list":
+                    w.configure(bg=t["surface"], fg=t["text"],
+                                selectbackground=t["sel"], selectforeground=t["text"])
+                elif kind == "entry":
+                    w.configure(bg=t["surface"], fg=t["text"])
+        except Exception:
+            pass
+        if not hasattr(self, "transcript"):
+            return   # 构建早期(导航轨先于对话页):transcript 尚未创建,标签重刷跳过
+        self.transcript.tag_config("user", background=t["user_bubble"], foreground=t["text"],
+                                   font=("Microsoft YaHei UI", 10), lmargin1=12, lmargin2=12,
+                                   rmargin=12, spacing1=4, spacing3=4)
+        self.transcript.tag_config("asst", foreground=t["text"], background=t["bg"],
+                                   font=("Microsoft YaHei UI", 10), lmargin1=12, lmargin2=12)
+        self.transcript.tag_config("tool", foreground=tool_fg, background=t["code_bg"],
+                                   font=("Consolas", 9), lmargin1=12, lmargin2=12)
+        self.transcript.tag_config("note", foreground=t["muted"],
+                                   font=("Microsoft YaHei UI", 9))
+        self.transcript.tag_config("done", foreground=t["primary"], background=t["sel"],
                                    font=("Microsoft YaHei UI", 10, "bold"),
                                    lmargin1=12, lmargin2=12)
-        self.transcript.tag_config("code", foreground="#2F3437", background="#F1F0EC",
-                                   font=M["font_mono"], lmargin1=20, lmargin2=20)
+        self.transcript.tag_config("code", foreground=t["text"], background=t["code_bg"],
+                                   font=("Consolas", 9), lmargin1=20, lmargin2=20)
         self.transcript.tag_config("spacer", spacing1=6, spacing3=6)
-        # 思考流:细体灰,与回答区分;折叠标记行可点击切换
-        self.transcript.tag_config("think_region", foreground="#6E6E68", background="#EFEEE9",
+        self.transcript.tag_config("think_region", foreground=t["muted"], background=t["code_bg"],
                                    font=("Microsoft YaHei UI", 9, "italic"),
                                    lmargin1=16, lmargin2=16, rmargin=12)
-        self.transcript.tag_config("think_marker", foreground="#6E6E68", background="#EFEEE9",
+        self.transcript.tag_config("think_marker", foreground=t["muted"], background=t["code_bg"],
                                    font=("Microsoft YaHei UI", 9, "italic"),
                                    lmargin1=16, lmargin2=16, spacing1=3, spacing3=3)
         self.transcript.tag_bind("think_marker", "<Button-1>", self._toggle_think)
@@ -599,10 +673,15 @@ class AgentGUI:
     # ================= 会话 =================
     def refresh_sessions(self):
         self.se_lb.delete(0, "end")
+        flt = ""
+        if hasattr(self, "history_search_var"):
+            flt = (self.history_search_var.get() or "").lower()
         files = [f for f in sorted(glob.glob(os.path.join(SESSION_DIR, "*.json")))
                  if not f.endswith(".meta.json")]
-        for s in files[-40:]:
+        for s in files[-200:]:
             name = os.path.basename(s)[:-5]
+            if flt and flt not in name.lower():
+                continue
             meta_p = os.path.join(SESSION_DIR, name + ".meta.json")
             tag = ""
             if os.path.exists(meta_p):
