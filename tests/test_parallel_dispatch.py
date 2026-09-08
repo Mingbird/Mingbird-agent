@@ -91,9 +91,11 @@ class TestHappyPath:
         assert env["MINGBIRD_DEPTH"] == "1"
         assert "HUMMINGBIRD_DEPTH" not in env  # 旧名不得残留,防止新旧值打架
         assert "AGENT_STREAM" not in env
-        cmd = rec.spawns[0]
-        assert cmd[2] == "gemma4:e2b" and cmd[4].endswith("task01")
-        assert "--session" in cmd and cmd[cmd.index("--session") + 1].startswith("disp_r1_")
+        # 出队顺序在线程池下是竞态:按集合断言,不依赖 task01/task02 先后
+        assert {c[4].rsplit(chr(92), 1)[-1] for c in rec.spawns} == {"task01", "task02"}
+        for cmd in rec.spawns:
+            assert cmd[2] == "gemma4:e2b"
+            assert "--session" in cmd and cmd[cmd.index("--session") + 1].startswith("disp_r1_")
 
     def test_child_env_strips_parent_time_budget(self, tmp_path):
         # 2026-09-01 整合遗留①:A2 的 AGENT_TIME_BUDGET_SEC 是主任务总预算,
