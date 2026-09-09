@@ -294,7 +294,7 @@ class AgentGUI:
         tags = []
         # 批次重载时 ollama 可能瞬时忙碌:/api/tags 3s 常不够,重试避免闪回陈旧配置列表
         import urllib.request as _ur
-        import time as _t
+        import time as _tm   # 别名不可用 _t:会遮蔽全局 i18n 函数 _t(),致 refresh_models 崩溃
         for _ in range(3):
             try:
                 r = json.loads(_ur.urlopen(f"{appconfig.ollama_host()}/api/tags", timeout=6).read())
@@ -302,7 +302,7 @@ class AgentGUI:
                 break
             except Exception:
                 tags = []
-                _t.sleep(0.8)
+                _tm.sleep(0.8)
         if not tags:
             tags = list(cfg_display.values())        # ollama 不可达时,退回用户配置的模型(可能含已卸载项,仅应急)
         for t in tags:
@@ -1296,12 +1296,21 @@ class AgentGUI:
         self.root.after(100, self.poll)
 
     def _check_ollama(self):
-        """Ollama 在线状态灯:绿=在线有模型,黄=在线无模型,红=离线。"""
+        """Ollama 在线状态灯:绿=在线有模型,黄=在线无模型,红=离线。
+        自愈:在线且模型清单变化时自动刷新下拉(启动瞬间查询失败的下拉会在此自愈)。"""
         up = False; has_models = False
         try:
             import urllib.request as _ur
             r = json.loads(_ur.urlopen(appconfig.ollama_host().rstrip("/") + "/api/tags", timeout=2).read())
             up = True; has_models = bool(r.get("models"))
+            live_tags = tuple(sorted(x.get("name", "") for x in r.get("models", [])))
+            if live_tags != getattr(self, "_last_live_tags", None):
+                first = not hasattr(self, "_last_live_tags")
+                self._last_live_tags = live_tags
+                if not first:
+                    self.refresh_models()   # 模型清单变化(或启动时查询失败过)→ 自动刷新下拉
+        except Exception:
+            pass
         except Exception:
             pass
         if up and has_models:
