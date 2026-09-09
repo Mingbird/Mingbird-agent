@@ -131,6 +131,41 @@ _T = {
     "[已从任务描述识别时限 {n} 分钟,优先于手填值]": "[Time limit {n} min detected in the task text — overrides the box]",
     "[任务时限 {n} 分钟,超时会收到收尾提醒]": "[Time limit {n} min — you'll get wind-down reminders]",
     "[任务时限不可用:无法加载解析器 {e}]": "[Time limit unavailable: cannot load parser {e}]",
+    # v2 导航轨/页面标题
+    "对话": "Chat", "历史": "History", "日志": "Logs",
+    "技能": "Skills", "设置": "Settings", "关于": "About",
+    "附件": "Attachments", "历史会话": "Session history",
+    "运行日志": "Run log", "用户": "User", "任务结束": "Task finished",
+    # 确认框 / 日志杂项
+    "工作目录:": "Workdir:", "工作目录: ": "Workdir: ",
+    "工具:": "Tool:", "操作:": "Action:", "目标:": "Target:",
+    "允许这次访问吗?": "Allow this access?",
+    "访问": "Access", "执行命令": "Run command", "读取敏感文件": "Read sensitive file",
+    "[主题: ": "[Theme: ",
+    "(详情见 ": "(details in ",
+    "[越界操作请求,请确认]": "[Outside-workspace request, please confirm]",
+    "[尝试启动 Ollama…]": "[Trying to start Ollama…]",
+    "[忙:当前任务运行中,先停止再发送]": "[Busy: a task is running, stop it before sending]",
+    "选择要附加的文件": "Choose files to attach",
+    "[附件失败: {p} → {e}]": "[Attach failed: {p} → {e}]",
+    "[已载入会话: {name}]": "[Session loaded: {name}]",
+    "[文档未找到: {fn}]": "[Doc not found: {fn}]",
+    "(未找到含 '{q}' 的会话)": "(No sessions containing '{q}')",
+    "[从历史恢复会话: {name}]": "[Session restored from history: {name}]",
+    # 并行派发(@@DISPATCH@@ 进度)
+    " 已派发子任务 0/{t} 完成 (模型 {m})": " Dispatched 0/{t} done (model {m})",
+    " 已派发子任务 {d}/{t} 完成": " Dispatched {d}/{t} done",
+    " 已派发子任务 {o}/{t} 完成": " Dispatched {o}/{t} done",
+    "[并行派发] ": "[Parallel] ",
+    "{n} 条简单子任务派给 {m} 并行做": "{n} simple subtasks dispatched to {m} in parallel",
+    "[并行派发] 子任务 {i}: {s}": "[Parallel] subtask {i}: {s}",
+    "[并行派发] 结束: 成功 {o}/{t},回退主模型 {f},严重违规 {sv}":
+        "[Parallel] done: {o}/{t} ok, {f} fell back to main model, {sv} severe violations",
+    # 模型显示名:来自用户 ~/.ollama_agent/config.json 的 models 别名(本机现值),
+    # _t() 已作用于显示名,未命中的别名按原样显示(与文件名同类,属用户数据)
+    "qwen2b (长上下文 256K)": "qwen2b (long-ctx 256K)",
+    "e2b (快速 128K)": "e2b (fast 128K)",
+    "Mellum2 (代码)": "Mellum2 (code)",
 }
 def _t(s):
     if _LANG == "zh":
@@ -149,7 +184,8 @@ def _log_exc(exc_type, exc, tb):
     if exc_type is not SystemExit:
         try:
             import tkinter.messagebox as _mb
-            _mb.showerror(_t("鸣鸟 · 本地 AI 助手 错误"), f"{exc_type.__name__}: {exc}\n(详情见 {_ERR_LOG})")
+            _mb.showerror(_t("鸣鸟 · 本地 AI 助手 错误"),
+                          f"{exc_type.__name__}: {exc}\n" + _t("(详情见 ") + _ERR_LOG + ")")
         except Exception:
             pass
 sys.excepthook = _log_exc
@@ -256,14 +292,19 @@ class AgentGUI:
         cfg_display = appconfig.model_map()          # {显示名: tag}
         tag_to_display = {v: k for k, v in cfg_display.items()}
         tags = []
-        try:
-            import urllib.request as _ur
-            r = json.loads(_ur.urlopen(f"{appconfig.ollama_host()}/api/tags", timeout=3).read())
-            tags = [x.get("name") for x in r.get("models", [])]
-        except Exception:
-            tags = list(cfg_display.values())        # ollama 不可达时,退回用户配置的模型
+        # 批次重载时 ollama 可能瞬时忙碌:/api/tags 3s 常不够,重试避免闪回陈旧配置列表
+        import urllib.request as _ur
+        import time as _t
+        for _ in range(3):
+            try:
+                r = json.loads(_ur.urlopen(f"{appconfig.ollama_host()}/api/tags", timeout=6).read())
+                tags = [x.get("name") for x in r.get("models", []) if x.get("name")]
+                break
+            except Exception:
+                tags = []
+                _t.sleep(0.8)
         if not tags:
-            tags = list(cfg_display.values())
+            tags = list(cfg_display.values())        # ollama 不可达时,退回用户配置的模型(可能含已卸载项,仅应急)
         for t in tags:
             display = tag_to_display.get(t, t)
             m[_t(display)] = t
@@ -363,7 +404,8 @@ class AgentGUI:
         self._rail_btns = {}
         self._cur_page = "chat"
 
-        rail = tk.Frame(self.root, width=78, bd=0, highlightthickness=0)
+        # 宽度 94:需容纳 EN 长词(Settings/History);Tk 像素不随 DPI 缩放,78 在高 DPI 下会裁字
+        rail = tk.Frame(self.root, width=94, bd=0, highlightthickness=0)
         rail.pack(side="left", fill="y")
         rail.pack_propagate(False)
         self.rail = rail
@@ -643,7 +685,7 @@ class AgentGUI:
 
     # ================= 附件 =================
     def add_files(self):
-        paths = filedialog.askopenfilenames(title="选择要附加的文件")
+        paths = filedialog.askopenfilenames(title=_t("选择要附加的文件"))
         if not paths: return
         wd = self.wd_dir()
         attdir = os.path.join(wd, "_attachments")
@@ -658,7 +700,7 @@ class AgentGUI:
                 self.attachments.append(dest)
                 self.att_lb.insert("end", os.path.basename(dest))
             except Exception as e:
-                self.log_note(f"[附件失败: {os.path.basename(p)} → {e}]")
+                self.log_note(_t("[附件失败: {p} → {e}]").format(p=os.path.basename(p), e=e))
     def clear_files(self):
         self.attachments = []; self.att_lb.delete(0, "end")
     def attach_note(self):
@@ -700,7 +742,7 @@ class AgentGUI:
         try: msgs = json.load(open(p, encoding="utf-8"))
         except Exception: msgs = None
         self.render_session(msgs, name)
-        self.log_note(f"[已载入会话: {name}]")
+        self.log_note(_t("[已载入会话: {name}]").format(name=name))
     def replay_selected_session(self):
         sel = self.se_lb.curselection()
         if not sel: return
@@ -866,13 +908,12 @@ class AgentGUI:
             if os.path.exists(p):
                 subprocess.Popen(_open_doc_cmd(p))
                 return
-        self.log(f"[文档未找到: {fn}]")
+        self.log(_t("[文档未找到: {fn}]").format(fn=fn))
 
     def _welcome(self):
         """空状态欢迎语:新对话时给出最快的上手提示。"""
         if self.transcript.get("1.0", "end-1c").strip():
             return
-        M = MINIMAL
         self.transcript.config(state="normal")
         self.transcript.delete("1.0", "end")
         self.transcript.insert("end", "\n", "spacer")
@@ -948,7 +989,7 @@ class AgentGUI:
                 snip = text[max(0,idx-55):idx+120].replace("\n"," ")
                 results.append(name)
                 lb.insert("end", f"{name}  |  …{snip}…")
-            if not results: lb.insert("end", f"(未找到含 '{q}' 的会话)")
+            if not results: lb.insert("end", _t("(未找到含 '{q}' 的会话)").format(q=q))
         def view_sel():
             sel = lb.curselection()
             if sel: self.view_transcript(results[sel[0]])
@@ -960,7 +1001,7 @@ class AgentGUI:
             try: msgs = json.load(open(p, encoding="utf-8"))
             except Exception: msgs = None
             self.render_session(msgs, self.session)
-            self.log_note(f"[从历史恢复会话: {self.session}]")
+            self.log_note(_t("[从历史恢复会话: {name}]").format(name=self.session))
             win.destroy()
         bf = tb.Frame(win); bf.pack(pady=4)
         tb.Button(bf, text=_t("查看对话"), command=view_sel).pack(side="left", padx=4)
@@ -982,7 +1023,7 @@ class AgentGUI:
             if role == "user" and (c.startswith("Continue: keep making") or c == _t("继续之前的对话,完成或回答当前需求。")):
                 continue
             if role == "user":
-                txt.insert("end", f"\n━━━ 👤 用户 ━━━\n{c}\n", "u")
+                txt.insert("end", f"\n━━━ 👤 {_t('用户')} ━━━\n{c}\n", "u")
             elif role == "assistant":
                 for tc in m.get("tool_calls", []):
                     fn = tc.get("function", {})
@@ -1042,7 +1083,7 @@ class AgentGUI:
 
     def send_chat(self):
         if self.proc and self.proc.poll() is None:
-            self.log_note("[忙:当前任务运行中,先停止再发送]"); return
+            self.log_note(_t("[忙:当前任务运行中,先停止再发送]")); return
         msg = self._input_text()
         if not msg: return
         self.input.delete("1.0", "end")
@@ -1194,7 +1235,7 @@ class AgentGUI:
         if use_session: args += ["--append"]
         self._apply_time_budget(env, task)
         self.log(f"====== {_t('开始: ')}{model}" + (f" | {_t('会话:')}{self.session}" if self.session else "") + " ======")
-        self.log(f"工作目录: {workdir}\n")
+        self.log(_t("工作目录: ") + workdir + "\n")
         self.proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             stdin=subprocess.PIPE,   # 守护系统:GUI 通过 stdin 回传越界确认
             text=True, encoding="utf-8", errors="replace", env=env, bufsize=1)
@@ -1243,7 +1284,7 @@ class AgentGUI:
                 if line is None:
                     self._collapse_think()
                     self._flush_asst()
-                    self.log("\n===== 任务结束 =====")
+                    self.log("\n===== " + _t("任务结束") + " =====")
                     self.send_btn.config(state="normal")
                     self.stop_btn.config(state="disabled"); self.proc = None
                     self.refresh_sessions()
@@ -1288,7 +1329,7 @@ class AgentGUI:
         """点击 Ollama 灯:在线无动作;离线弹提示并尝试拉起。"""
         cur = self.ollama_lbl.cget("text")
         if "未启动" in cur or "✗" in cur:
-            self.log_note("[尝试启动 Ollama…]")
+            self.log_note(_t("[尝试启动 Ollama…]"))
             self._try_start_ollama()
         else:
             from tkinter import messagebox
@@ -1404,11 +1445,11 @@ class AgentGUI:
             win.attributes("-topmost", True)
             tb.Label(win, text=_t("AI 想访问工作目录之外的文件"), bootstyle="warning",
                      font=("Microsoft YaHei UI", 12, "bold"), padding=8).pack(anchor="w")
-            txt = (f"工具: {tool}\n"
-                   f"操作: {action}\n"
-                   f"目标: {path}\n\n"
-                   f"工作目录: {wd}\n\n"
-                   f"允许这次访问吗?")
+            txt = (f"{_t('工具:')} {tool}\n"
+                   f"{_t('操作:')} {_t(str(action))}\n"
+                   f"{_t('目标:')} {path}\n\n"
+                   f"{_t('工作目录:')} {wd}\n\n"
+                   f"{_t('允许这次访问吗?')}")
             tb.Label(win, text=txt, justify="left", padding=(10, 4),
                      font=("Microsoft YaHei UI", 10)).pack(fill="both", expand=True, padx=6)
             btnrow = tb.Frame(win); btnrow.pack(fill="x", padx=8, pady=8)
@@ -1588,7 +1629,7 @@ if __name__ == "__main__":
         ok = ollama_agent.ensure_ollama()
         if not ok:
             import tkinter.messagebox as _mb
-            _mb.showwarning("鸣鸟 · 本地 AI 助手", _t("未能自动启动 ollama,请先手动运行 ollama serve。"))
+            _mb.showwarning(_t("鸣鸟 · 本地 AI 助手"), _t("未能自动启动 ollama,请先手动运行 ollama serve。"))
     except Exception:
         pass
     root = tb.Window(themename="minty-light", title=_t("鸣鸟 · 本地 AI 助手"))
