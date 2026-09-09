@@ -30,5 +30,5 @@ latest-attempt-wins、工具名中立、确定性判分、同一搜索上游。�
 
 ## 已知缺口(基线如实保留,不修)
 
-- 蜂鸟 `read_file` 不解析 xlsx(GAIA 考二进制附件,LRAB 未考过)。
+- 鸣鸟 `read_file` 不解析 xlsx(GAIA 考二进制附件,LRAB 未考过)。
 - argless 裸 `finish` 无纠正反馈(占位符形态已由 b929e7c 覆盖)。
