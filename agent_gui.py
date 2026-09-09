@@ -286,15 +286,17 @@ class AgentGUI:
 
     def refresh_models(self):
         """从 ollama 动态读取已安装模型,构建 显示名→tag 映射。
-        用户可在 config.json 的 models 字段给模型起友好名;未配置的模型直接用原始 tag。
-        不硬编码任何模型名——每个用户按自己机器上的模型配置。"""
+        - ollama 可达:下拉 = 实际安装的模型(配置了友好名则显示友好名);
+          配置里已卸载的模型不显示(它们跑不起来)。
+        - ollama 不可达:下拉显示明确的离线占位,不冒充可用模型;
+          _check_ollama 的自愈会在 ollama 恢复后自动重试刷新。
+        查询带 3 次重试:批次满载时 /api/tags 偶发 >3s 超时,重试避免闪回陈旧列表。"""
         m = {}
         cfg_display = appconfig.model_map()          # {显示名: tag}
         tag_to_display = {v: k for k, v in cfg_display.items()}
         tags = []
-        # 批次重载时 ollama 可能瞬时忙碌:/api/tags 3s 常不够,重试避免闪回陈旧配置列表
         import urllib.request as _ur
-        import time as _tm   # 别名不可用 _t:会遮蔽全局 i18n 函数 _t(),致 refresh_models 崩溃
+        import time as _sleep_mod
         for _ in range(3):
             try:
                 r = json.loads(_ur.urlopen(f"{appconfig.ollama_host()}/api/tags", timeout=6).read())
@@ -302,9 +304,16 @@ class AgentGUI:
                 break
             except Exception:
                 tags = []
-                _tm.sleep(0.8)
+                _sleep_mod.sleep(0.8)
         if not tags:
-            tags = list(cfg_display.values())        # ollama 不可达时,退回用户配置的模型(可能含已卸载项,仅应急)
+            # ollama 不可达:不把配置里的陈旧映射当可用模型展示(那会让用户选到跑不起来的模型)
+            self._model_map = {}
+            try:
+                self.model_cb.configure(values=["[ Ollama 离线 — 启动后自动重试 ]"])
+                self.model_var.set("[ Ollama 离线 — 启动后自动重试 ]")
+            except Exception:
+                pass
+            return
         for t in tags:
             display = tag_to_display.get(t, t)
             m[_t(display)] = t
@@ -315,7 +324,6 @@ class AgentGUI:
                 self.model_var.set(list(m)[0])
         except Exception:
             pass
-        return m
 
     def __init__(self, root):
         self.root = root
@@ -1304,11 +1312,12 @@ class AgentGUI:
             r = json.loads(_ur.urlopen(appconfig.ollama_host().rstrip("/") + "/api/tags", timeout=2).read())
             up = True; has_models = bool(r.get("models"))
             live_tags = tuple(sorted(x.get("name", "") for x in r.get("models", [])))
-            if live_tags != getattr(self, "_last_live_tags", None):
-                first = not hasattr(self, "_last_live_tags")
-                self._last_live_tags = live_tags
-                if not first:
-                    self.refresh_models()   # 模型清单变化(或启动时查询失败过)→ 自动刷新下拉
+            self._last_live_tags = live_tags
+            # 自愈条件:当前下拉框里的 tag 集合 != ollama 实际安装集合
+            # (覆盖:启动时 ollama 未就绪走了配置回退 / 用户 pull 了新模型 / 卸载了模型)
+            cur_tags = frozenset(getattr(self, "_model_map", {}).values())
+            if cur_tags != frozenset(live_tags):
+                self.refresh_models()
         except Exception:
             pass
         except Exception:
