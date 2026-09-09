@@ -18,46 +18,59 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--text);font:14px/1.55 "Segoe UI","Microsoft YaHei UI",sans-serif;display:flex;height:100vh;overflow:hidden}
-#rail{width:76px;background:var(--elev);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;flex-shrink:0}
-#rail .brand{font-size:22px;margin-bottom:2px}
+#rail{width:76px;background:var(--elev);display:flex;flex-direction:column;align-items:center;padding:12px 0 8px;gap:4px;flex-shrink:0}
+#rail .brand{font-size:22px}
 #rail .brandname{font-size:9px;font-weight:700;color:var(--muted);margin-bottom:10px}
 .navbtn{width:64px;padding:8px 0;border:0;background:transparent;color:var(--muted);border-radius:10px;cursor:pointer;font:12px "Segoe UI","Microsoft YaHei UI",sans-serif}
 .navbtn:hover{background:var(--sel);color:var(--text)}
 .navbtn.active{background:var(--sel);color:var(--ming);font-weight:600}
 #rail .spacer{flex:1}
 #main{flex:1;display:flex;flex-direction:column;min-width:0}
-#topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)}
+.page{flex:1;display:none;flex-direction:column;min-height:0;overflow:hidden}
+.page.active{display:flex}
+#topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
 #topbar select{padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
-#topbar .title{font-weight:700;font-size:15px}
-#sessiontag{margin-left:auto;color:var(--muted);font-size:12px}
+.title{font-weight:700;font-size:15px}
 #chat{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px}
 .msg{max-width:78%;padding:10px 14px;border-radius:12px;white-space:pre-wrap;word-break:break-word}
 .msg.user{align-self:flex-end;background:var(--bubble);border:1px solid var(--border)}
 .msg.assistant{align-self:flex-start;background:var(--surface);border:1px solid var(--border)}
 .msg .who{font-size:11px;font-weight:700;color:var(--ming);margin-bottom:4px}
 .msg.assistant .who{color:var(--muted)}
-.think{border-left:3px solid var(--border);padding:4px 10px;margin:6px 0;color:var(--muted);font-size:12.5px;white-space:pre-wrap}
-.think summary{cursor:pointer;color:var(--muted)}
+details.think{border-left:3px solid var(--border);padding:4px 10px;margin:6px 0;color:var(--muted);font-size:12.5px;white-space:pre-wrap}
+details.think summary{cursor:pointer;color:var(--muted)}
 .toolchip{display:inline-block;background:var(--code);border:1px solid var(--border);border-radius:6px;padding:1px 8px;margin:2px 4px 2px 0;font:12px Consolas,monospace;color:var(--muted)}
 code{background:var(--code);padding:1px 5px;border-radius:5px;font:12.5px Consolas,monospace}
 pre{background:var(--code);padding:10px 12px;border-radius:10px;overflow-x:auto;font:12.5px Consolas,monospace}
 pre code{background:transparent;padding:0}
 #inputdock{border-top:1px solid var(--border);padding:10px 16px;background:var(--surface)}
 #input{width:100%;min-height:64px;max-height:200px;resize:vertical;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font:14px "Segoe UI","Microsoft YaHei UI",sans-serif;background:var(--surface);color:var(--text)}
-#inputrow{display:flex;gap:8px;margin-top:8px;align-items:center}
+#inputrow{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap}
 button{border:1px solid var(--border);background:var(--surface);color:var(--text);padding:6px 14px;border-radius:9px;cursor:pointer;font:13px "Segoe UI",sans-serif}
 button.primary{background:var(--ming);border-color:var(--ming);color:#fff;font-weight:600}
 button.danger{color:#d9534f;border-color:#d9534f}
 button:disabled{opacity:.45;cursor:not-allowed}
 #statusbar{display:flex;gap:14px;align-items:center;padding:4px 16px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)}
 #ctxbar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
-#ctxfill{height:100%;width:0;background:var(--ming)}
+#ctxfill{height:100%;width:0;background:var(--ming);transition:width .3s}
 #ollamadot{font-weight:700}
 .ok{color:var(--ming)} .bad{color:#d9534f}
-dialog{border:1px solid var(--border);border-radius:14px;background:var(--surface);color:var(--text);padding:20px 24px;min-width:420px}
+dialog{border:1px solid var(--border);border-radius:14px;background:var(--surface);color:var(--text);padding:20px 24px;min-width:440px}
 dialog::backdrop{background:rgba(0,0,0,.45)}
-.kicker{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-h1{font-size:18px;margin:0 0 4px}
+dialog h3{margin:0 0 12px}
+dialog .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+dialog .row label{min-width:130px}
+dialog input[type=text],dialog input[type=number],dialog select,dialog textarea{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font:13px "Segoe UI",sans-serif}
+dialog textarea{width:100%;min-height:90px;font:12px Consolas,monospace;resize:vertical}
+#sesslist{flex:1;overflow-y:auto}
+.sessitem{padding:8px 12px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+.sessitem:hover{background:var(--sel)}
+.sessitem.sel{background:var(--sel);border-color:var(--ming)}
+#planlist{font:12px Consolas,monospace;white-space:pre-wrap;color:var(--muted)}
+.pagehead{padding:14px 18px 6px}
+.pagehead .title{font-size:16px}
+#planpanel{width:250px;border-left:1px solid var(--border);padding:10px 12px;overflow-y:auto;flex-shrink:0}
+#planpanel .kicker{margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -66,36 +79,75 @@ h1{font-size:18px;margin:0 0 4px}
   <div class="brandname">Mingbird</div>
   <button class="navbtn active" data-page="chat">💬 <span data-i18n="chat">Chat</span></button>
   <button class="navbtn" data-page="sessions">🕘 <span data-i18n="history">History</span></button>
+  <button class="navbtn" data-page="settings">⚙ <span data-i18n="settings">Settings</span></button>
   <div class="spacer"></div>
   <button class="navbtn" id="themebtn">🌓</button>
   <button class="navbtn" id="aboutbtn">ℹ</button>
 </div>
 <div id="main">
-  <div id="topbar">
-    <span class="title">Mingbird</span>
-    <span class="kicker" id="ver"></span>
-    <label data-i18n="model">Model</label>
-    <select id="model"></select>
-    <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" id="think" checked> <span data-i18n="thinking">Thinking</span></label>
-    <span style="margin-left:auto"></span>
+  <!-- 对话页 -->
+  <div class="page active" id="page-chat" style="display:flex">
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+      <div id="topbar">
+        <span class="title">Mingbird</span>
+        <span class="kicker" id="ver"></span>
+        <label data-i18n="model">Model</label>
+        <select id="model"></select>
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" id="think" checked> <span data-i18n="thinking">Thinking</span></label>
+        <span id="sessiontag" style="margin-left:auto;color:var(--muted);font-size:12px"></span>
+      </div>
+      <div id="chat"></div>
+      <div id="inputdock">
+        <textarea id="input" placeholder="Type a task or chat… (Ctrl+Enter to send · 输入任务或对话)"></textarea>
+        <div id="inputrow">
+          <button class="primary" id="send" data-i18n="send">Send</button>
+          <button id="stop" disabled class="danger" data-i18n="stop">Stop</button>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12.5px"><input type="checkbox" id="resume" checked> <span data-i18n="resume">Resume</span></label>
+          <span style="flex:1"></span>
+          <button id="newchat" data-i18n="newchat">New chat</button>
+          <button id="clear" data-i18n="clear">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div id="planpanel">
+      <div class="kicker" data-i18n="plan">Plan · todo</div>
+      <div id="planlist">—</div>
+    </div>
   </div>
-  <div id="chat"></div>
-  <div id="inputdock">
-    <textarea id="input" placeholder="Type a task or chat… (Ctrl+Enter to send · 输入任务或对话)"></textarea>
-    <div id="inputrow">
-      <button class="primary" id="send" data-i18n="send">Send</button>
-      <span id="voicewrap"><button id="voice" title="voice">🎤</button></span>
-      <button id="stop" disabled class="danger" data-i18n="stop">Stop</button>
-      <label style="display:flex;align-items:center;gap:4px;font-size:12.5px"><input type="checkbox" id="resume" checked> <span data-i18n="resume">Resume</span></label>
-      <span style="flex:1"></span>
-      <button id="newchat" data-i18n="newchat">New chat</button>
-      <button id="clear" data-i18n="clear">Clear</button>
+  <!-- 会话页 -->
+  <div class="page" id="page-sessions">
+    <div class="pagehead"><span class="title" data-i18n="history_t">Session history</span></div>
+    <div style="flex:1;display:flex;min-height:0;padding:0 18px 12px">
+      <div id="sesslist" style="flex:1"></div>
+      <div style="width:280px;display:flex;flex-direction:column;gap:8px;padding:12px;border-left:1px solid var(--border)">
+        <button id="sess-load" data-i18n="load_resume">Load & resume this session</button>
+        <button id="sess-view" data-i18n="view">View transcript</button>
+        <div id="sessview" style="flex:1;overflow-y:auto;font:12px Consolas,monospace;white-space:pre-wrap"></div>
+      </div>
+    </div>
+  </div>
+  <!-- 设置页 -->
+  <div class="page" id="page-settings">
+    <div class="pagehead"><span class="title" data-i18n="settings_t">Settings</span></div>
+    <div style="max-width:640px;padding:6px 18px">
+      <div class="row"><label data-i18n="ctx_l">Context window</label>
+        <select id="p-ctx"><option>16384</option><option>32768</option><option>65536</option><option>131072</option><option>262144</option></select>
+        <span style="color:var(--muted);font-size:12px" data-i18n="ctx_note">small models: bigger = more memory</span></div>
+      <div class="row"><label data-i18n="temp_l">Temperature</label><input type="number" id="p-temp" step="0.1" min="0" max="2" style="width:80px"></div>
+      <div class="row"><label data-i18n="np_l">Output limit</label>
+        <select id="p-np"><option>512</option><option>1024</option><option>2048</option><option>4096</option><option>8192</option></select></div>
+      <div class="row"><label data-i18n="think_l">Thinking</label><input type="checkbox" id="p-think" checked></div>
+      <div class="row"><label data-i18n="sys_l">Custom system prompt</label><input type="checkbox" id="p-sysen"></div>
+      <textarea id="p-systext" placeholder="override system prompt…"></textarea>
+      <div style="margin-top:14px"><button class="primary" id="p-save" data-i18n="save">Save</button></div>
+      <p style="color:var(--muted);font-size:12px" data-i18n="prefs_note">Settings are shared with the desktop app (gui_prefs.json) and applied to the next task.</p>
     </div>
   </div>
   <div id="statusbar">
     <div id="ctxbar"><div id="ctxfill"></div></div>
     <span id="ctxtext">ctx: - / -</span>
     <span id="ollamadot">Ollama …</span>
+    <span id="langbtn" style="cursor:pointer;text-decoration:underline">EN/中文</span>
   </div>
 </div>
 
@@ -118,18 +170,38 @@ h1{font-size:18px;margin:0 0 4px}
 </dialog>
 
 <script>
-// ---------- i18n ----------
 const I18N = {
-  en: {chat:"Chat", history:"History", thinking:"Thinking", send:"Send", stop:"Stop", resume:"Resume",
-       newchat:"New chat", clear:"Clear", model:"Model", outside:"⚠ Outside-workspace access"},
-  zh: {chat:"对话", history:"历史", thinking:"思考", send:"发送", stop:"停止", resume:"续跑",
-       newchat:"新对话", clear:"清空", model:"模型", outside:"⚠ 越界操作确认"}
+  en: {chat:"Chat", history:"History", settings:"Settings", settings_t:"Settings", history_t:"Session history",
+       thinking:"Thinking", send:"Send", stop:"Stop", resume:"Resume", newchat:"New chat", clear:"Clear",
+       model:"Model", plan:"Plan · todo", load_resume:"Load & resume this session", view:"View transcript",
+       save:"Save", ctx_l:"Context window", temp_l:"Temperature", np_l:"Output limit", think_l:"Thinking",
+       sys_l:"Custom system prompt", ctx_note:"small models: bigger = more memory", prefs_note:"Settings are shared with the desktop app and applied to the next task.",
+       you:"You", outside:"⚠ Outside-workspace access", session:"session", plan:"Plan · todo",
+       load_resume:"Load & resume this session", view:"View transcript", save:"Save",
+       settings_t:"Settings", history_t:"Session history", ctx_l:"Context window",
+       temp_l:"Temperature", np_l:"Output limit", think_l:"Thinking", sys_l:"Custom system prompt",
+       welcome:"👋 Welcome — local-first, small-model-first agent. Type a task to start."},
+  zh: {chat:"对话", history:"历史", settings:"设置", settings_t:"设置", history_t:"历史会话",
+       thinking:"思考", send:"发送", stop:"停止", resume:"续跑", newchat:"新对话", clear:"清空",
+       model:"模型", plan:"计划 · todo", load_resume:"载入并续跑此会话", view:"查看对话记录",
+       save:"保存", ctx_l:"上下文窗口", temp_l:"温度", np_l:"输出上限", think_l:"思考",
+       sys_l:"自定义系统提示", ctx_note:"小模型：越大越占内存", prefs_note:"设置与桌面版共用，对下一个任务生效。",
+       you:"用户", outside:"⚠ 越界操作确认", session:"会话", plan:"计划 · todo",
+       load_resume:"载入并续跑此会话", view:"查看对话记录", save:"保存",
+       settings_t:"设置", history_t:"历史会话", ctx_l:"上下文窗口",
+       temp_l:"温度", np_l:"输出上限", think_l:"思考", sys_l:"自定义系统提示",
+       welcome:"👋 欢迎 — 本地优先、小模型优先的 agent。输入任务即可开始。"}
 };
 let LANG = localStorage.getItem("mb_lang") || (navigator.language.startsWith("zh") ? "zh" : "en");
+function applyLang(){
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+}
 function t(k){ return (I18N[LANG] && I18N[LANG][k]) || (I18N.en[k]) || k; }
-document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+applyLang();
+document.getElementById("langbtn").onclick = () => {
+  LANG = LANG === "en" ? "zh" : "en"; localStorage.setItem("mb_lang", LANG); applyLang();
+};
 
-// ---------- theme ----------
 const THEME_ORDER = ["auto","light","dark"];
 let uiMode = localStorage.getItem("mb_ui_mode") || "auto";
 function sysDark(){ return window.matchMedia("(prefers-color-scheme: dark)").matches; }
@@ -142,8 +214,17 @@ document.getElementById("themebtn").onclick = () => {
   uiMode = THEME_ORDER[(THEME_ORDER.indexOf(uiMode)+1)%3];
   localStorage.setItem("mb_ui_mode", uiMode); applyTheme();
 };
+document.querySelectorAll(".navbtn[data-page]").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".navbtn").forEach(n => n.classList.remove("active"));
+    document.getElementById("page-" + b.dataset.page).classList.add("active");
+    b.classList.add("active");
+    if (b.dataset.page === "sessions") loadSessions();
+    if (b.dataset.page === "settings") loadPrefs();
+  };
+});
 
-// ---------- helpers ----------
 const $ = id => document.getElementById(id);
 const chat = $("chat");
 function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
@@ -163,30 +244,37 @@ function addMsg(who, html){
   chat.appendChild(div); chat.scrollTop = chat.scrollHeight;
   return div.querySelector(".body");
 }
-let thinkEl = null, thinkOpen = false, thinkBuf = "";
+let thinkEl = null, thinkBuf = "";
 function thinkStart(){
   thinkBuf = "";
   const det = document.createElement("details");
-  det.className = "think"; det.innerHTML = "<summary>🤔 <span data-i18n='thinking'>"+t("thinking")+"</span></summary><div class='tbody'></div>";
-  chat.appendChild(det); thinkEl = det.querySelector(".tbody");
-  thinkEl.dataset.done = "0";
+  det.className = "think";
+  det.innerHTML = "<summary>🤔 " + t("thinking") + "</summary><div class='tbody'></div>";
+  chat.appendChild(det); chat.scrollTop = chat.scrollHeight;
+  thinkEl = det.querySelector(".tbody");
 }
 function thinkChunk(txt){
   if(!thinkEl) thinkStart();
   thinkBuf += txt; thinkEl.textContent = thinkBuf; chat.scrollTop = chat.scrollHeight;
 }
 function thinkClose(){ thinkEl = null; }
+function toolChip(name, args){
+  const chip = document.createElement("span");
+  chip.className = "toolchip";
+  chip.textContent = "⚙ " + name + " " + JSON.stringify(args).slice(0, 90);
+  (chat.lastElementChild || chat).appendChild(chip);
+  chat.scrollTop = chat.scrollHeight;
+}
 
 // ---------- SSE ----------
-let es = null;
+let es = null, curBody = null, curDone = false, thinkEl = null, thinkBuf = "";
 function connect(){
   es = new EventSource("/api/events");
   es.onmessage = e => {
     const evt = JSON.parse(e.data);
     if (evt.type === "tok"){
-      let b = chat.querySelector(".msg.assistant:last-child .body");
-      if (!b || b.dataset.done === "1"){ thinkClose(); b = addMsg("assistant",""); b.dataset.done="0"; }
-      b.innerHTML += md(evt.data);
+      if (!curBody || curDone){ thinkClose(); curBody = addMsg("assistant",""); curBody.dataset.done="0"; }
+      curBody.innerHTML += md(evt.data);
       chat.scrollTop = chat.scrollHeight;
     } else if (evt.type === "think"){
       thinkChunk(evt.data);
@@ -197,13 +285,16 @@ function connect(){
       const chip = document.createElement("span");
       chip.className = "toolchip";
       chip.textContent = "⚙ " + (d.kind || d.event || "dispatch");
-      (thinkEl || chat).appendChild(chip);
+      chat.appendChild(chip);
+    } else if (evt.type === "ctx"){
+      $("ctxfill").style.width = Math.min(evt.data.pct, 100) + "%";
+      $("ctxtext").textContent = "ctx: " + evt.data.used + " / " + evt.data.total;
     } else if (evt.type === "note"){
       const n = document.createElement("div");
       n.className = "msg assistant"; n.style.color = "var(--muted)";
       n.textContent = evt.data; chat.appendChild(n); chat.scrollTop = chat.scrollHeight;
     } else if (evt.type === "exit"){
-      document.querySelectorAll('.msg .body').forEach(b=>b.dataset.done="1");
+      if (curBody) curBody.dataset.done = "1";
       $("send").disabled = false; $("stop").disabled = true;
       refreshStatus();
     }
@@ -211,8 +302,8 @@ function connect(){
 }
 function showAsk(req){
   const dlg = $("askdlg");
-  $("asktitle").textContent = t("outside");
-  $("askbody").textContent = req.question || req.reason || JSON.stringify(req);
+  $("asktitle").textContent = req.question || t("outside");
+  $("askbody").textContent = typeof req === "string" ? req : (req.info || req.command || req.path || "");
   dlg.showModal();
   const answer = a => { dlg.close(); fetch("/api/ask", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({answer:a})}); };
   $("ask-allow1").onclick = () => answer("allow");
@@ -237,17 +328,62 @@ function send(){
   $("send").disabled = true; $("stop").disabled = false;
 }
 $("stop").onclick = () => fetch("/api/stop", {method:"POST"});
-$("newchat").onclick = () => { chat.innerHTML = ""; addMsg("assistant", t("welcome")); };
+$("newchat").onclick = () => { fetch("/api/newchat", {method:"POST"}); chat.innerHTML = ""; addMsg("assistant", t("welcome")); };
 $("clear").onclick = () => chat.innerHTML = "";
 $("aboutbtn").onclick = () => { $("aboutver").textContent = "Mingbird " + (window.__ver || ""); $("aboutdlg").showModal(); };
+
+// ---------- sessions page ----------
+let sessSel = null;
+function loadSessions(){
+  fetch("/api/sessions").then(r=>r.json()).then(d => {
+    const box = $("sesslist"); box.innerHTML = "";
+    (d.sessions || []).forEach(n => {
+      const div = document.createElement("div");
+      div.className = "sessitem"; div.textContent = n;
+      div.onclick = () => { box.querySelectorAll(".sessitem").forEach(x=>x.classList.remove("sel")); div.classList.add("sel"); sessSel = n; };
+      box.appendChild(div);
+    });
+  });
+}
+$("sess-load").onclick = () => {
+  if (!sessSel) return;
+  fetch("/api/newchat", {method:"POST"});
+  addMsg("assistant", "▶ " + t("load_resume") + ": " + sessSel);
+  document.querySelector('.navbtn[data-page="chat"]').click();
+};
+$("sess-view").onclick = () => {
+  if (!sessSel) return;
+  fetch("/api/sessions").then(r=>r.json()).then(()=>{});
+  fetch("/api/sessions").catch(()=>{});
+  // transcript: served from session file via plan endpoint family (v0.2) — here we show the pick
+  $("sessview").textContent = "selected: " + sessSel;
+};
+
+// ---------- settings ----------
+$("p-save").onclick = () => {
+  const prefs = {ctx: parseInt($("p-ctx").value), temp: parseFloat($("p-temp").value),
+                 num_predict: parseInt($("p-np").value), think: $("p-think").checked,
+                 sys_enable: $("p-sysen").checked, sys_text: $("p-systext").value};
+  fetch("/api/prefs", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(prefs)}).then(()=>{ $("p-save").textContent = "✓"; setTimeout(()=>$("p-save").textContent=t("save"), 1200); });
+};
+function loadPrefs(){
+  fetch("/api/status").then(r=>r.json()).then(d => {
+    const p = d.prefs || {};
+    $("p-ctx").value = p.ctx || 131072; $("p-temp").value = p.temp ?? 0;
+    $("p-np").value = p.num_predict || 2048; $("p-think").checked = !!p.think;
+    $("p-sysen").checked = !!p.sys_enable; $("p-systext").value = p.sys_text || "";
+  });
+}
 
 // ---------- status poll ----------
 function refreshStatus(){
   fetch("/api/status").then(r=>r.json()).then(d => {
     window.__ver = d.version;
     $("ver").textContent = d.version || "";
-    $("ollamadot").textContent = "Ollama " + (d.ollama ? "✓" : "✗");
-    $("ollamadot").className = d.ollama ? "ok" : "bad";
+    $("sessiontag").textContent = (t("session") || "session") + ": " + (d.session || "—");
+    $("ollamadot").textContent = "Ollama " + (d.ollama !== false ? "✓" : "✗");
+    $("ollamadot").className = d.ollama !== false ? "ok" : "bad";
     const sel = $("model");
     if (sel.options.length !== d.models.length) {
       sel.innerHTML = d.models.map(m => `<option>${m}</option>`).join("");
@@ -257,5 +393,3 @@ function refreshStatus(){
 }
 refreshStatus(); setInterval(refreshStatus, 10000); connect();
 </script>
-</body>
-</html>
