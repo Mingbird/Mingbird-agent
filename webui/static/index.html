@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mingbird · Local AI Assistant</title>
+<style>
+:root{
+  --ming:#0F8A7E; --ming-bright:#1FA396; --accent:#F2A93B;
+  --bg:#F6F5F2; --surface:#FFFFFF; --elev:#EFEDE8; --text:#23282C;
+  --muted:#7A838B; --border:#DCD8D0; --bubble:#E4F1EF; --code:#F0EFEB; --sel:#DDEEEB;
+}
+[data-theme="dark"]{
+  --bg:#1E2226; --surface:#262B31; --elev:#2E343B; --text:#E8EAED;
+  --muted:#98A2AB; --border:#3A4148; --bubble:#24403C; --code:#191D21; --sel:#204441;
+  --ming:#1FA396;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.55 "Segoe UI","Microsoft YaHei UI",sans-serif;display:flex;height:100vh;overflow:hidden}
+#rail{width:76px;background:var(--elev);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;flex-shrink:0}
+#rail .brand{font-size:22px;margin-bottom:2px}
+#rail .brandname{font-size:9px;font-weight:700;color:var(--muted);margin-bottom:10px}
+.navbtn{width:64px;padding:8px 0;border:0;background:transparent;color:var(--muted);border-radius:10px;cursor:pointer;font:12px "Segoe UI","Microsoft YaHei UI",sans-serif}
+.navbtn:hover{background:var(--sel);color:var(--text)}
+.navbtn.active{background:var(--sel);color:var(--ming);font-weight:600}
+#rail .spacer{flex:1}
+#main{flex:1;display:flex;flex-direction:column;min-width:0}
+#topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)}
+#topbar select{padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+#topbar .title{font-weight:700;font-size:15px}
+#sessiontag{margin-left:auto;color:var(--muted);font-size:12px}
+#chat{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:78%;padding:10px 14px;border-radius:12px;white-space:pre-wrap;word-break:break-word}
+.msg.user{align-self:flex-end;background:var(--bubble);border:1px solid var(--border)}
+.msg.assistant{align-self:flex-start;background:var(--surface);border:1px solid var(--border)}
+.msg .who{font-size:11px;font-weight:700;color:var(--ming);margin-bottom:4px}
+.msg.assistant .who{color:var(--muted)}
+.think{border-left:3px solid var(--border);padding:4px 10px;margin:6px 0;color:var(--muted);font-size:12.5px;white-space:pre-wrap}
+.think summary{cursor:pointer;color:var(--muted)}
+.toolchip{display:inline-block;background:var(--code);border:1px solid var(--border);border-radius:6px;padding:1px 8px;margin:2px 4px 2px 0;font:12px Consolas,monospace;color:var(--muted)}
+code{background:var(--code);padding:1px 5px;border-radius:5px;font:12.5px Consolas,monospace}
+pre{background:var(--code);padding:10px 12px;border-radius:10px;overflow-x:auto;font:12.5px Consolas,monospace}
+pre code{background:transparent;padding:0}
+#inputdock{border-top:1px solid var(--border);padding:10px 16px;background:var(--surface)}
+#input{width:100%;min-height:64px;max-height:200px;resize:vertical;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font:14px "Segoe UI","Microsoft YaHei UI",sans-serif;background:var(--surface);color:var(--text)}
+#inputrow{display:flex;gap:8px;margin-top:8px;align-items:center}
+button{border:1px solid var(--border);background:var(--surface);color:var(--text);padding:6px 14px;border-radius:9px;cursor:pointer;font:13px "Segoe UI",sans-serif}
+button.primary{background:var(--ming);border-color:var(--ming);color:#fff;font-weight:600}
+button.danger{color:#d9534f;border-color:#d9534f}
+button:disabled{opacity:.45;cursor:not-allowed}
+#statusbar{display:flex;gap:14px;align-items:center;padding:4px 16px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)}
+#ctxbar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+#ctxfill{height:100%;width:0;background:var(--ming)}
+#ollamadot{font-weight:700}
+.ok{color:var(--ming)} .bad{color:#d9534f}
+dialog{border:1px solid var(--border);border-radius:14px;background:var(--surface);color:var(--text);padding:20px 24px;min-width:420px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.kicker{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:18px;margin:0 0 4px}
+</style>
+</head>
+<body>
+<div id="rail">
+  <div class="brand">🐦</div>
+  <div class="brandname">Mingbird</div>
+  <button class="navbtn active" data-page="chat">💬 <span data-i18n="chat">Chat</span></button>
+  <button class="navbtn" data-page="sessions">🕘 <span data-i18n="history">History</span></button>
+  <div class="spacer"></div>
+  <button class="navbtn" id="themebtn">🌓</button>
+  <button class="navbtn" id="aboutbtn">ℹ</button>
+</div>
+<div id="main">
+  <div id="topbar">
+    <span class="title">Mingbird</span>
+    <span class="kicker" id="ver"></span>
+    <label data-i18n="model">Model</label>
+    <select id="model"></select>
+    <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" id="think" checked> <span data-i18n="thinking">Thinking</span></label>
+    <span style="margin-left:auto"></span>
+  </div>
+  <div id="chat"></div>
+  <div id="inputdock">
+    <textarea id="input" placeholder="Type a task or chat… (Ctrl+Enter to send · 输入任务或对话)"></textarea>
+    <div id="inputrow">
+      <button class="primary" id="send" data-i18n="send">Send</button>
+      <span id="voicewrap"><button id="voice" title="voice">🎤</button></span>
+      <button id="stop" disabled class="danger" data-i18n="stop">Stop</button>
+      <label style="display:flex;align-items:center;gap:4px;font-size:12.5px"><input type="checkbox" id="resume" checked> <span data-i18n="resume">Resume</span></label>
+      <span style="flex:1"></span>
+      <button id="newchat" data-i18n="newchat">New chat</button>
+      <button id="clear" data-i18n="clear">Clear</button>
+    </div>
+  </div>
+  <div id="statusbar">
+    <div id="ctxbar"><div id="ctxfill"></div></div>
+    <span id="ctxtext">ctx: - / -</span>
+    <span id="ollamadot">Ollama …</span>
+  </div>
+</div>
+
+<dialog id="askdlg">
+  <h3 id="asktitle">⚠ Outside-workspace access</h3>
+  <p id="askbody" style="white-space:pre-wrap;font-size:13px"></p>
+  <div style="display:flex;gap:8px;justify-content:flex-end">
+    <button id="ask-allow1">Allow once</button>
+    <button id="ask-allowall">Allow all (this task)</button>
+    <button id="ask-deny" class="danger">Deny</button>
+  </div>
+</dialog>
+
+<dialog id="aboutdlg">
+  <h1>🐦 Mingbird</h1>
+  <p class="kicker">local-first · small-model-first agent harness</p>
+  <p>A local AI agent that runs on the laptop you already own.<br>鸣鸟：让你笔记本上的本地小模型真的干活。</p>
+  <p style="color:var(--muted);font-size:12px" id="aboutver"></p>
+  <form method="dialog"><button style="display:block;margin:0 auto">OK</button></form>
+</dialog>
+
+<script>
+// ---------- i18n ----------
+const I18N = {
+  en: {chat:"Chat", history:"History", thinking:"Thinking", send:"Send", stop:"Stop", resume:"Resume",
+       newchat:"New chat", clear:"Clear", model:"Model", outside:"⚠ Outside-workspace access"},
+  zh: {chat:"对话", history:"历史", thinking:"思考", send:"发送", stop:"停止", resume:"续跑",
+       newchat:"新对话", clear:"清空", model:"模型", outside:"⚠ 越界操作确认"}
+};
+let LANG = localStorage.getItem("mb_lang") || (navigator.language.startsWith("zh") ? "zh" : "en");
+function t(k){ return (I18N[LANG] && I18N[LANG][k]) || (I18N.en[k]) || k; }
+document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+
+// ---------- theme ----------
+const THEME_ORDER = ["auto","light","dark"];
+let uiMode = localStorage.getItem("mb_ui_mode") || "auto";
+function sysDark(){ return window.matchMedia("(prefers-color-scheme: dark)").matches; }
+function applyTheme(){
+  const mode = uiMode === "auto" ? (sysDark() ? "dark" : "light") : uiMode;
+  document.documentElement.setAttribute("data-theme", mode);
+}
+applyTheme();
+document.getElementById("themebtn").onclick = () => {
+  uiMode = THEME_ORDER[(THEME_ORDER.indexOf(uiMode)+1)%3];
+  localStorage.setItem("mb_ui_mode", uiMode); applyTheme();
+};
+
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const chat = $("chat");
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function md(s){
+  let h = esc(s);
+  h = h.replace(/```(\w*)\n([\s\S]*?)```/g, (m,l,c)=>"<pre><code>"+c+"</code></pre>");
+  h = h.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+  h = h.replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>");
+  h = h.replace(/^### (.+)$/gm, "<b>$1</b>");
+  return h;
+}
+function addMsg(who, html){
+  const div = document.createElement("div");
+  div.className = "msg " + who;
+  div.innerHTML = '<div class="who">' + (who==="user" ? "👤 "+t("you") : "🐦 Mingbird") + "</div>" +
+                  '<div class="body">' + html + "</div>";
+  chat.appendChild(div); chat.scrollTop = chat.scrollHeight;
+  return div.querySelector(".body");
+}
+let thinkEl = null, thinkOpen = false, thinkBuf = "";
+function thinkStart(){
+  thinkBuf = "";
+  const det = document.createElement("details");
+  det.className = "think"; det.innerHTML = "<summary>🤔 <span data-i18n='thinking'>"+t("thinking")+"</span></summary><div class='tbody'></div>";
+  chat.appendChild(det); thinkEl = det.querySelector(".tbody");
+  thinkEl.dataset.done = "0";
+}
+function thinkChunk(txt){
+  if(!thinkEl) thinkStart();
+  thinkBuf += txt; thinkEl.textContent = thinkBuf; chat.scrollTop = chat.scrollHeight;
+}
+function thinkClose(){ thinkEl = null; }
+
+// ---------- SSE ----------
+let es = null;
+function connect(){
+  es = new EventSource("/api/events");
+  es.onmessage = e => {
+    const evt = JSON.parse(e.data);
+    if (evt.type === "tok"){
+      let b = chat.querySelector(".msg.assistant:last-child .body");
+      if (!b || b.dataset.done === "1"){ thinkClose(); b = addMsg("assistant",""); b.dataset.done="0"; }
+      b.innerHTML += md(evt.data);
+      chat.scrollTop = chat.scrollHeight;
+    } else if (evt.type === "think"){
+      thinkChunk(evt.data);
+    } else if (evt.type === "ask"){
+      showAsk(evt.data);
+    } else if (evt.type === "dispatch"){
+      const d = typeof evt.data === "string" ? JSON.parse(evt.data) : evt.data;
+      const chip = document.createElement("span");
+      chip.className = "toolchip";
+      chip.textContent = "⚙ " + (d.kind || d.event || "dispatch");
+      (thinkEl || chat).appendChild(chip);
+    } else if (evt.type === "note"){
+      const n = document.createElement("div");
+      n.className = "msg assistant"; n.style.color = "var(--muted)";
+      n.textContent = evt.data; chat.appendChild(n); chat.scrollTop = chat.scrollHeight;
+    } else if (evt.type === "exit"){
+      document.querySelectorAll('.msg .body').forEach(b=>b.dataset.done="1");
+      $("send").disabled = false; $("stop").disabled = true;
+      refreshStatus();
+    }
+  };
+}
+function showAsk(req){
+  const dlg = $("askdlg");
+  $("asktitle").textContent = t("outside");
+  $("askbody").textContent = req.question || req.reason || JSON.stringify(req);
+  dlg.showModal();
+  const answer = a => { dlg.close(); fetch("/api/ask", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({answer:a})}); };
+  $("ask-allow1").onclick = () => answer("allow");
+  $("ask-allowall").onclick = () => answer("allow_all");
+  $("ask-deny").onclick = () => answer("deny");
+}
+
+// ---------- actions ----------
+$("send").onclick = send;
+$("input").addEventListener("keydown", e => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); }
+});
+function send(){
+  const prompt = $("input").value.trim();
+  if (!prompt) return;
+  $("input").value = "";
+  addMsg("user", md(prompt));
+  thinkClose();
+  fetch("/api/chat", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({prompt, model: $("model").value, resume: $("resume").checked})})
+    .then(r => { if (r.status === 409) addMsg("assistant", "⚠ busy — stop the current task first"); });
+  $("send").disabled = true; $("stop").disabled = false;
+}
+$("stop").onclick = () => fetch("/api/stop", {method:"POST"});
+$("newchat").onclick = () => { chat.innerHTML = ""; addMsg("assistant", t("welcome")); };
+$("clear").onclick = () => chat.innerHTML = "";
+$("aboutbtn").onclick = () => { $("aboutver").textContent = "Mingbird " + (window.__ver || ""); $("aboutdlg").showModal(); };
+
+// ---------- status poll ----------
+function refreshStatus(){
+  fetch("/api/status").then(r=>r.json()).then(d => {
+    window.__ver = d.version;
+    $("ver").textContent = d.version || "";
+    $("ollamadot").textContent = "Ollama " + (d.ollama ? "✓" : "✗");
+    $("ollamadot").className = d.ollama ? "ok" : "bad";
+    const sel = $("model");
+    if (sel.options.length !== d.models.length) {
+      sel.innerHTML = d.models.map(m => `<option>${m}</option>`).join("");
+      if (d.models.length) sel.value = d.models[0];
+    }
+  }).catch(()=>{});
+}
+refreshStatus(); setInterval(refreshStatus, 10000); connect();
+</script>
+</body>
+</html>
