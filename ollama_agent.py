@@ -241,6 +241,14 @@ RULES:
 - Work only in the current directory (Windows). Never cd to absolute paths like /workspace — commands already run here; use relative paths.
 - Be concise in text; put large content in tool arguments. Call finish only when answered or fully verified done."""
 
+# 平台行按实际 OS 生成(移植审查:POSIX 上注入"(Windows)"会持续误导小模型)
+SYSTEM = SYSTEM.replace(
+    "Work only in the current directory (Windows). Never cd to absolute paths like /workspace — commands already run here; use relative paths.",
+    ("Work only in the current directory (Windows). Never cd to absolute paths like /workspace — commands already run here; use relative paths."
+     if os.name == "nt" else
+     "Work only in the current directory. Never cd outside it and never invent paths like C:\\ — commands already run here; use relative paths.")
+)
+
 # 问答模式:聊天级 prefill(根治小模型"加戏"死循环)。
 # 根因:任务向系统提示+全量工具+Continue 注入,把"你好"逼成工具演示死循环。
 # 问答 → 换聊天提示+只读工具,答完即停。
@@ -1335,10 +1343,13 @@ def run_tool(name, args, workdir):
             out = _format_bash_out(rc, out_s or "", err_s or "",
                                    small_model=_SMALL_MODEL_MODE)
             # 常见 Linux 绝对路径幻觉(/workspace /data /tmp 等),给提示
-            if re.search(r"(^|\s)(cd|mkdir|ls|rm|cat|touch)\s+/(?!Users|home|[A-Za-z]:)", cmd) or "cd /workspace" in cmd:
+            # 常见 Linux 绝对路径幻觉(/workspace /data /tmp 等),给提示。
+            # 仅 Windows 注入:POSIX 上 ls /usr、cat /etc/hosts 是正常命令,
+            # 这条提示会持续误导小模型改用 C:\ 路径(移植审查 P1)。
+            if os.name == "nt" and (re.search(r"(^|\s)(cd|mkdir|ls|rm|cat|touch)\s+/(?!Users|home|[A-Za-z]:)", cmd) or "cd /workspace" in cmd):
                 out += "\n[提示: 这是 Windows,不要用 /data /tmp /workspace 等 Linux 路径。工作目录已设定,直接用相对路径或本机盘符路径。]"
             # bash 风格 `time cmd` 在 Windows cmd 里不是计时(会提示改系统时间),给提示
-            if re.match(r"^\s*time\s+", cmd):
+            if os.name == "nt" and re.match(r"^\s*time\s+", cmd):
                 out += "\n[提示: Windows 无 bash 的 time 命令。请在脚本内用 python time 模块计时,或用 python -c 执行计时。]"
             return out
         if name=="web_search": return web_search(args["query"])

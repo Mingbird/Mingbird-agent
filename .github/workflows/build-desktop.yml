@@ -36,7 +36,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y libportaudio2 tk8.6 binutils
+          sudo apt-get install -y libportaudio2 tk8.6 binutils xvfb
 
       - name: Install python deps
         run: |
@@ -45,9 +45,13 @@ jobs:
 
       - name: Fetch STT model (optional, voice input)
         run: |
+          # spec 的 datas 含 ('stt','stt'):目录必须存在,否则 PyInstaller 直接报错
+          # (P0:全新 checkout 无 stt/,三个平台 Build 全炸)。模型解进 stt/,
+          # 下载失败时留空目录 = 语音降级为 No Audio,构建继续。
+          mkdir -p stt
           curl -sL -o stt.tar.bz2 "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23.tar.bz2" || true
-          if [ -s stt.tar.bz2 ]; then tar xjf stt.tar.bz2; fi
-          ls -d sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23 2>/dev/null || echo "stt model unavailable - voice input will degrade to No Audio"
+          if [ -s stt.tar.bz2 ]; then tar xjf stt.tar.bz2 -C stt --strip-components=1; fi
+          ls stt/ | head -3 || echo "stt model unavailable - voice input will degrade to No Audio"
 
       - name: Build (PyInstaller)
         run: python -m PyInstaller --noconfirm --clean LocalAgent-unix.spec
@@ -65,9 +69,15 @@ jobs:
         shell: bash
         run: |
           cd dist/LocalAgent
-          ./LocalAgent & APP=$!
+          # linux runner 无显示:用 xvfb 提供虚拟显示再判存活(裸跑必 TclError,
+          # 旧判断把"早退"当"可接受",什么都验证不了)
+          if [ -n "$(command -v xvfb-run)" ]; then
+            xvfb-run -a ./LocalAgent & APP=$!
+          else
+            ./LocalAgent & APP=$!
+          fi
           sleep 8
-          if kill -0 "$APP" 2>/dev/null; then echo "smoke: alive"; kill "$APP" || true; else echo "smoke: exited early"; (test -f ../LocalAgent && echo "headless exit is acceptable for windowed builds"); fi
+          if kill -0 "$APP" 2>/dev/null; then echo "smoke: alive"; kill "$APP" || true; else echo "smoke: exited early (see log above)"; exit 1; fi
 
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/') || inputs.tag != ''
