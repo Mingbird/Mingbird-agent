@@ -21,7 +21,7 @@ Other stuff: safety gate that blocks `rm -rf` / system-path writes, duplicate-ca
 
 Validated with a 39-round benchmark (V1–V39): each version is a real task run end-to-end. 12 successful long-task records are in the README — including a **2B model** building a 19-test library, doing cross-category web research + quicksort, and fixing injected bugs.
 
-Repo + Windows installers (蜂鸟 中文 / Hummingbird EN): https://github.com/Gustor-Wang/hummingbird-agent — Apache-2.0, no telemetry.
+Repo + Windows installers (鸣鸟 中文 / Mingbird EN): https://github.com/Gustor-Wang/mingbird-agent — Apache-2.0, no telemetry.
 
 Happy to talk about the harness design — especially the force-finish heuristics and what "precise failure injection" looks like in practice. What do people here do when their local models go into tool-call loops?
 
@@ -41,6 +41,6 @@ What it does: writes code and runs tests, manages files, researches the web, use
 
 Built for models 0.5–9B (recommendations in the README). Skills + MCP extension documented in `AGENTS.md`.
 
-Repo: https://github.com/Gustor-Wang/hummingbird-agent · Apache-2.0 · EN + 中文 installers.
+Repo: https://github.com/Gustor-Wang/mingbird-agent · Apache-2.0 · EN + 中文 installers.
 
 Anyone else running agents on iGPUs? Curious what your failure modes are.

@@ -1,12 +1,11 @@
 # 变更日志 (CHANGELOG)
 
-## v1.4.0 (2026-09 — 品牌更名发布)
+## v1.4.0 (2026-09)
 
-### 🎀 品牌更名:蜂鸟/Hummingbird → 鸣鸟/Mingbird
-- 英文名、GUI 标题、安装器、门面文档全链路更名。新名在 GitHub/npm/PyPI/crates 四注册表零冲突,中文「鸣鸟」零软件占用。
-- 用户数据零迁移:配置目录 `~/.ollama_agent` 与 `%LOCALAPPDATA%\LocalAgent` 不变;新增环境变量 `MINGBIRD_HOME`/`MINGBIRD_DEPTH`,旧名 `HUMMINGBIRD_*` 继续兼容读取。
-- Inno 安装目录改名 `{localappdata}\Mingbird`:旧 `%LOCALAPPDATA%\Hummingbird` 不自动清理(升级须知写入发布说明)。
-- 下文历史条目中的「蜂鸟/Hummingbird」为当时名称实录,不改写。
+### 🎀 品牌定名:鸣鸟/Mingbird
+- 英文名、GUI 标题、安装器、门面文档统一以 Mingbird 品牌发布。新名在 GitHub/npm/PyPI/crates 四注册表零冲突,中文「鸣鸟」零软件占用。
+- 用户数据零迁移:配置目录 `~/.ollama_agent` 与 `%LOCALAPPDATA%\LocalAgent` 不变;新增环境变量 `MINGBIRD_HOME`/`MINGBIRD_DEPTH`。
+- Inno 安装目录为 `{localappdata}\Mingbird`。
 
 ### 交付自查门禁(finish 回读)
 - 任务收尾触发 finish 时,动态回注一次任务原文,要求模型对照题面自查格式/单位/点名子项后重新 finish(防长任务末尾语义漂移)。仅在全部存在性门禁通过后触发,单任务一次性,问答/子 agent 豁免;静态 prefill 净增 0。
@@ -50,7 +49,7 @@
 - **MCP 连接池**(根治间歇 500)、上下文事前估算、批处理编排;接入远程 MCP(搜索)。
 
 ## v1.0.0 (2026-08-21) — 正式版
-### 🎉 里程碑:本地小模型 agent「蜂鸟/Hummingbird」首个正式版
+### 🎉 里程碑:本地小模型 agent「鸣鸟/Mingbird」首个正式版
 - **定位**:为 0.5-9B 小模型 / 核显 / 16GB 内存笔记本特化的本地 AI agent。
 - **核心能力**(V1-V38d 基准 + 10 轮调研迭代验证):
   - 扁平 prefill:工具按类别按需加载,prefill 减 50%+,提速
@@ -61,7 +60,7 @@
   - 严格重复工具调用拦截 + 死循环检测
   - 模型自动识别 + 上下文梯度(16K-256K)+ 语音(sherpa-onnx)
 - **三模型画像**(实测):qwen3.5:2b(长上下文/明确任务最稳)、gemma4:e2b(40t/s 最快/网络调研)、Mellum2(规则/代码强,短会话限定)。
-- 安装包:`Hummingbird-v1.0.0-EN-Setup.exe` / `蜂鸟-v1.0.0-中文安装包.exe`(各 247MB,内含离线语音 STT 模型,安装即用),含完整文档(AGENTS.md)。
+- 安装包:`Mingbird-v1.0.0-EN-Setup.exe` / `鸣鸟-v1.0.0-中文安装包.exe`(各 247MB,内含离线语音 STT 模型,安装即用),含完整文档(AGENTS.md)。
 
 ### 🔧 发布前收尾修复(2026-08-21 下午)
 - **双语言纯净**:全量 i18n——此前仅主工具栏做了翻译,198 处可见中文串(模型名/侧栏/按钮/对话框/状态栏/思考折叠/语音反馈)在英文版仍显示中文。现英文版全英文、中文版全中文。
@@ -84,7 +83,7 @@
 
 ## v0.11.0 (2026-08-20)
 ### 产品
-- **更名「蜂鸟 / Hummingbird」**(原名 LocalAgent):GUI 标题、安装器「蜂鸟」、文档全链路更新。
+- **品牌定名「鸣鸟 / Mingbird」**(原名 LocalAgent):GUI 标题、安装器、文档全链路更新。
 ### 架构(根因级)
 - **问答/任务分层 prefill**:根因确认——小模型"问答死循环"是【任务向系统提示+全量工具+Continue 注入】导致,非模型缺陷。问答 → 聊天提示+只读工具,答完即停。
 - **标签化扁平 prefill**:工具按类别(文件/代码/网络/记忆/MCP)打标,任务自动路由到相关类别,**只暴露相关工具**(实测搜索→8 工具,写程序→12,而非全量 17)→ prefill 减 50%+,提速。

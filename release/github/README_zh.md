@@ -1,7 +1,5 @@
 # 🐦 鸣鸟 · 本地 AI 助手
 
-> 曾用名「蜂鸟 / Hummingbird」,2026 年 9 月更名为「鸣鸟 / Mingbird」——同一只鸟,换个名字接着飞。
-
 **一个跑在普通笔记本上的本地 AI agent——不挑显卡,不用云。**
 
 [English](README.md) · Apache-2.0 · Windows 10/11
