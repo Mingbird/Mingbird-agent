@@ -2,7 +2,7 @@
 
 ## 产品名
 
-Hummingbird (蜂鸟)
+Mingbird (鸣鸟)
 
 ## Tagline
 
@@ -25,7 +25,7 @@ Hummingbird (蜂鸟)
 
 ## 正文(Description full)
 
-**Most agent frameworks assume a cloud API or a $2,000 GPU. Hummingbird is for the laptop you already own.**
+**Most agent frameworks assume a cloud API or a $2,000 GPU. Mingbird is for the laptop you already own.**
 
 Fully offline, no account, no telemetry. Runs on Ollama with models 0.5–9B — built and tested on a laptop with an **AMD Radeon 680M integrated GPU and 16 GB of RAM**, and it responds almost instantly: as fast as talking to Ollama directly, no extra wait.
 
@@ -41,7 +41,7 @@ Fully offline, no account, no telemetry. Runs on Ollama with models 0.5–9B —
 
 **Ships ready:** bundled local voice input (~20× real-time), streaming with folding thinking, session memory with search & replay, up to 256K context.
 
-Open source, Apache-2.0. 中文版:蜂鸟。Windows 10/11.
+Open source, Apache-2.0. 中文版:鸣鸟。Windows 10/11.
 
 ## First comment(置顶评论,营造讨论)
 

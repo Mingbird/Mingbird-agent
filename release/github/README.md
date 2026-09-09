@@ -1,7 +1,5 @@
 # 🐦 Mingbird · Local AI Assistant
 
-> Formerly released as 蜂鸟 / Hummingbird — renamed September 2026. Same bird, new song.
-
 **A local AI agent that runs on the laptop you already own.**
 
 [中文版](README_zh.md) · Apache-2.0 · Windows 10/11

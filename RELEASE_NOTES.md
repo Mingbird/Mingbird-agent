@@ -2,8 +2,7 @@
 
 EN
 --
-First release under the Mingbird name (formerly Hummingbird). Version line
-continues at 1.4.0.
+First release under the Mingbird name. Version line continues at 1.4.0.
 
 - Benchmark evidence now shipped in-repo: LRAB-288 (4 harnesses x 4 open
   models x 18 tasks), all per-cell results public.
@@ -16,7 +15,7 @@ Full notes: see the GitHub release page for this tag.
 
 中文
 --
-更名鸣鸟后的首个版本（前身蜂鸟），版本线接续 1.4.0。
+鸣鸟发布的首个版本，版本线从 1.4.0 继续。
 
 - 基准证据随库公开：LRAB-288（4 harness × 4 模型 × 18 任务），逐格结果全公开。
 - 内置语音输入（本地 STT，纯 CPU），说完自动停。
