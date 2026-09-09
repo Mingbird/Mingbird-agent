@@ -16,6 +16,7 @@ import ttkbootstrap as tb
 import subprocess, threading, os, queue, sys, re, glob, json, time, shutil
 import voice_input
 import appconfig   # 统一配置层:Ollama 地址/模型映射等由用户配置,不硬编码
+_dedupe_model_entries = appconfig.dedupe_model_entries   # digest 去重(GUI/WebUI 共用,勿放类体内)
 
 # 冻结(exe)时用 exe 自身目录,避免 __file__ 相对 CWD 解析错导致文件找不到
 if getattr(sys, "frozen", False):
@@ -294,18 +295,18 @@ class AgentGUI:
         m = {}
         cfg_display = appconfig.model_map()          # {显示名: tag}
         tag_to_display = {v: k for k, v in cfg_display.items()}
-        tags = []
+        entries = []
         import urllib.request as _ur
         import time as _sleep_mod
         for _ in range(3):
             try:
                 r = json.loads(_ur.urlopen(f"{appconfig.ollama_host()}/api/tags", timeout=6).read())
-                tags = [x.get("name") for x in r.get("models", []) if x.get("name")]
+                entries = [x for x in r.get("models", []) if x.get("name")]
                 break
             except Exception:
-                tags = []
+                entries = []
                 _sleep_mod.sleep(0.8)
-        if not tags:
+        if not entries:
             # ollama 不可达:不把配置里的陈旧映射当可用模型展示(那会让用户选到跑不起来的模型)
             self._model_map = {}
             try:
@@ -316,8 +317,7 @@ class AgentGUI:
             except Exception:
                 pass
             return
-        for t in tags:
-            display = tag_to_display.get(t, t)
+        for display, t in _dedupe_model_entries(entries, tag_to_display):
             m[_t(display)] = t
         self._model_map = m
         try:
@@ -383,8 +383,8 @@ class AgentGUI:
             pass
 
         self._build_toolbar()
-        self.refresh_models()          # 动态读取 ollama 里的模型
         self._build_body()
+        self.refresh_models()          # 动态读取 ollama 里的模型(须在控件建成后:离线时用占位符覆盖,防陈旧配置回退)
         self._build_statusbar()
 
         # 快捷键
@@ -426,6 +426,7 @@ class AgentGUI:
     def _disp_units(s):
         """显示宽度估算:CJK/全角按 2 个单位,其余按 1(近似 Tk 平均字符宽度)。"""
         return sum(2 if ord(ch) > 0x2E7F else 1 for ch in str(s))
+
 
     # ================= 构建界面(v2:导航轨 + 页面栈) =================
     def _build_toolbar(self):
@@ -511,12 +512,16 @@ class AgentGUI:
         tb.Label(bar, text=self.app_version(), bootstyle="secondary",
                  font=("Consolas", 9)).pack(side="left", padx=(0, 10))
         tb.Label(bar, text=_t("模型:")).pack(side="left")
-        _cfg_models = appconfig.model_map()
-        self._model_map = {_t(k): v for k, v in _cfg_models.items()}
-        self.model_var = tk.StringVar(value=_t(next(iter(_cfg_models), "")))
+        # 不再用配置映射覆盖 _model_map(修复:那会把已卸载的陈旧配置模型塞回下拉,
+        # 且空映射时 list(...)[0] 会 IndexError);此处仅用现有映射(若有)建控件,
+        # __init__ 紧随其后调 refresh_models() 用 ollama 实况重建。
+        if not getattr(self, "_model_map", None):
+            _cfg_models = appconfig.model_map()
+            self._model_map = {_t(k): v for k, v in _cfg_models.items()}
+        _vals = list(self._model_map) or [_t("[ Ollama 离线 — 启动后自动重试 ]")]
+        self.model_var = tk.StringVar(value=_vals[0])
         # 下拉宽度按最长显示名适配(CJK 记 2 单位):否则 "qwen2b (长上下文 256K)"
         # 这类名字在闭合态被截断
-        _vals = [_t(k) for k in _cfg_models]
         _mw = max([13] + [self._disp_units(v) for v in _vals])
         self.model_cb = tb.Combobox(bar, textvariable=self.model_var,
                                     values=_vals,
@@ -1283,15 +1288,15 @@ class AgentGUI:
     def _voice_done(self, text, stt):
         self._voice_busy = False
         self._voice_rec = None
-        self.mic_btn.configure(text=_t("🎤 语音"), state="normal")
-        if self.mic_btn.cget("text") != _t("🎤 无音频"):
-            self.mic_btn.configure(bootstyle="info")
         if text:
             self.input.delete("1.0", "end")
             self.input.insert("1.0", text.strip())
             self.log_note(_t("[语音已转录({stt})并填入输入框]").format(stt=stt))
         else:
             self.log_note(_t("[语音转录无结果:{stt} 转写能力有限,可换用更强音频模型]").format(stt=stt))
+        # 按当前模型能力恢复按钮态:非音频模型下不能无条件恢复"可用"
+        # (旧写法先设回"🎤 语音"再比较,条件恒真,禁用态丢失)
+        self.refresh_voice_state()
 
     def new_chat(self):
         self.session = None
@@ -1304,7 +1309,10 @@ class AgentGUI:
         self.input.delete("1.0", "end")
 
     def launch(self, task, use_session, resume_ok):
-        model = self._model_map.get(self.model_var.get(), list(self._model_map.values())[0])
+        if not self._model_map:
+            self.log_note(_t("[无法启动:模型清单为空 — Ollama 未就绪,请先启动 Ollama]"))
+            return
+        model = self._model_map.get(self.model_var.get(), next(iter(self._model_map.values())))
         workdir = self.wd_var.get() if hasattr(self, "wd_var") else os.path.join(DEFAULT_TASKS, "work")
         task = task + self.attach_note()
         os.makedirs(workdir, exist_ok=True)
@@ -1401,21 +1409,21 @@ class AgentGUI:
 
     def _check_ollama(self):
         """Ollama 在线状态灯:绿=在线有模型,黄=在线无模型,红=离线。
-        自愈:在线且模型清单变化时自动刷新下拉(启动瞬间查询失败的下拉会在此自愈)。"""
+        自愈:在线且模型清单变化时自动刷新下拉(启动瞬间查询失败的下拉会在此自愈)。
+        比较集合必须与 refresh_models 同源(同一去重规则):拿原始 tag 集合去比
+        去重后的下拉值,会在存在 ollama cp 别名时恒不等 → 每 5 秒主线程重刷。"""
         up = False; has_models = False
         try:
             import urllib.request as _ur
             r = json.loads(_ur.urlopen(appconfig.ollama_host().rstrip("/") + "/api/tags", timeout=2).read())
             up = True; has_models = bool(r.get("models"))
-            live_tags = tuple(sorted(x.get("name", "") for x in r.get("models", [])))
-            self._last_live_tags = live_tags
-            # 自愈条件:当前下拉框里的 tag 集合 != ollama 实际安装集合
+            # 自愈条件:当前下拉框里的 tag 集合 != 去重后的应有集合
             # (覆盖:启动时 ollama 未就绪走了配置回退 / 用户 pull 了新模型 / 卸载了模型)
             cur_tags = frozenset(getattr(self, "_model_map", {}).values())
-            if cur_tags != frozenset(live_tags):
+            tag_to_display = {v: k for k, v in appconfig.model_map().items()}
+            want_tags = frozenset(t for _, t in _dedupe_model_entries(r.get("models", []), tag_to_display))
+            if cur_tags != want_tags:
                 self.refresh_models()
-        except Exception:
-            pass
         except Exception:
             pass
         if up and has_models:

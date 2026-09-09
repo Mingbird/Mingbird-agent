@@ -309,13 +309,22 @@ def tools_for_categories(cats, active=None, extra=None):
     return result
 
 # ---------------- 记忆 ----------------
+def _atomic_write_json(path, obj):
+    """原子写 JSON:先写 .tmp 再 os.replace。进程被杀(如 GUI"停止"=taskkill /F /T)
+    落在写盘中途时,截断的是 tmp,正式文件保持上一次完整状态——否则被截断的
+    session.json 永远无法 load,整个会话丢失。"""
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(obj, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, path)
+
 def load_memory():
     try:
         return json.load(open(MEMORY_FILE, encoding="utf-8"))
     except Exception:
         return []
 def save_memory(mem):
-    json.dump(mem, open(MEMORY_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    _atomic_write_json(MEMORY_FILE, mem)
 def memory_store(text):
     mem = load_memory()
     mem.append({"text": text, "ts": time.strftime("%Y-%m-%d %H:%M")})
@@ -339,7 +348,7 @@ def load_todo(workdir):
     try: return json.load(open(todo_file(workdir), encoding="utf-8"))
     except Exception: return []
 def save_todo(workdir, t):
-    json.dump(t, open(todo_file(workdir),"w",encoding="utf-8"), ensure_ascii=False, indent=2)
+    _atomic_write_json(todo_file(workdir), t)
 def format_todo_lines(t):
     """todo 列表 → "[x]/[ ] N. 条目" 文本(harness 回执与 GUI 计划面板共用,保证两侧一致)。"""
     return "\n".join(f"{'[x]' if x.get('done') else '[ ]'} {i}. {x.get('item','')}"
@@ -855,12 +864,16 @@ def _auto_repair(path):
     elif path.endswith((".md", ".txt", ".csv")):
         s = open(path, encoding="utf-8", errors="replace").read()
         if chr(92) in s:
-            fixed = re.sub(r"\\+n", "\n", s)
-            fixed = re.sub(r"\\+t", "\t", fixed)
-            fixed = fixed.rstrip(chr(92))
-            if fixed != s:
-                open(path, "w", encoding="utf-8").write(fixed)
-                return 1
+            # 前置判据:字面转义序列(\n/\t,层数不限)合计 >=3 处才视为转义污染。
+            # 无前置会误伤正常内容:Windows 路径 C:\notes、正文里的 print("a\n")
+            # 示例都会被改坏(.py 分支有"语法错误才动手"前置,文本类此前裸奔)。
+            _lit = len(re.findall(r"\\+n", s)) + len(re.findall(r"\\+t", s))
+            if _lit >= 3:
+                fixed = re.sub(r"\\+n", "\n", s)
+                fixed = re.sub(r"\\+t", "\t", fixed)
+                if fixed != s:
+                    open(path, "w", encoding="utf-8").write(fixed)
+                    return 1
         return 0
     else:
         return 0
@@ -891,7 +904,7 @@ def _auto_repair(path):
 
 # 本轮已获得"允许全部"授权的工具名(GUI 弹窗用户选"允许全部"后,本轮同工具不再确认)
 _allow_all = set()
-# 本进程可读写的目录白名单(工作目录;可被 AGENT_ALLOW_DIRS 环境变量扩展,冒号分隔)
+# 本进程可读写的目录白名单(工作目录;可被 AGENT_ALLOW_DIRS 环境变量扩展,分号分隔)
 _allow_dirs = set()
 # 子 agent 沙箱(并行派发的子进程专用,AGENT_CHILD_SANDBOX=1 时由 main() 安装)。
 # 子 agent 权限严格小于主 agent:default-deny,无升级路径,带审计与危险行为熔断。
@@ -992,12 +1005,13 @@ _FILE_TOOLS = ("create_file", "read_file", "edit_file", "append_file", "delete_f
 def _safe_path(workdir, path):
     """解析路径并判断是否在工作目录(或允许目录)内。返回 (real_abs, inside_bool)。
     关键:os.path.join 在 Windows 上遇到绝对路径会直接返回绝对路径本身(绕过 workdir),
-    且 `..` 可向上跳转。这里用 abspath 折叠 `..` + commonpath 判定边界。
-    _allow_dirs 可由 AGENT_ALLOW_DIRS 环境变量(冒号分隔)扩展,允许 agent 访问额外目录。"""
+    且 `..` 可向上跳转。这里用 realpath 折叠 `..` 并解析符号链接/junction 后再
+    commonpath 判定边界——workdir 内指向外部的链接不能成为越界通道。
+    _allow_dirs 可由 AGENT_ALLOW_DIRS 环境变量(分号分隔)扩展,允许 agent 访问额外目录。"""
     try:
-        base = os.path.abspath(workdir)
-        real = os.path.abspath(os.path.join(workdir, str(path or "")))
-        allowed = [os.path.abspath(d) for d in ([base] + sorted(_allow_dirs))]
+        base = os.path.realpath(workdir)
+        real = os.path.realpath(os.path.join(workdir, str(path or "")))
+        allowed = [os.path.realpath(d) for d in ([base] + sorted(_allow_dirs))]
         for d in allowed:
             try:
                 common = os.path.commonpath([os.path.normcase(d), os.path.normcase(real)])
@@ -1007,7 +1021,7 @@ def _safe_path(workdir, path):
                 continue
         return real, False
     except Exception:
-        return os.path.abspath(os.path.join(workdir, str(path or ""))), False
+        return os.path.realpath(os.path.join(workdir, str(path or ""))), False
 
 def _is_sensitive_path(path):
     """路径是否命中敏感模式(含工作目录名本身触发的误报排除:敏感模式用全路径片段匹配)。"""
@@ -1043,7 +1057,7 @@ def _ask_user_confirm(name, real_path, workdir, action="访问"):
                 line = None
             if line:
                 low = line.lower()
-                if low in ("@allow", "@allow_all", "allow", "yes", "y"):
+                if low in ("@allow", "@allow_all", "allow", "allow_all", "yes", "y"):
                     return True, low in ("@allow_all", "allow_all"), ""
                 return False, False, "[安全门:用户拒绝了本次越界访问]"
             return False, False, "[安全门:等待用户确认超时(120s),已按拒绝处理]"
@@ -1619,7 +1633,7 @@ def sanitize_ckpt(msgs):
 
 def save_session(name, msgs):
     if not name: return
-    json.dump(msgs, open(os.path.join(SESSIONS_DIR, name + ".json"),"w",encoding="utf-8"), ensure_ascii=False, indent=2)
+    _atomic_write_json(os.path.join(SESSIONS_DIR, name + ".json"), msgs)
     try:
         task = next((str(m.get("content","")) for m in msgs if m.get("role")=="user" and not m.get("tool_calls")), "")
         status = "running"
@@ -1633,7 +1647,7 @@ def save_session(name, msgs):
             if status == "done": break
         meta = {"updated": time.strftime("%Y-%m-%d %H:%M"), "task": task[:200],
                 "status": status, "msgs": len(msgs)}
-        json.dump(meta, open(os.path.join(SESSIONS_DIR, name + ".meta.json"),"w",encoding="utf-8"), ensure_ascii=False, indent=2)
+        _atomic_write_json(os.path.join(SESSIONS_DIR, name + ".meta.json"), meta)
     except Exception:
         pass
     print(f"[session saved: {name}]", flush=True)
@@ -1641,7 +1655,7 @@ def save_session(name, msgs):
 # ---------------- 主循环 ----------------
 def main():
     args = sys.argv[1:]
-    # 守护系统:允许目录白名单(AGENT_ALLOW_DIRS 冒号分隔,追加到工作目录之外)
+    # 守护系统:允许目录白名单(AGENT_ALLOW_DIRS 分号分隔,追加到工作目录之外)
     global _allow_dirs
     _extra = os.environ.get("AGENT_ALLOW_DIRS", "")
     if _extra:
@@ -2166,8 +2180,7 @@ def _load_elapsed(workdir):
 
 def _save_elapsed(workdir, sec):
     try:
-        json.dump({"elapsed_sec": round(float(sec), 1)},
-                  open(_elapsed_meta_path(workdir), "w", encoding="utf-8"))
+        _atomic_write_json(_elapsed_meta_path(workdir), {"elapsed_sec": round(float(sec), 1)})
     except Exception:
         pass
 
