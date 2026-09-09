@@ -3,14 +3,25 @@
 """Mingbird Web UI (v1.5) — local-only web frontend over the same agent CLI.
 
 Bind 127.0.0.1 only: nothing leaves the machine (offline-first red line).
-Line protocol (@@TOK@@/@@THINK@@/@@ASK@@/@@DISPATCH@@) is identical to the
-Tk frontend; the web layer just re-publishes it as SSE events.
+Line protocol (@@TOK@@/@@THINK@@/@@ASK@@/@@DISPATCH@@/​[ctx: N/M = P%]) is
+identical to the Tk frontend; the web layer re-publishes it as SSE events.
 Usage: python webui/server.py [--port 8765]
+
+Endpoints:
+  GET  /                 single-page frontend
+  GET  /api/status       version/busy/models/session/prefs/workdir
+  GET  /api/events       SSE event stream
+  POST /api/chat         {prompt, model, resume} -> start agent
+  POST /api/stop         kill agent tree
+  POST /api/ask          {answer} -> stdin to agent approval prompt
+  POST /api/newchat      reset session (next chat starts fresh)
+  GET  /api/sessions     session list
+  GET  /api/plan         plan (todo.json) of the current workdir
+  GET/POST /api/prefs    ctx/temp/num_predict/think/sys_enable/sys_text/ui_mode
 """
 import json
 import os
-import queue
-import shutil
+import re
 import subprocess
 import sys
 import threading
@@ -25,34 +36,67 @@ if ROOT not in sys.path:
 AGENT_PY = os.path.join(ROOT, "ollama_agent.py")
 STATIC = os.path.join(HERE, "static")
 DEFAULT_TASKS = os.path.join(os.path.expanduser("~"), "agent_tasks")
+PREFS_FILE = os.path.join(os.path.expanduser("~"), ".ollama_agent", "gui_prefs.json")
 
-STATE = {"proc": None, "events": [], "cond": None, "session": None,
-         "ask_pending": False, "clients": 0}
-_lock = threading.Lock()
-_cond = threading.Condition()
+EVENTS = []
+COND = threading.Condition()
+STATE = {"proc": None, "session": None, "ask_pending": False, "workdir": None}
 
 
 def push_event(evt):
-    with _cond:
-        STATE["events"].append(evt)
-        _cond.notify_all()
+    with COND:
+        EVENTS.append(evt)
+        COND.notify_all()
 
 
-def start_agent(prompt, model_key, time_limit, resume):
+def _prefs_load():
+    d = {"ui_mode": "auto", "ctx": 131072, "temp": 0.0, "num_predict": 2048,
+         "think": True, "sys_enable": False, "sys_text": ""}
+    try:
+        d.update(json.load(open(PREFS_FILE, encoding="utf-8")))
+    except Exception:
+        pass
+    return d
+
+
+def _prefs_save(p):
+    os.makedirs(os.path.dirname(PREFS_FILE), exist_ok=True)
+    json.dump(p, open(PREFS_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+
+
+def _workdir():
+    return STATE.get("workdir") or os.path.join(DEFAULT_TASKS, "work")
+
+
+def _model_map():
     import appconfig
-    model = appconfig.model_map().get(model_key, next(iter(appconfig.model_map().values()), model_key))
-    workdir = os.path.join(DEFAULT_TASKS, "work")
+    return appconfig.model_map()
+
+
+def _apply_time_budget(env, task):
+    m = re.search(r"(?:限时|within|in under|time limit[: ]*)?(\d+(?:\.\d+)?)\s*(分钟|分钟内|min(?:ute)?s?|hours?|小时|h)\b", task, re.I)
+    if m:
+        v = float(m.group(1))
+        if re.match(r"h|hour|小时", m.group(2), re.I):
+            v *= 60
+        env["AGENT_TIME_BUDGET_SEC"] = str(int(v * 60))
+
+
+def start_agent(prompt, model_key, resume):
+    import appconfig
+    mmap = _model_map()
+    model = mmap.get(model_key, next(iter(mmap.values()), model_key))
+    workdir = _workdir()
     os.makedirs(workdir, exist_ok=True)
-    task = prompt
     taskfile = os.path.join(workdir, "task_input.txt")
     with open(taskfile, "w", encoding="utf-8") as f:
-        f.write(task)
+        f.write(prompt)
     if not resume:
         for stale in (".agent_state.json", "todo.json"):
             p = os.path.join(workdir, stale)
             if os.path.exists(p):
                 os.remove(p)
-    prefs = _load_prefs()
+    prefs = _prefs_load()
     env = dict(os.environ)
     env["PYTHONIOENCODING"] = "utf-8"
     env["AGENT_STREAM"] = "1"
@@ -69,28 +113,18 @@ def start_agent(prompt, model_key, time_limit, resume):
     STATE["session"] = session
     if resume:
         args += ["--session", session, "--append"]
-    _apply_time_budget(env, task)
+    _apply_time_budget(env, prompt)
     push_event({"type": "note", "data": "====== start · " + model + " ======"})
     proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             stdin=subprocess.PIPE, text=True, encoding="utf-8",
-                            errors="replace", env=env, bufsize=1,
-                            cwd=workdir)
+                            errors="replace", env=env, bufsize=1, cwd=workdir)
     STATE["proc"] = proc
     threading.Thread(target=_reader, args=(proc,), daemon=True).start()
     threading.Thread(target=_wait_exit, args=(proc,), daemon=True).start()
 
 
-def _apply_time_budget(env, task):
-    import re
-    m = re.search(r"(?:限时|时间限制|within|in under|time limit[: ]*)?(\d+(?:\.\d+)?)\s*(分钟|分钟内|min(?:ute)?s?|hours?|小时|h)\b", task, re.I)
-    if m:
-        v = float(m.group(1))
-        if re.match(r"h|hour|小时", m.group(2), re.I):
-            v *= 60
-        env["AGENT_TIME_BUDGET_SEC"] = str(int(v * 60))
-
-
 def _reader(proc):
+    ctx_re = re.compile(r"\[ctx: (\d+)/(\d+) = (\d+)%\]")
     for line in proc.stdout:
         line = line.rstrip("\r\n")
         if line.startswith("@@TOK@@"):
@@ -98,22 +132,28 @@ def _reader(proc):
         elif line.startswith("@@THINK@@"):
             push_event({"type": "think", "data": line[len("@@THINK@@"):]})
         elif line.startswith("@@ASK@@"):
+            STATE["ask_pending"] = True
             try:
                 req = json.loads(line[len("@@ASK@@"):])
             except Exception:
                 req = {"question": line[len("@@ASK@@"):]}
-            STATE["ask_pending"] = True
             push_event({"type": "ask", "data": req})
         elif line.startswith("@@DISPATCH@@"):
             push_event({"type": "dispatch", "data": line[len("@@DISPATCH@@"):]})
-        elif line.strip():
-            push_event({"type": "log", "data": line})
+        else:
+            m = ctx_re.search(line)
+            if m:
+                push_event({"type": "ctx", "data": {"used": int(m.group(1)),
+                                                    "total": int(m.group(2)),
+                                                    "pct": int(m.group(3))}})
+            elif line.strip():
+                push_event({"type": "log", "data": line})
     push_event({"type": "exit", "data": proc.poll()})
 
 
 def _wait_exit(proc):
     proc.wait()
-    time.sleep(0.5)
+    time.sleep(0.4)
     push_event({"type": "exit", "data": proc.poll()})
 
 
@@ -124,6 +164,7 @@ def kill_tree():
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
         else:
             proc.kill()
+    STATE["ask_pending"] = False
 
 
 # ---------------- HTTP ----------------
@@ -155,35 +196,51 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, open(fp, "rb").read(), ct + "; charset=utf-8")
             return self._send(404, "{}")
         if u.path == "/api/status":
-            import appconfig
-            models = list(appconfig.model_map().keys())
             proc = STATE.get("proc")
+            prefs = _prefs_load()
             return self._send(200, json.dumps({
                 "version": _version(), "busy": bool(proc and proc.poll() is None),
-                "models": models, "session": STATE.get("session"),
+                "models": list(_model_map().keys()),
+                "session": STATE.get("session"), "workdir": _workdir(),
                 "ask_pending": STATE.get("ask_pending", False),
-                "prefs": _prefs_public(),
+                "prefs": {k: prefs.get(k) for k in ("ctx", "temp", "num_predict", "think", "sys_enable", "sys_text", "ui_mode")},
             }, ensure_ascii=False))
         if u.path == "/api/sessions":
-            import glob
             sd = os.path.join(os.path.expanduser("~"), ".ollama_agent")
-            sd = os.path.join(sd, "") if os.path.isdir(sd) else sd
-            files = sorted(glob.glob(os.path.join(os.path.expanduser(os.path.join("~", ".ollama_agent")), "*.json")),
-                           key=os.path.getmtime, reverse=True)[:60]
-            names = [os.path.basename(f)[:-5] for f in files if not f.endswith(".meta.json")]
-            return self._send(200, json.dumps({"sessions": names}))
+            files = sorted([f for f in os.listdir(sd) if f.endswith(".json") and not f.endswith(".meta.json")],
+                           key=lambda n: -os.path.getmtime(os.path.join(sd, n)))[:60]
+            return self._send(200, json.dumps({"sessions": files}, ensure_ascii=False))
+        if u.path == "/api/session":
+            from urllib.parse import parse_qs
+            qs = parse_qs(u.query)
+            name = (qs.get("name") or [""])[0]
+            safe = os.path.basename(name)
+            fp = os.path.join(os.path.expanduser("~"), ".ollama_agent", safe + ".json")
+            try:
+                msgs = json.load(open(fp, encoding="utf-8"))
+            except Exception:
+                msgs = []
+            return self._send(200, json.dumps({"name": safe, "messages": msgs}, ensure_ascii=False))
+        if u.path == "/api/plan":
+            wd = _workdir()
+            p = os.path.join(wd, "todo.json")
+            try:
+                plan = json.load(open(p, encoding="utf-8"))
+            except Exception:
+                plan = []
+            return self._send(200, json.dumps({"plan": plan}, ensure_ascii=False))
         if u.path == "/api/events":
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
-            idx = max(0, len(STATE["events"]) - 200)
+            idx = max(0, len(EVENTS) - 300)
             self.wfile.write(b"retry: 3000\n\n")
             while True:
-                with _cond:
-                    while idx >= len(STATE["events"]):
-                        _cond.wait(timeout=15)
-                    new = STATE["events"][idx:]
+                with COND:
+                    while idx >= len(EVENTS):
+                        COND.wait(timeout=15)
+                    new = EVENTS[idx:]
                 idx += len(new)
                 for evt in new:
                     self.wfile.write(("data: " + json.dumps(evt, ensure_ascii=False) + "\n\n").encode("utf-8"))
@@ -199,10 +256,11 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             body = {}
         if u.path == "/api/chat":
-            if STATE.get("proc") and STATE["proc"].poll() is None:
+            proc = STATE.get("proc")
+            if proc and proc.poll() is None:
                 return self._send(409, json.dumps({"error": "busy"}))
             start_agent(str(body.get("prompt", "")), str(body.get("model", "")),
-                        body.get("time_limit"), bool(body.get("resume", True)))
+                        bool(body.get("resume", True)))
             return self._send(200, "{}")
         if u.path == "/api/stop":
             kill_tree()
@@ -210,7 +268,6 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/ask":
             proc = STATE.get("proc")
             ans = str(body.get("answer", "deny"))
-            STATE["ask_pending"] = False
             if proc and proc.poll() is None:
                 try:
                     proc.stdin.write(ans + "\n")
@@ -218,6 +275,16 @@ class Handler(BaseHTTPRequestHandler):
                 except Exception:
                     pass
             return self._send(200, "{}")
+        if u.path == "/api/newchat":
+            STATE["session"] = None
+            return self._send(200, "{}")
+        if u.path == "/api/prefs":
+            prefs = _prefs_load()
+            for k in ("ctx", "temp", "num_predict", "think", "sys_enable", "sys_text", "ui_mode"):
+                if k in body:
+                    prefs[k] = body[k]
+            _prefs_save(prefs)
+            return self._send(200, json.dumps({"prefs": prefs}))
         return self._send(404, "{}")
 
 
@@ -228,28 +295,12 @@ def _version():
         return ""
 
 
-def _prefs_public():
-    prefs = _load_prefs()
-    return {"ctx": prefs.get("ctx", 131072), "temp": prefs.get("temp", 0.0),
-            "num_predict": prefs.get("num_predict", 2048), "ui_mode": prefs.get("ui_mode", "auto")}
-
-
-def _load_prefs():
-    pf = os.path.join(os.path.expanduser("~"), ".ollama_agent", "gui_prefs.json")
-    d = {"ui_mode": "auto", "ctx": 131072, "temp": 0.0, "num_predict": 2048, "think": True}
-    try:
-        d.update(json.load(open(pf, encoding="utf-8")))
-    except Exception:
-        pass
-    return d
-
-
 def main():
     port = 8765
     if "--port" in sys.argv:
         port = int(sys.argv[sys.argv.index("--port") + 1])
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"Mingbird Web UI: http://127.0.0.1:{port}  (local only · 仅本机访问)")
+    print(f"Mingbird Web UI v1.5-alpha: http://127.0.0.1:{port}  (local only · 仅本机访问)")
     srv.serve_forever()
 
 
