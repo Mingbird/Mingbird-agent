@@ -10,7 +10,7 @@
 - 快捷键:Ctrl+N 新对话 · Ctrl+F 历史搜索 · Ctrl+Enter 发送 · Ctrl+L 清日志
 """
 import tkinter as tk
-from tkinter import ttk, filedialog
+from tkinter import ttk, filedialog, font as tkfont
 from tkinter import scrolledtext
 import ttkbootstrap as tb
 import subprocess, threading, os, queue, sys, re, glob, json, time, shutil
@@ -309,8 +309,10 @@ class AgentGUI:
             # ollama 不可达:不把配置里的陈旧映射当可用模型展示(那会让用户选到跑不起来的模型)
             self._model_map = {}
             try:
-                self.model_cb.configure(values=["[ Ollama 离线 — 启动后自动重试 ]"])
-                self.model_var.set("[ Ollama 离线 — 启动后自动重试 ]")
+                _off = "[ Ollama 离线 — 启动后自动重试 ]"
+                self.model_cb.configure(values=[_off],
+                                        width=max(13, min(self._disp_units(_off), 40)))
+                self.model_var.set(_off)
             except Exception:
                 pass
             return
@@ -320,6 +322,8 @@ class AgentGUI:
         self._model_map = m
         try:
             self.model_cb["values"] = list(m)
+            need = max([13] + [self._disp_units(v) for v in m])
+            self.model_cb.configure(width=min(need, 40))
             if self.model_var.get() not in m and m:
                 self.model_var.set(list(m)[0])
         except Exception:
@@ -347,21 +351,32 @@ class AgentGUI:
         self._streaming_asst = False # 当前助手内容是否已流式上屏(避免重复渲染)
 
         root.title(f"{_t('鸣鸟 · 本地 AI 助手')} — {self.app_version()}")
-        # 窗口图标(原创蜂鸟→鸣鸟,图形资产暂沿用,发布前重绘)
+        # 窗口图标(鸣鸟图形资产暂沿用,发布前重绘)
         try:
             _ic = os.path.join(AGENT_DIR, "app.ico")
             if os.path.exists(_ic):
                 root.iconbitmap(_ic)
         except Exception:
             pass
+        # DPI 感知缩放系数:Tk 的点阵字体(9pt 等)随系统 DPI 自动缩放,但固定像素
+        # 尺寸(轨宽/面板宽/窗口几何)不缩放 — 200% 缩放下 94px 轨只剩一半视觉宽度,
+        # 这就是导航按钮文字被裁的根因。系数 = 实际DPI/96(winfo_fpixels('1i')/72
+        # 即 Tk 的"每点像素数",再折算到 96DPI 基准)。
+        try:
+            self._ui_scale = 1.0   # Tk point 已由系统 DPI 处理,不做额外像素缩放(双重放大=巨大 UI bug)
+        except Exception:
+            self._ui_scale = 1.0
         # 默认开足够大的窗口,保证所有功能露出(避免小窗口只显示左上角)
         try:
             sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
-            w, h = min(1400, int(sw * 0.9)), min(900, int(sh * 0.9))
+            w = min(int(1400 * self._ui_scale), int(sw * 0.95))
+            h = min(int(900 * self._ui_scale), int(sh * 0.95))
             root.geometry(f"{w}x{h}")
+            root.minsize(min(int(980 * self._ui_scale), sw),
+                         min(int(680 * self._ui_scale), sh))
         except Exception:
             root.geometry("1200x860")
-        root.minsize(980, 680)
+            root.minsize(980, 680)
         try:
             root.state("zoomed")   # Windows 下默认最大化;Linux/mac Tk 不支持,失败保持默认尺寸
         except Exception:
@@ -401,6 +416,17 @@ class AgentGUI:
         json.dump(self.prefs, open(PREFS_FILE, "w", encoding="utf-8"),
                   ensure_ascii=False, indent=2)
 
+    # ================= DPI/排版辅助 =================
+    def _scaled_geo(self, w, h):
+        """对话框默认几何按 DPI 缩放(固定像素几何在高缩放下会把整页内容挤裁)。"""
+        s = getattr(self, "_ui_scale", 1.0)
+        return f"{int(w * s)}x{int(h * s)}"
+
+    @staticmethod
+    def _disp_units(s):
+        """显示宽度估算:CJK/全角按 2 个单位,其余按 1(近似 Tk 平均字符宽度)。"""
+        return sum(2 if ord(ch) > 0x2E7F else 1 for ch in str(s))
+
     # ================= 构建界面(v2:导航轨 + 页面栈) =================
     def _build_toolbar(self):
         """v2 外壳:左侧导航轨。模型/目录/时限等对话要素并入对话页。"""
@@ -412,8 +438,13 @@ class AgentGUI:
         self._rail_btns = {}
         self._cur_page = "chat"
 
-        # 宽度 94:需容纳 EN 长词(Settings/History);Tk 像素不随 DPI 缩放,78 在高 DPI 下会裁字
-        rail = tk.Frame(self.root, width=94, bd=0, highlightthickness=0)
+        # 轨宽 DPI 感知:按钮字体(点阵)随系统 DPI 缩放,固定 94px 轨不缩放,
+        # 200% 下必裁字。改法:字体按缩放系数取整 + 按钮建完后按实测最宽行
+        # (Settings/History)定轨宽,双保险保证任何 DPI/任何语言下都不裁字。
+        s = getattr(self, "_ui_scale", 1.0)
+        self._nav_font = tkfont.Font(family="Microsoft YaHei UI",
+                                     size=max(9, int(round(9 * s))))
+        rail = tk.Frame(self.root, width=int(94 * s), bd=0, highlightthickness=0)
         rail.pack(side="left", fill="y")
         rail.pack_propagate(False)
         self.rail = rail
@@ -424,7 +455,7 @@ class AgentGUI:
 
         def _nav(pid, icon, label, cmd):
             b = tk.Button(rail, text=icon + "\n" + label,
-                          font=("Microsoft YaHei UI", 9), bd=0, relief="flat",
+                          font=self._nav_font, bd=0, relief="flat",
                           bg=self.T["elevated"], fg=self.T["muted"],
                           activebackground=self.T["sel"], activeforeground=self.T["text"],
                           command=cmd)
@@ -442,6 +473,16 @@ class AgentGUI:
                                   bg=self.T["elevated"], fg=self.T["muted"], cursor="hand2")
         self.theme_lbl.pack(pady=(4, 10))
         self.theme_lbl.bind("<Button-1>", lambda e: self.cycle_theme())
+
+        # 实测定宽:取全部按钮最宽行 + 左右 padx(2*5) + 内边距余量,与 94*s 取大者
+        try:
+            need = 0
+            for b in self._rail_btns.values():
+                for line in str(b.cget("text")).split("\n"):
+                    need = max(need, self._nav_font.measure(line))
+            rail.configure(width=max(int(94 * s), need + int(26 * s)))
+        except Exception:
+            rail.configure(width=int(94 * s))
 
         for pid in ("chat", "history", "logs"):
             f = tk.Frame(self.root, bd=0, highlightthickness=0)
@@ -473,9 +514,14 @@ class AgentGUI:
         _cfg_models = appconfig.model_map()
         self._model_map = {_t(k): v for k, v in _cfg_models.items()}
         self.model_var = tk.StringVar(value=_t(next(iter(_cfg_models), "")))
+        # 下拉宽度按最长显示名适配(CJK 记 2 单位):否则 "qwen2b (长上下文 256K)"
+        # 这类名字在闭合态被截断
+        _vals = [_t(k) for k in _cfg_models]
+        _mw = max([13] + [self._disp_units(v) for v in _vals])
         self.model_cb = tb.Combobox(bar, textvariable=self.model_var,
-                                    values=[_t(k) for k in _cfg_models],
-                                    state="readonly", width=13, bootstyle="primary")
+                                    values=_vals,
+                                    state="readonly", width=min(_mw, 40),
+                                    bootstyle="primary")
         self.model_cb.bind("<<ComboboxSelected>>", lambda e: self.refresh_voice_state())
         self.model_cb.pack(side="left", padx=3)
         self.think_var = tk.BooleanVar(value=True)
@@ -525,7 +571,9 @@ class AgentGUI:
                   command=self.clear_transcript).pack(side="right")
 
         right = tb.Frame(pw); pw.add(right, weight=0)
-        right.configure(width=250); right.pack_propagate(False)
+        # 固定像素宽在高 DPI 下等于逻辑减半,附件/计划内容会被挤出面板 → 随缩放
+        right.configure(width=int(250 * getattr(self, "_ui_scale", 1.0)))
+        right.pack_propagate(False)
         tb.Button(right, text=_t("＋ 新对话"), bootstyle="primary",
                   command=self.new_chat).pack(fill="x", padx=(2, 10), pady=(8, 6))
         att = tb.Labelframe(right, text=_t("附件"), padding=6)
@@ -533,6 +581,10 @@ class AgentGUI:
         self.att_lb = tk.Listbox(att, height=3, font=("Consolas", 9),
                                  exportselection=False, relief="flat")
         self.att_lb.pack(fill="x")
+        # 长文件名会被 Listbox 硬裁:加横向滚动,不再截断
+        self.att_sb = ttk.Scrollbar(att, orient="horizontal", command=self.att_lb.xview)
+        self.att_sb.pack(fill="x")
+        self.att_lb.configure(xscrollcommand=self.att_sb.set)
         af = tb.Frame(att); af.pack(fill="x", pady=(3, 0))
         tb.Button(af, text=_t("添加"), bootstyle="success-outline",
                   command=self.add_files).pack(side="left")
@@ -547,6 +599,8 @@ class AgentGUI:
         self.plan_txt.configure(yscrollcommand=self.plan_sb.set)
         self.plan_txt.pack(side="left", fill="both", expand=True)
         self.plan_sb.pack(side="right", fill="y")
+        # 暗色主题刷新链:裸 Tk 控件必须注册,apply_theme 才会刷色(否则暗色下白底穿帮)
+        self._themable += [(self.att_lb, "list"), (self.plan_txt, "list")]
 
     def _build_history_page(self):
         page = self.pages["history"]
@@ -558,9 +612,15 @@ class AgentGUI:
         ent.pack(side="right", fill="x", expand=True, padx=(16, 0))
         ent.bind("<KeyRelease>", lambda e: self.refresh_sessions())
         body = tb.Frame(page, padding=(12, 4)); body.pack(fill="both", expand=True)
-        self.se_lb = tk.Listbox(body, font=("Consolas", 10),
+        lbwrap = tb.Frame(body); lbwrap.pack(side="left", fill="both", expand=True)
+        self.se_lb = tk.Listbox(lbwrap, font=("Consolas", 10),
                                 exportselection=False, relief="flat")
-        self.se_lb.pack(side="left", fill="both", expand=True)
+        self.se_lb.pack(side="top", fill="both", expand=True)
+        # 长会话名(名字+状态标签)会被硬裁:加横向滚动
+        self.se_sb = ttk.Scrollbar(lbwrap, orient="horizontal", command=self.se_lb.xview)
+        self.se_sb.pack(side="top", fill="x")
+        self.se_lb.configure(xscrollcommand=self.se_sb.set)
+        self._themable += [(self.se_lb, "list")]
         btns = tb.Frame(body); btns.pack(side="left", fill="y", padx=(10, 0))
         tb.Button(btns, text=_t("载入"), bootstyle="primary-outline",
                   command=self.load_selected_session).pack(fill="x", pady=(0, 4))
@@ -581,14 +641,16 @@ class AgentGUI:
         self.console = tk.Text(page, font=("Consolas", 9), state="disabled",
                                wrap="word", relief="flat", padx=10, pady=8)
         self.console.pack(fill="both", expand=True)
+        self._themable += [(self.console, "code")]
 
     def _build_statusbar(self):
         bar = tb.Frame(self.root, padding=(6, 3)); bar.pack(fill="x", side="bottom")
         self.ctx_bar = tb.Progressbar(bar, maximum=100, value=0, bootstyle="info-striped")
         self.ctx_bar.pack(side="left", fill="x", expand=True)
         self.status_var = tk.StringVar(value=_t(" 上下文: - / - ( - % )"))
+        # width=30 装不下 " 上下文: 262144 / 262144 (100%)"(CJK 按 2 单位 ≈32):放宽到 36
         tb.Label(bar, textvariable=self.status_var, bootstyle="secondary",
-                 width=30).pack(side="left", padx=(8, 0))
+                 width=36).pack(side="left", padx=(8, 0))
         self.ollama_lbl = tb.Label(bar, text="Ollama …", bootstyle="warning",
                                    font=("Microsoft YaHei UI", 9, "bold"),
                                    cursor="hand2")
@@ -881,29 +943,36 @@ class AgentGUI:
 
     # ================= 关于 / 欢迎 =================
     def show_about(self):
-        win = tb.Toplevel(self.root); win.title(_t("ℹ 关于")); win.geometry("460x340")
+        win = tb.Toplevel(self.root); win.title(_t("ℹ 关于"))
+        win.geometry(self._scaled_geo(470, 380))
         win.transient(self.root); win.grab_set()
-        M = MINIMAL
-        win.configure(bg=M["bg"])
-        tb.Label(win, text=_t("鸣鸟 · 本地 AI 助手"),
-                 font=("Microsoft YaHei UI", 14, "bold"), bootstyle="inverse-primary",
-                 padding=(16, 12)).pack(fill="x")
-        body = tk.Frame(win, bg=M["bg"]); body.pack(fill="both", expand=True, padx=18, pady=10)
+        tok = self.T   # 旧 MINIMAL 硬编码浅色在暗色主题下穿帮,改用当前主题令牌
+        win.configure(bg=tok["bg"])
+        # 品牌色横幅(鸣翠):不用 inverse-primary(随 ttkbootstrap 主题变成蓝/杂色)
+        tk.Label(win, text=_t("鸣鸟 · 本地 AI 助手"),
+                 font=("Microsoft YaHei UI", 14, "bold"),
+                 bg=tok["primary"], fg=tok["primary_text"],
+                 padx=16, pady=12).pack(fill="x")
+        body = tk.Frame(win, bg=tok["bg"]); body.pack(fill="both", expand=True, padx=18, pady=10)
         info = (f"{_t('版本')}: {self.app_version()}\n"
                 f"{_t('许可')}: Apache-2.0\n\n"
                 f"{_t('全离线·小模型优先的本地 AI agent')}\n"
                 f"Ollama + AMD iGPU / NVIDIA / CPU")
-        tb.Label(body, text=info, font=M["font_body"], bootstyle="secondary",
+        tb.Label(body, text=info, font=MINIMAL["font_body"], bootstyle="secondary",
+                 background=tok["bg"],
                  justify="left", anchor="w").pack(fill="x")
-        tb.Label(body, text="", background=M["bg"]).pack()
-        # 打开内嵌文档
+        tb.Label(body, text="", background=tok["bg"]).pack()
+        # 打开内嵌文档(两行排布:5 个按钮挤一行在 470px 内会溢出被裁)
         df = tb.Frame(body); df.pack(fill="x", pady=(4, 0))
         docs = {"README": "README_EN.md", "RELEASE_NOTES.md": "RELEASE_NOTES.md",
-                "AGENTS.md": "AGENTS.md", "LICENSE": "LICENSE"}
+                "AGENTS.md": "AGENTS.md"}
         for label, fn in docs.items():
             tb.Button(df, text=label, bootstyle="secondary-outline",
                       command=lambda n=fn: self._open_doc(n)).pack(side="left", padx=2)
-        tb.Button(df, text=_t("打开安装目录"), bootstyle="secondary-outline",
+        df2 = tb.Frame(body); df2.pack(fill="x", pady=(4, 0))
+        tb.Button(df2, text="LICENSE", bootstyle="secondary-outline",
+                  command=lambda: self._open_doc("LICENSE")).pack(side="left", padx=2)
+        tb.Button(df2, text=_t("打开安装目录"), bootstyle="secondary-outline",
                   command=lambda: subprocess.Popen(_file_manager_cmd(AGENT_DIR))).pack(side="left", padx=2)
         tb.Button(win, text=_t("关闭"), bootstyle="primary",
                   command=win.destroy).pack(pady=(6, 10))
@@ -941,9 +1010,13 @@ class AgentGUI:
 
     # ================= 技能 / 搜索 =================
     def show_skills(self):
-        win = tb.Toplevel(self.root); win.title(_t("技能列表")); win.geometry("600x440")
+        win = tb.Toplevel(self.root); win.title(_t("技能列表"))
+        win.geometry(self._scaled_geo(600, 440))
         tb.Label(win, text=_t("本地 agent 可用技能(渐进式:用到才加载全文)"), padding=6).pack(anchor="w")
-        txt = scrolledtext.ScrolledText(win, font=("Consolas", 9), wrap="word")
+        tok = self.T   # 暗色主题下不用默认白底
+        txt = scrolledtext.ScrolledText(win, font=("Consolas", 9), wrap="word",
+                                        bg=tok["surface"], fg=tok["text"],
+                                        insertbackground=tok["text"])
         txt.pack(fill="both", expand=True, padx=6, pady=2)
         seen = {}
         for base in SKILL_DIRS:
@@ -970,7 +1043,8 @@ class AgentGUI:
         return ""
 
     def search_history(self):
-        win = tb.Toplevel(self.root); win.title(_t("会话历史搜索")); win.geometry("640x480")
+        win = tb.Toplevel(self.root); win.title(_t("会话历史搜索"))
+        win.geometry(self._scaled_geo(640, 480))
         top = tb.Frame(win, padding=6); top.pack(fill="x")
         tb.Label(top, text=_t("关键词:")).pack(side="left")
         kw = tk.StringVar()
@@ -978,8 +1052,17 @@ class AgentGUI:
         ent.bind("<Return>", lambda e: do_search())
         tb.Button(top, text=_t("搜索"), bootstyle="primary", command=lambda: do_search()).pack(side="left")
         fr = tb.Frame(win); fr.pack(fill="both", expand=True, padx=6, pady=2)
-        lb = tk.Listbox(fr, font=("Consolas", 9)); lb.pack(side="left", fill="both", expand=True)
-        sb = ttk.Scrollbar(fr, orient="vertical", command=lb.yview); sb.pack(side="right", fill="y")
+        lbwrap = tb.Frame(fr); lbwrap.pack(side="left", fill="both", expand=True)
+        tok = self.T   # 暗色主题下列表不用默认白底
+        lb = tk.Listbox(lbwrap, font=("Consolas", 9), relief="flat",
+                        bg=tok["surface"], fg=tok["text"],
+                        selectbackground=tok["sel"], selectforeground=tok["text"])
+        lb.pack(side="top", fill="both", expand=True)
+        lsb = ttk.Scrollbar(lbwrap, orient="horizontal", command=lb.xview)
+        lsb.pack(side="top", fill="x")
+        lb.config(xscrollcommand=lsb.set)
+        sb = ttk.Scrollbar(fr, orient="vertical", command=lb.yview)
+        sb.pack(side="right", fill="y")
         lb.config(yscrollcommand=sb.set)
         results = []
         def do_search():
@@ -1017,9 +1100,16 @@ class AgentGUI:
         ent.focus_set()
 
     def view_transcript(self, name):
-        win = tb.Toplevel(self.root); win.title(_t("会话回放: {name}").format(name=name)); win.geometry("760x560")
-        tb.Label(win, text=_t("会话 {name} — 完整对话记录(Ctrl+F 搜索)").format(name=name), padding=6).pack(anchor="w")
-        txt = scrolledtext.ScrolledText(win, font=("Consolas", 9), wrap="word")
+        win = tb.Toplevel(self.root); win.title(_t("会话回放: {name}").format(name=name))
+        win.geometry(self._scaled_geo(760, 560))
+        tb.Label(win, text=_t("会话 {name} — 完整对话记录(Ctrl+F 搜索)").format(name=name),
+                 padding=6,
+                 wraplength=int(700 * getattr(self, "_ui_scale", 1.0))
+                 ).pack(anchor="w")
+        tok = self.T   # 暗色主题下回放区不用默认白底/黑字
+        txt = scrolledtext.ScrolledText(win, font=("Consolas", 9), wrap="word",
+                                        bg=tok["bg"], fg=tok["text"],
+                                        insertbackground=tok["text"])
         txt.pack(fill="both", expand=True, padx=6, pady=2)
         p = os.path.join(SESSION_DIR, name + ".json")
         try: msgs = json.load(open(p, encoding="utf-8"))
@@ -1040,14 +1130,15 @@ class AgentGUI:
             elif role == "tool":
                 txt.insert("end", f"   ↳ {str(c)[:200]}\n", "r")
         txt.tag_config("u", foreground="#1a5fb4", font=("Microsoft YaHei UI", 10, "bold"))
-        txt.tag_config("a", foreground="#000000")
+        txt.tag_config("a", foreground=tok["text"])     # 旧值 #000000 在暗色下不可读
         txt.tag_config("t", foreground="#a34e00")
-        txt.tag_config("r", foreground="#7a7a7a")
+        txt.tag_config("r", foreground=tok["muted"])
         txt.config(state="disabled")
 
     # ================= 设置 =================
     def open_settings(self):
-        win = tb.Toplevel(self.root); win.title(_t("设置")); win.geometry("520x520")
+        win = tb.Toplevel(self.root); win.title(_t("设置"))
+        win.geometry(self._scaled_geo(560, 540))
         prefs = dict(self.prefs)
         body = tb.Frame(win, padding=12); body.pack(fill="both", expand=True)
         r1 = tb.Frame(body); r1.pack(fill="x", pady=2)
@@ -1058,7 +1149,8 @@ class AgentGUI:
             prefs["ctx"] = 32768   # 兼容旧保存值,归入梯度
         ctx.set(prefs["ctx"]); ctx.pack(side="left", padx=6)
         tb.Label(r1, text=_t("温度:")).pack(side="left")
-        temp = ttk.Spinbox(r1, from_=0.0, to=2.0, increment=0.1, width=6)
+        # tb.Spinbox(ttkbootstrap 样式):裸 ttk.Spinbox 在暗色主题下白底白字不可读
+        temp = tb.Spinbox(r1, from_=0.0, to=2.0, increment=0.1, width=6)
         temp.set(prefs["temp"]); temp.pack(side="left", padx=6)
         tb.Label(r1, text=_t("输出上限:")).pack(side="left")
         np = tb.Combobox(r1, values=[512, 1024, 2048, 4096, 8192], width=8, state="readonly")
@@ -1066,7 +1158,11 @@ class AgentGUI:
         sys_en = tk.BooleanVar(value=prefs["sys_enable"])
         tb.Checkbutton(body, text=_t("启用自定义系统提示(替代内置,可大幅改造行为)"),
                        variable=sys_en, bootstyle="round-toggle").pack(anchor="w", pady=(8,2))
-        sys_txt = scrolledtext.ScrolledText(body, height=10, font=("Consolas", 9), wrap="word")
+        # 裸 Tk Text 按当前主题令牌上色(默认白底在暗色主题下穿帮)
+        tok = self.T
+        sys_txt = scrolledtext.ScrolledText(body, height=10, font=("Consolas", 9), wrap="word",
+                                            bg=tok["surface"], fg=tok["text"],
+                                            insertbackground=tok["text"])
         sys_txt.pack(fill="both", expand=True)
         sys_txt.insert("1.0", prefs["sys_text"])
         def save():
@@ -1459,7 +1555,7 @@ class AgentGUI:
             wd = req.get("workdir", "?")
             win = tb.Toplevel(self.root)
             win.title(_t("⚠ 越界操作确认"))
-            win.geometry("560x280")
+            win.geometry(self._scaled_geo(580, 300))
             win.attributes("-topmost", True)
             tb.Label(win, text=_t("AI 想访问工作目录之外的文件"), bootstyle="warning",
                      font=("Microsoft YaHei UI", 12, "bold"), padding=8).pack(anchor="w")
@@ -1469,7 +1565,9 @@ class AgentGUI:
                    f"{_t('工作目录:')} {wd}\n\n"
                    f"{_t('允许这次访问吗?')}")
             tb.Label(win, text=txt, justify="left", padding=(10, 4),
-                     font=("Microsoft YaHei UI", 10)).pack(fill="both", expand=True, padx=6)
+                     font=("Microsoft YaHei UI", 10),
+                     wraplength=int(540 * getattr(self, "_ui_scale", 1.0))
+                     ).pack(fill="both", expand=True, padx=6)
             btnrow = tb.Frame(win); btnrow.pack(fill="x", padx=8, pady=8)
             result = {}
             def _reply(v):
