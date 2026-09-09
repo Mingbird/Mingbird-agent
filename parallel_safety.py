@@ -157,15 +157,16 @@ def split_chain(cmd):
 # ---------------- 路径判定 ----------------
 
 def resolve_inside(workdir, path):
-    """解析路径并判断是否在 workdir 内(abspath 折叠 .. + commonpath 判边界)。
+    """解析路径并判断是否在 workdir 内(realpath 折叠 .. 并解析符号链接/junction,
+    再 commonpath 判边界——workdir 内指向外部的链接不能成为越界通道)。
     返回 (real_abs, inside_bool)。子 agent 不支持额外允许目录(严格小于主 agent)。"""
     try:
-        base = os.path.normcase(os.path.abspath(workdir))
-        real = os.path.normcase(os.path.abspath(os.path.join(workdir, str(path or ""))))
+        base = os.path.normcase(os.path.realpath(workdir))
+        real = os.path.normcase(os.path.realpath(os.path.join(workdir, str(path or ""))))
         common = os.path.commonpath([base, real])
         return real, common == base
     except Exception:
-        return os.path.normcase(os.path.abspath(os.path.join(workdir, str(path or "")))), False
+        return os.path.normcase(os.path.realpath(os.path.join(workdir, str(path or "")))), False
 
 
 def match_sensitive(norm, patterns):

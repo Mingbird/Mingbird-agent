@@ -86,7 +86,7 @@ dialog textarea{width:100%;min-height:90px;font:12px Consolas,monospace;resize:v
 </div>
 <div id="main">
   <!-- 对话页 -->
-  <div class="page active" id="page-chat" style="display:flex">
+  <div class="page active" id="page-chat">
     <div style="flex:1;display:flex;flex-direction:column;min-width:0">
       <div id="topbar">
         <span class="title">Mingbird</span>
@@ -180,7 +180,8 @@ const I18N = {
        load_resume:"Load & resume this session", view:"View transcript", save:"Save",
        settings_t:"Settings", history_t:"Session history", ctx_l:"Context window",
        temp_l:"Temperature", np_l:"Output limit", think_l:"Thinking", sys_l:"Custom system prompt",
-       welcome:"👋 Welcome — local-first, small-model-first agent. Type a task to start."},
+       welcome:"👋 Welcome — local-first, small-model-first agent. Type a task to start.",
+       offline:"[ Ollama offline — auto-retries ]"},
   zh: {chat:"对话", history:"历史", settings:"设置", settings_t:"设置", history_t:"历史会话",
        thinking:"思考", send:"发送", stop:"停止", resume:"续跑", newchat:"新对话", clear:"清空",
        model:"模型", plan:"计划 · todo", load_resume:"载入并续跑此会话", view:"查看对话记录",
@@ -190,7 +191,8 @@ const I18N = {
        load_resume:"载入并续跑此会话", view:"查看对话记录", save:"保存",
        settings_t:"设置", history_t:"历史会话", ctx_l:"上下文窗口",
        temp_l:"温度", np_l:"输出上限", think_l:"思考", sys_l:"自定义系统提示",
-       welcome:"👋 欢迎 — 本地优先、小模型优先的 agent。输入任务即可开始。"}
+       welcome:"👋 欢迎 — 本地优先、小模型优先的 agent。输入任务即可开始。",
+       offline:"[ Ollama 离线 — 启动后自动重试 ]"}
 };
 let LANG = localStorage.getItem("mb_lang") || (navigator.language.startsWith("zh") ? "zh" : "en");
 function applyLang(){
@@ -267,7 +269,7 @@ function toolChip(name, args){
 }
 
 // ---------- SSE ----------
-let es = null, curBody = null, curDone = false, thinkEl = null, thinkBuf = "";
+let es = null, curBody = null, curDone = false;   // thinkEl/thinkBuf 已在上方声明,重复 let = SyntaxError 全脚本失效
 function connect(){
   es = new EventSource("/api/events");
   es.onmessage = e => {
@@ -347,16 +349,32 @@ function loadSessions(){
 }
 $("sess-load").onclick = () => {
   if (!sessSel) return;
-  fetch("/api/newchat", {method:"POST"});
-  addMsg("assistant", "▶ " + t("load_resume") + ": " + sessSel);
+  const name = sessSel.replace(/\.json$/, "");
+  // 服务端记住会话:下一次发送以 --append 续跑;同时把历史消息渲染到聊天区
+  fetch("/api/session", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({name})}).then(()=>loadSessionTranscript(name));
+  addMsg("assistant", "▶ " + (t("load_resume") || "load") + ": " + name);
   document.querySelector('.navbtn[data-page="chat"]').click();
 };
+function loadSessionTranscript(name){
+  fetch("/api/session?name=" + encodeURIComponent(name)).then(r=>r.json()).then(d => {
+    chat.innerHTML = "";
+    (d.messages || []).forEach(m => {
+      const who = m.role === "user" ? "user" : (m.role === "assistant" ? "assistant" : null);
+      if (!who) return;                       // tool/system 消息不在对话流渲染
+      addMsg(who, md(String(m.content || "")));
+    });
+    if (!(d.messages || []).length) addMsg("assistant", t("welcome"));
+  });
+}
 $("sess-view").onclick = () => {
   if (!sessSel) return;
-  fetch("/api/sessions").then(r=>r.json()).then(()=>{});
-  fetch("/api/sessions").catch(()=>{});
-  // transcript: served from session file via plan endpoint family (v0.2) — here we show the pick
-  $("sessview").textContent = "selected: " + sessSel;
+  const name = sessSel.replace(/\.json$/, "");
+  fetch("/api/session?name=" + encodeURIComponent(name)).then(r=>r.json()).then(d => {
+    const lines = (d.messages || []).map(m =>
+      "[" + m.role + "] " + String(m.content || "").slice(0, 400));
+    $("sessview").textContent = lines.length ? lines.join("\n\n") : ("selected: " + name);
+  }).catch(() => { $("sessview").textContent = "selected: " + name; });
 };
 
 // ---------- settings ----------
@@ -377,19 +395,29 @@ function loadPrefs(){
 }
 
 // ---------- status poll ----------
+let _lastModels = "";
 function refreshStatus(){
   fetch("/api/status").then(r=>r.json()).then(d => {
     window.__ver = d.version;
     $("ver").textContent = d.version || "";
     $("sessiontag").textContent = (t("session") || "session") + ": " + (d.session || "—");
-    $("ollamadot").textContent = "Ollama " + (d.ollama !== false ? "✓" : "✗");
-    $("ollamadot").className = d.ollama !== false ? "ok" : "bad";
+    $("ollamadot").textContent = "Ollama " + (d.ollama_ok ? "✓" : "✗");
+    $("ollamadot").className = d.ollama_ok ? "ok" : "bad";
     const sel = $("model");
-    if (sel.options.length !== d.models.length) {
-      sel.innerHTML = d.models.map(m => `<option>${m}</option>`).join("");
-      if (d.models.length) sel.value = d.models[0];
+    const joined = (d.models || []).join("|");
+    if (joined !== _lastModels) {
+      _lastModels = joined;
+      if (d.models && d.models.length){
+        sel.disabled = false;
+        sel.innerHTML = d.models.map(m => `<option>${m}</option>`).join("");
+        sel.value = d.models[0];
+      } else {
+        sel.disabled = true;
+        sel.innerHTML = `<option>${t("offline") || "[ Ollama offline ]"}</option>`;
+      }
     }
   }).catch(()=>{});
 }
+addMsg("assistant", t("welcome"));   // 首屏欢迎语(与"新对话"一致)
 refreshStatus(); setInterval(refreshStatus, 10000); connect();
 </script>

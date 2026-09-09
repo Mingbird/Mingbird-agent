@@ -34,11 +34,13 @@ ROOT = os.path.dirname(HERE)
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)                     # repo root (ollama_agent.py lives here)
 AGENT_PY = os.path.join(ROOT, "ollama_agent.py")
+import appconfig                # 统一配置层(AGENT_HOME/模型映射/去重规则与 Tk 同源)
 STATIC = os.path.join(HERE, "static")
 DEFAULT_TASKS = os.path.join(os.path.expanduser("~"), "agent_tasks")
 PREFS_FILE = os.path.join(os.path.expanduser("~"), ".ollama_agent", "gui_prefs.json")
 
 EVENTS = []
+EVENTS_MAX = 600          # 定长截断:长任务会产生数万条 tok 事件,无限增长=内存泄漏
 COND = threading.Condition()
 STATE = {"proc": None, "session": None, "ask_pending": False, "workdir": None}
 
@@ -46,6 +48,8 @@ STATE = {"proc": None, "session": None, "ask_pending": False, "workdir": None}
 def push_event(evt):
     with COND:
         EVENTS.append(evt)
+        if len(EVENTS) > EVENTS_MAX:
+            del EVENTS[:len(EVENTS) - EVENTS_MAX]
         COND.notify_all()
 
 
@@ -61,7 +65,10 @@ def _prefs_load():
 
 def _prefs_save(p):
     os.makedirs(os.path.dirname(PREFS_FILE), exist_ok=True)
-    json.dump(p, open(PREFS_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    tmp = PREFS_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(p, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, PREFS_FILE)
 
 
 def _workdir():
@@ -198,15 +205,35 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/status":
             proc = STATE.get("proc")
             prefs = _prefs_load()
+            # 动态识别:ollama /api/tags 实际安装的模型(digest 去重,与 Tk 同一规则)
+            # + config 友好名。离线时返回空清单,不拿陈旧配置冒充可用(会让用户选到跑不起来的模型)
+            # 注意:appconfig 用模块级导入;在此处局部 import 会把整个 do_GET 的
+            # appconfig 变成局部名,导致其他分支 UnboundLocalError
+            import urllib.request as _ur
+            cfg_map = _model_map()
+            tag_to_display = {v: k for k, v in cfg_map.items()}
+            entries = []
+            ollama_ok = False
+            try:
+                host = appconfig.ollama_host().rstrip("/")
+                r = json.loads(_ur.urlopen(host + "/api/tags", timeout=3).read())
+                entries = r.get("models", [])
+                ollama_ok = True
+            except Exception:
+                entries = []
+            models = [d for d, _t in appconfig.dedupe_model_entries(entries, tag_to_display)] \
+                if ollama_ok else []
             return self._send(200, json.dumps({
                 "version": _version(), "busy": bool(proc and proc.poll() is None),
-                "models": list(_model_map().keys()),
+                "models": models, "ollama_ok": ollama_ok,
                 "session": STATE.get("session"), "workdir": _workdir(),
                 "ask_pending": STATE.get("ask_pending", False),
                 "prefs": {k: prefs.get(k) for k in ("ctx", "temp", "num_predict", "think", "sys_enable", "sys_text", "ui_mode")},
             }, ensure_ascii=False))
         if u.path == "/api/sessions":
-            sd = os.path.join(os.path.expanduser("~"), ".ollama_agent")
+            sd = os.path.join(appconfig.AGENT_HOME, "sessions")
+            if not os.path.isdir(sd):
+                return self._send(200, json.dumps({"sessions": []}, ensure_ascii=False))
             files = sorted([f for f in os.listdir(sd) if f.endswith(".json") and not f.endswith(".meta.json")],
                            key=lambda n: -os.path.getmtime(os.path.join(sd, n)))[:60]
             return self._send(200, json.dumps({"sessions": files}, ensure_ascii=False))
@@ -215,7 +242,7 @@ class Handler(BaseHTTPRequestHandler):
             qs = parse_qs(u.query)
             name = (qs.get("name") or [""])[0]
             safe = os.path.basename(name)
-            fp = os.path.join(os.path.expanduser("~"), ".ollama_agent", safe + ".json")
+            fp = os.path.join(appconfig.AGENT_HOME, "sessions", safe + ".json")
             try:
                 msgs = json.load(open(fp, encoding="utf-8"))
             except Exception:
@@ -234,7 +261,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "text/event-stream")
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
-            idx = max(0, len(EVENTS) - 300)
+            idx = len(EVENTS)      # 只推连接之后的新事件:回放旧事件会让重连的浏览器整段重复聊天内容
             self.wfile.write(b"retry: 3000\n\n")
             while True:
                 with COND:
@@ -278,6 +305,13 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/newchat":
             STATE["session"] = None
             return self._send(200, "{}")
+        if u.path == "/api/session":
+            # 载入历史会话:设置 STATE["session"],下一次发送即以 --append 续跑该会话
+            name = os.path.basename(str(body.get("name", "")))
+            if not name:
+                return self._send(400, json.dumps({"error": "name required"}))
+            STATE["session"] = name
+            return self._send(200, json.dumps({"session": name}))
         if u.path == "/api/prefs":
             prefs = _prefs_load()
             for k in ("ctx", "temp", "num_predict", "think", "sys_enable", "sys_text", "ui_mode"):

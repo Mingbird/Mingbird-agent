@@ -70,3 +70,24 @@ def model_map():
 
 def config_path():
     return CONFIG_FILE
+
+
+def dedupe_model_entries(entries, tag_to_display):
+    """同一底层模型在 ollama 里常有多个名字(原始 pull tag + ollama cp 别名,
+    digest 相同):每个 digest 只留一条,否则模型下拉出现重复项。
+    优先级:配置映射过的名字 > 非 :latest 的别名 > 更短的名字。
+    返回 [(显示名, tag)]。GUI 与 WebUI 共用;自愈比较也必须用同一去重结果,
+    否则"实况全名集合 != 去重下拉集合"恒成立,触发每 5 秒重刷。"""
+    def _rank(n):
+        return (1 if n in tag_to_display else 0,
+                0 if n.endswith(":latest") else 1, -len(n))
+    by_digest = {}
+    for x in entries:
+        name = x.get("name") if isinstance(x, dict) else None
+        if not name:
+            continue
+        d = x.get("digest") or ("name:" + name)
+        cur = by_digest.get(d)
+        if cur is None or _rank(name) > _rank(cur):
+            by_digest[d] = name
+    return [(tag_to_display.get(t, t), t) for t in by_digest.values()]
