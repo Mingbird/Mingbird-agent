@@ -92,7 +92,9 @@ def _apply_time_budget(env, task):
 def start_agent(prompt, model_key, resume):
     import appconfig
     mmap = _model_map()
-    model = mmap.get(model_key, next(iter(mmap.values()), model_key))
+    # 下拉里选的名字就是发给 ollama 的模型;配置映射只做"显示名→tag"的正向翻译,
+    # 查不到时用原值——绝不静默回退到"第一个配置项"(那会选 A 跑 B)。
+    model = mmap.get(model_key, model_key)
     workdir = _workdir()
     os.makedirs(workdir, exist_ok=True)
     taskfile = os.path.join(workdir, "task_input.txt")

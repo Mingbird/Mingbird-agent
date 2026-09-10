@@ -56,6 +56,7 @@ is the same engine, so behavior matches the desktop.
 |---|---|
 | "Ollama ✗" red dot, model dropdown greyed | Ollama is not running (`ollama serve`) or has no models (`ollama pull qwen3.5:4b`). It self-heals once Ollama is up. |
 | Port already in use | `python webui/server.py --port 9000` |
+| Model list wrong or duplicated | The server process predates the fix — restart `python webui/server.py` and hard-refresh the page (Ctrl+F5). Fresh builds show exactly the installed models. |
 | Chat repeats old content after reconnect | Old builds replayed the event backlog; current builds stream only new events — update. |
 | Settings changed in browser don't affect the desktop app | Both read the same file at *next task start*; a running task keeps its settings. |
 
