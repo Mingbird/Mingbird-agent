@@ -41,7 +41,7 @@ jobs:
       - name: Install python deps
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller ttkbootstrap pillow requests numpy sherpa_onnx mcp beautifulsoup4 sounddevice soundfile
+          pip install pyinstaller ttkbootstrap tkinterdnd2 pillow requests numpy sherpa_onnx mcp beautifulsoup4 sounddevice soundfile
 
       - name: Fetch STT model (optional, voice input)
         run: |

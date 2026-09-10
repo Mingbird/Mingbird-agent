@@ -2,6 +2,7 @@
 # Unix (macOS / Linux) PyInstaller spec for Mingbird.
 from PyInstaller.utils.hooks import collect_data_files
 
+datas += collect_data_files('tkinterdnd2')
 datas = [('skills', 'skills'), ('AGENTS.md', '.'), ('README.md', '.'),
          ('LICENSE', '.'), ('VERSION', '.'), ('CHANGELOG.md', '.'),
          ('stt', 'stt'), ('app.png', '.'),
