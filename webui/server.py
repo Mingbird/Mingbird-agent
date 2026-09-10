@@ -37,7 +37,7 @@ AGENT_PY = os.path.join(ROOT, "ollama_agent.py")
 import appconfig                # 统一配置层(AGENT_HOME/模型映射/去重规则与 Tk 同源)
 STATIC = os.path.join(HERE, "static")
 DEFAULT_TASKS = os.path.join(os.path.expanduser("~"), "agent_tasks")
-PREFS_FILE = os.path.join(os.path.expanduser("~"), ".ollama_agent", "gui_prefs.json")
+PREFS_FILE = os.path.join(appconfig.AGENT_HOME, "gui_prefs.json")   # 与桌面版共用设置(遵循 MINGBIRD_HOME)
 
 EVENTS = []
 EVENTS_MAX = 600          # 定长截断:长任务会产生数万条 tok 事件,无限增长=内存泄漏
