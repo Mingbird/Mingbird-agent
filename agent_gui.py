@@ -1399,7 +1399,8 @@ class AgentGUI:
         if not self._model_map:
             self.log_note(_t("[无法启动:模型清单为空 — Ollama 未就绪,请先启动 Ollama]"))
             return
-        model = self._model_map.get(self.model_var.get(), next(iter(self._model_map.values())))
+        # 查不到时用原选择本身,绝不静默回退到"第一个模型"(选 A 跑 B)
+        model = self._model_map.get(self.model_var.get(), self.model_var.get())
         workdir = self.wd_var.get() if hasattr(self, "wd_var") else os.path.join(DEFAULT_TASKS, "work")
         task = task + self.attach_note()
         os.makedirs(workdir, exist_ok=True)

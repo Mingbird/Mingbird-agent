@@ -44,6 +44,7 @@ python webui/server.py --port 9000   # 自定义端口
 |---|---|
 | "Ollama ✗" 红点、模型下拉置灰 | Ollama 没启动（`ollama serve`）或没拉模型（`ollama pull qwen3.5:4b`）。启动后自动恢复。 |
 | 端口被占用 | `python webui/server.py --port 9000` |
+| 模型列表重复/不对 | server 进程是修复前启动的旧版本——重启 `python webui/server.py` 并强制刷新页面（Ctrl+F5）。新版只列出真实安装的模型。 |
 | 断线重连后聊天内容重复 | 旧版本会回放事件积压；当前版本只推新事件——请更新。 |
 | 浏览器里改的设置桌面版没生效 | 两边读同一文件，**下个任务开始时生效**；正在跑的任务沿用其设置。 |
 
