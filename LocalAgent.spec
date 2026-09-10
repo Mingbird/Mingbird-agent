@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_data_files
 
+datas += collect_data_files('tkinterdnd2')
 datas = [('skills', 'skills'), ('AGENTS.md', '.'), ('README.md', '.'), ('README_EN.md', '.'), ('RELEASE_NOTES.md', '.'), ('LICENSE', '.'), ('VERSION', '.'), ('CHANGELOG.md', '.'),
          ('stt', 'stt'), ('app.ico', '.')]
 datas += collect_data_files('ttkbootstrap')
@@ -11,7 +12,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=datas,
-    hiddenimports=['ttkbootstrap', 'sounddevice', 'soundfile', 'sherpa_onnx', 'numpy', 'requests', 'bs4'],
+    hiddenimports=['ttkbootstrap', 'tkinterdnd2', 'sounddevice', 'soundfile', 'sherpa_onnx', 'numpy', 'requests', 'bs4'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

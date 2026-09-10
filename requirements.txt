@@ -7,3 +7,4 @@ mcp
 beautifulsoup4
 sounddevice
 soundfile
+tkinterdnd2

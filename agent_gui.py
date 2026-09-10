@@ -18,6 +18,16 @@ import voice_input
 import appconfig   # 统一配置层:Ollama 地址/模型映射等由用户配置,不硬编码
 _dedupe_model_entries = appconfig.dedupe_model_entries   # digest 去重(GUI/WebUI 共用,勿放类体内)
 
+# 可选拖拽支持:装了 tkinterdnd2 即可把文件直接拖进聊天框;未装则静默降级,
+# 其余功能不受影响(粘贴附件不依赖它)。
+try:
+    from tkinterdnd2 import TkinterDnD, DND_FILES as _DND_FILES
+    _HAVE_DND = True
+except Exception:
+    TkinterDnD = None
+    _DND_FILES = None
+    _HAVE_DND = False
+
 # 冻结(exe)时用 exe 自身目录,避免 __file__ 相对 CWD 解析错导致文件找不到
 if getattr(sys, "frozen", False):
     AGENT_DIR = os.path.dirname(sys.executable)
@@ -331,6 +341,13 @@ class AgentGUI:
 
     def __init__(self, root):
         self.root = root
+        if not hasattr(root, "style"):
+            # 裸 Tk 根(如 tkinterdnd2 的 TkinterDnD.Tk)没有 ttkbootstrap 的
+            # .style,build_minimal_theme 依赖它:这里补挂,任何根类型都能进
+            try:
+                root.style = tb.Style(theme="minty-light")
+            except Exception:
+                pass
         self.style = build_minimal_theme(root)   # 现代极简主题
         self.prefs = self.load_prefs()
         self.proc = None
@@ -559,6 +576,15 @@ class AgentGUI:
         self.input = tk.Text(left, height=3, font=("Microsoft YaHei UI", 10),
                              wrap="word", relief="solid", bd=1)
         self.input.pack(fill="x", padx=(0, 6), pady=(6, 4))
+        # 简易交互:Ctrl+V 直接把剪贴板里的文件/截图收为附件;装了 tkinterdnd2
+        # 还能把文件拖进输入框。两者都汇入 _attach_paths 的统一附件流。
+        self.input.bind("<Control-v>", self._on_paste)
+        if _HAVE_DND:
+            try:
+                self.input.drop_target_register(_DND_FILES)
+                self.input.bind("<<Drop>>", self._on_drop)
+            except Exception:
+                pass
         crow = tb.Frame(left); crow.pack(fill="x", padx=(0, 6))
         tb.Button(crow, text=_t("添加附件"), bootstyle="secondary-outline",
                   command=self.add_files).pack(side="left")
@@ -761,21 +787,82 @@ class AgentGUI:
     # ================= 附件 =================
     def add_files(self):
         paths = filedialog.askopenfilenames(title=_t("选择要附加的文件"))
-        if not paths: return
+        if paths: self._attach_paths(list(paths))
+
+    def _attach_paths(self, paths, already_copied=False):
+        """把文件收入工作目录 _attachments/ 并登记到附件面板。
+        对话框、拖入、Ctrl+V 粘贴三个入口共用;返回登记成功的显示名列表。"""
         wd = self.wd_dir()
         attdir = os.path.join(wd, "_attachments")
         os.makedirs(attdir, exist_ok=True)
+        names = []
         for p in paths:
-            base = os.path.basename(p); dest = os.path.join(attdir, base)
-            n = 1
-            while os.path.exists(dest):
-                dest = os.path.join(attdir, f"{n}_{base}"); n += 1
+            if already_copied:
+                dest = p                      # 已在 _attachments 内(如剪贴板截图落盘)
+            else:
+                base = os.path.basename(p); dest = os.path.join(attdir, base)
+                n = 1
+                while os.path.exists(dest):
+                    dest = os.path.join(attdir, f"{n}_{base}"); n += 1
+                try:
+                    shutil.copy2(p, dest)
+                except Exception as e:
+                    self.log_note(_t("[附件失败: {p} → {e}]").format(p=os.path.basename(p), e=e))
+                    continue
+            self.attachments.append(dest)
+            names.append(os.path.basename(dest))
+            self.att_lb.insert("end", names[-1])
+        return names
+
+    def _insert_attach_tag(self, names):
+        """在输入框光标处插一个附件占位标记(真正的随指令发送由 attach_note 完成)。"""
+        try:
+            self.input.insert("insert", "[📎 " + ", ".join(names) + "] ")
+        except Exception:
+            pass
+
+    def _on_paste(self, event=None):
+        """输入框 Ctrl+V:剪贴板里是文件列表(CF_HDROP)或位图(截图)时直接收为附件,
+        都不是则返回 None 回落到 Tk 默认的文本粘贴。"""
+        try:
+            from PIL import ImageGrab
+            got = ImageGrab.grabclipboard()
+        except Exception:
+            return None
+        if not got:
+            return None
+        if isinstance(got, list) and got:
+            names = self._attach_paths([g for g in got if isinstance(g, str)])
+            if names:
+                self._insert_attach_tag(names)
+                return "break"
+            return "break"
+        if hasattr(got, "save"):              # 位图(截图/复制的图片)
+            wd = self.wd_dir()
+            attdir = os.path.join(wd, "_attachments")
+            os.makedirs(attdir, exist_ok=True)
+            dest = os.path.join(attdir, time.strftime("paste_%Y%m%d_%H%M%S") + ".png")
             try:
-                shutil.copy2(p, dest)
-                self.attachments.append(dest)
-                self.att_lb.insert("end", os.path.basename(dest))
-            except Exception as e:
-                self.log_note(_t("[附件失败: {p} → {e}]").format(p=os.path.basename(p), e=e))
+                got.convert("RGB").save(dest, "PNG")
+            except Exception:
+                return None
+            if self._attach_paths([dest], already_copied=True):
+                self._insert_attach_tag([os.path.basename(dest)])
+                return "break"
+        return None
+
+    def _on_drop(self, event=None):
+        """文件拖入输入框:全部收为附件(tkdnd 提供;未装 tkinterdnd2 时无此绑定)。"""
+        try:
+            paths = list(self.root.tk.splitlist(event.data))
+        except Exception:
+            return None
+        paths = [p for p in paths if os.path.exists(p)]
+        if paths:
+            names = self._attach_paths(paths)
+            if names:
+                self._insert_attach_tag(names)
+        return "break"
     def clear_files(self):
         self.attachments = []; self.att_lb.delete(0, "end")
     def attach_note(self):
@@ -1756,6 +1843,16 @@ if __name__ == "__main__":
             _mb.showwarning(_t("鸣鸟 · 本地 AI 助手"), _t("未能自动启动 ollama,请先手动运行 ollama serve。"))
     except Exception:
         pass
-    root = tb.Window(themename="minty-light", title=_t("鸣鸟 · 本地 AI 助手"))
+    if _HAVE_DND:
+        # tkdnd 根窗口:ttkbootstrap 的 Window 自带 .style,裸 Tk 根必须补挂,
+        # 否则 build_minimal_theme 读 root.style 直接 AttributeError
+        root = TkinterDnD.Tk()
+        root.title(_t("鸣鸟 · 本地 AI 助手"))
+        try:
+            root.style = tb.Style(theme="minty-light")
+        except Exception:
+            pass
+    else:
+        root = tb.Window(themename="minty-light", title=_t("鸣鸟 · 本地 AI 助手"))
     app = AgentGUI(root)
     root.mainloop()
