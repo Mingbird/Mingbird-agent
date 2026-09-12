@@ -1,10 +1,10 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_data_files
 
-datas += collect_data_files('tkinterdnd2')
 datas = [('skills', 'skills'), ('AGENTS.md', '.'), ('README.md', '.'), ('README_EN.md', '.'), ('RELEASE_NOTES.md', '.'), ('LICENSE', '.'), ('VERSION', '.'), ('CHANGELOG.md', '.'),
          ('stt', 'stt'), ('app.ico', '.')]
 datas += collect_data_files('ttkbootstrap')
+datas += collect_data_files('tkinterdnd2')   # tkdnd 拖拽扩展的二进制
 
 
 a = Analysis(

@@ -2,13 +2,13 @@
 # Unix (macOS / Linux) PyInstaller spec for Mingbird.
 from PyInstaller.utils.hooks import collect_data_files
 
-datas += collect_data_files('tkinterdnd2')
 datas = [('skills', 'skills'), ('AGENTS.md', '.'), ('README.md', '.'),
          ('LICENSE', '.'), ('VERSION', '.'), ('CHANGELOG.md', '.'),
          ('stt', 'stt'), ('app.png', '.'),
          ('app_lang_en.txt', '.'), ('app_lang_zh.txt', '.'),
          ('mcp_utils_server.py', '.')]
 datas += collect_data_files('ttkbootstrap')
+datas += collect_data_files('tkinterdnd2')   # tkdnd 拖拽扩展的二进制
 
 a = Analysis(
     ['agent_gui.py'],
