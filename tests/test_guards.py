@@ -182,7 +182,7 @@ def _scripted_loop(oa, workdir, calls, task="修复 m08.py 里的 bug,并运行�
                     {"function": {"name": "finish", "arguments": {"summary": "all done"}}}]},
                 "prompt_eval_count": 500}
 
-    def fake_run_tool(name, args, wd):
+    def fake_run_tool(name, args, wd, crawl_state=None):
         for n, a, r in calls:
             if n == name and a == args:
                 return r
@@ -826,7 +826,7 @@ def test_wiring_finish_reread_only_after_existence_gates_pass(oa, tmp_path):
                     {"function": {"name": "finish", "arguments": {"summary": "全部完成"}}}]},
                 "prompt_eval_count": 500}
 
-    def fake_run_tool(name, args, wd):
+    def fake_run_tool(name, args, wd, crawl_state=None):
         if name == "create_file":
             return "[created real.txt]"
         if name == "finish":
