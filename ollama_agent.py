@@ -203,6 +203,10 @@ _REQ_ARGS = {"create_file":["path","content"],"read_file":["path"],"edit_file":[
              "list_dir":["path"],"run_bash":["command"],"append_file":["path","content"],
              "delete_file":["path"],"todo":["action"],"skills":["action"],"finish":["summary"]}
 
+# ---- 消融开关(仅消融实验用;默认全开=原行为) ----
+# AGENT_ABLATION=逗号分隔的关闭清单: finish_gate, anti_loop, flat_prefill, verify_feedback
+_ABLATION = set(x.strip() for x in os.environ.get("AGENT_ABLATION", "").split(",") if x.strip())
+
 CORE_TOOLS = [
  _f("create_file","Create or overwrite a file", P(path={"type":"string"},content={"type":"string"}),["path","content"]),
  _f("read_file","Read a file's content (optional start_line/end_line to read a range)", P(path={"type":"string"},start_line={"type":"number"},end_line={"type":"number"}),["path"]),
@@ -2600,7 +2604,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
             messages = _dedupe_trailing_assistant(messages)
             if qa:
                 ct = _chat_tool_defs()      # 问答:只读工具(根治加戏)
-            elif cats:
+            elif cats and not _ABLATION.__contains__('flat_prefill'):
                 ct = tools_for_categories(cats, extra=allowed_extra)   # 任务:按类别加载(扁平 prefill)
             else:
                 ct = None                    # 全量(兜底)
@@ -2830,7 +2834,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                 print(f"[{i}|+{int(time.time()-_t0)}s] ⚙ {name} {json.dumps(args,ensure_ascii=False)[:60]} -> {res[:90]}", flush=True)
                 if name=="finish":
                     # 假完成守护:没做任何实际工作就 finish → 拒绝并强制继续
-                    if not productive_used and fake_finish_warns < 2:
+                    if not _ABLATION.__contains__('finish_gate') and not productive_used and fake_finish_warns < 2:
                         fake_finish_warns += 1
                         print(f"[{i}] ⚠️ 拒绝假 finish:未使用任何产出型工具(create_file/edit_file/run_bash)", flush=True)
                         # 拒绝消息必须给下一步可执行动作(LH-01 教训):只说"为什么拒"不给
@@ -2847,7 +2851,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         messages.append({"role":"tool","content":res})
                         continue
                     # 测试验证守护:目录有 test_*.py 时,harness 亲自跑 pytest,不过则拒绝 finish
-                    if glob.glob(os.path.join(workdir, "test_*.py")) and test_guard_warns < 3:
+                    if not _ABLATION.__contains__('finish_gate') and glob.glob(os.path.join(workdir, "test_*.py")) and test_guard_warns < 3:
                         test_guard_warns += 1
                         try:
                             pr = subprocess.run("python -m pytest -q", shell=True,
@@ -2858,7 +2862,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         ok = (pr is not None and pr.returncode == 0)
                         tail = ((pr.stdout or "").strip().splitlines() or [""])[-1][:120]
                         if not ok:
-                            h = _pytest_hint((pr.stdout if pr is not None else "") or "")
+                            h = ("pytest 输出末行" if 'verify_feedback' in _ABLATION else _pytest_hint((pr.stdout if pr is not None else "") or ""))
                             bak_hint = ""
                             if "SyntaxError" in h or "IndentationError" in h:
                                 baks = glob.glob(os.path.join(workdir, "*.py.bak"))
@@ -2876,7 +2880,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                             continue
                     # 产物核对门禁:finish summary 声称的产物逐一对照 workdir,缺失则拒绝。
                     # (裸 finish 曾让模型谎报"已写入/已生成"直接收货——谎报是低分直接死因)
-                    if not qa and finish_claim_warns < 2:
+                    if not qa and 'finish_gate' not in _ABLATION and finish_claim_warns < 2:
                         _missing = _claimed_missing_files(str(args.get("summary","")), workdir)
                         if _missing:
                             finish_claim_warns += 1
@@ -2892,7 +2896,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     # 真实存在。实证(WF-02 e2b):todo.json 里躺着没写的 change_log.md,
                     # summary 不提它就直接穿过了只对 summary 核对的旧门禁。按文件存在性
                     # 核对而非勾选状态——all=true 一键勾选曾被用作绕行通道。
-                    if not qa and _child_sandbox is None and plan_gate_warns < 2:
+                    if not qa and _child_sandbox is None and 'finish_gate' not in _ABLATION and plan_gate_warns < 2:
                         _p_missing = _plan_named_missing(workdir)
                         if _p_missing:
                             plan_gate_warns += 1
@@ -3003,7 +3007,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         f"综合已有结果推进到下一步(写文件 / 换其他工具 / 调用 finish)。"
                         f"若你在做批量步骤(每次参数不同)则属正常,继续。"})
                     tool_streak = 1
-                if tool_streak >= 8 and same_sig_streak >= 4 and name != "finish":
+                if not _ABLATION.__contains__('anti_loop') and tool_streak >= 8 and same_sig_streak >= 4 and name != "finish":
                     # 强升级:同工具连续 8 次且同参数连续 4 次才禁用——真死循环才触发;
                     # 长任务批处理(逐文件/逐切片跑脚本)参数在变,永不命中(LH-01 4b 误伤教训)
                     _disabled_tools.add(name)
