@@ -206,6 +206,11 @@ _REQ_ARGS = {"create_file":["path","content"],"read_file":["path"],"edit_file":[
 # ---- 消融开关(仅消融实验用;默认全开=原行为) ----
 # AGENT_ABLATION=逗号分隔的关闭清单: finish_gate, anti_loop, flat_prefill, verify_feedback
 _ABLATION = set(x.strip() for x in os.environ.get("AGENT_ABLATION", "").split(",") if x.strip())
+# read_file 爬行守卫阈值(主 agent_loop 与 batch_tools 共用)
+_CRAWL_WARN = 3      # 第 3 次读同一文件:注入策略纠正
+_CRAWL_DENY = 6      # 第 6 次:直接拒绝读取,强制换脚本
+# batch_tools 的批次级 read_file 爬行计数(与主 agent_loop 的 _crawl 相互独立)
+_BATCH_CRAWL = {}
 
 CORE_TOOLS = [
  _f("create_file","Create or overwrite a file", P(path={"type":"string"},content={"type":"string"}),["path","content"]),
@@ -1201,7 +1206,7 @@ def _attach_pending_images(messages, workdir):
     _pending_images_save(workdir, [])
     return n_attached
 
-def run_tool(name, args, workdir):
+def run_tool(name, args, workdir, crawl_state=None):
     try:
         # 工具名别名:小模型常输出业界通名(write_file/list_directory 等),
         # 自动映射到鸣鸟内置工具,而非拒绝("工具已禁用"会让小模型陷入死循环)。
@@ -1244,29 +1249,30 @@ def run_tool(name, args, workdir):
             p=os.path.join(workdir,args["path"])
             if not os.path.exists(p):
                 return f"[not found: {args['path']}]"
-            # 爬行守卫:同一文件反复分段读取 = 模型在用对话当计算器。前 2 次温和纠正,
-            # 之后拒绝并指向 run_bash(288 复盘:LH01/4b 曾逐段爬 5000 行 CSV 烧完 180 分钟)。
-            _ck = os.path.normcase(os.path.normpath(p))
-            _c = _crawl.get(_ck, [0, 0])
-            _c[0] += 1
-            _crawl[_ck] = _c
-            if _c[0] >= _CRAWL_DENY:
-                return (f"[crawl-guard: '{args['path']}' 已被读取 {_c[0]} 次,禁止继续分段读取。"
-                        f"用 run_bash 写脚本处理此文件(python 逐行统计/过滤/聚合),"
-                        f"把结果写进产物文件;需要回看小片段时给出精确 start_line/end_line。]")
-            if _c[0] >= _CRAWL_WARN and _c[1] < 2:
-                _c[1] += 1
-                _crawl[_ck] = _c
-                hint = (f"[hint: 这是第 {_c[0]} 次读取 '{args['path']}'。逐段重复读取低效:"
-                        f"改用 run_bash(python 脚本)一次性统计/搜索/聚合,把结论写入产物文件。]")
-                return hint + "\n" + read_text(p)[:4000]
-            _crawl[_ck] = _c
-            # 视觉接线:图片不按文本读(乱码),转 base64 随下一条消息附载给多模态模型
+            # 视觉接线:图片不按文本读(乱码),转 base64 随下一条消息附载给多模态模型。
+            # 在爬行守卫之前:重看同一张图(视觉对照)是合法需求,且 read_text 兜底会读出乱码。
             if str(args["path"]).lower().endswith(_IMG_EXTS):
                 real, inside = _safe_path(workdir, str(args["path"]))
                 if not inside:
                     return "[blocked: 路径越界(工作目录边界守护)]"
                 return _read_file_image(workdir, str(args["path"]), real)
+            # 爬行守卫:同一文件反复分段读取 = 模型在用对话当计算器。前 2 次温和纠正,
+            # 之后拒绝并指向 run_bash(288 复盘:LH01/4b 曾逐段爬 5000 行 CSV 烧完 180 分钟)。
+            _ck = os.path.normcase(os.path.normpath(p))
+            _c = (crawl_state or _BATCH_CRAWL).get(_ck, [0, 0])
+            _c[0] += 1
+            (crawl_state or _BATCH_CRAWL)[_ck] = _c
+            if _c[0] >= _CRAWL_DENY:
+                return (f"[crawl-guard: '{args['path']}' 已被读取 {_c[0]} 次,禁止继续分段读取。"
+                        f"用 run_bash 写脚本处理此文件(python 逐行统计/过滤/聚合),"
+                        f"把结果写进产物文件;需要回看小片段时给出精确 start_line/end_line。]")
+            if _c[0] >= _CRAWL_WARN:
+                _c[1] += 1
+                (crawl_state or _BATCH_CRAWL)[_ck] = _c
+                hint = (f"[hint: 这是第 {_c[0]} 次读取 '{args['path']}'。逐段重复读取低效:"
+                        f"改用 run_bash(python 脚本)一次性统计/搜索/聚合,把结论写入产物文件。]")
+                return hint + "\n" + read_text(p)[:4000]
+            (crawl_state or _BATCH_CRAWL)[_ck] = _c
             # 按需精读:start_line/end_line 只读指定行区间(科研场景精读全文落盘文件)
             sl = int(args.get("start_line", 0) or 0)
             el = int(args.get("end_line", 0) or 0)
@@ -2525,8 +2531,6 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     # 爬行守卫:同一文件被重复 read_file 的计数(path -> [次数, 已注入纠正数])。
     # 合法批量处理应该用 run_bash 脚本聚合,而不是逐段把大文件读进对话。
     _crawl = {}
-    _CRAWL_WARN = 3      # 第 3 次读同一文件:注入策略纠正
-    _CRAWL_DENY = 6      # 第 6 次:直接拒绝读取,强制换脚本
     research_streak = 0     # 连续调研类工具(web_search/web_fetch)计数
     research_warns = 0
     # (_RESEARCH 旧二元列表已并入 _RESEARCH_ALL,含 web_search_multi)
@@ -2836,7 +2840,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         f"不要重复输出同一段文字,不要调用任何工具。"})
                     continue
                 else:
-                    res = run_tool(name, args, workdir)
+                    res = run_tool(name, args, workdir, crawl_state=_crawl)
                     last_sig = (name, json.dumps(args, sort_keys=True, ensure_ascii=False))
                 if name == "enable_tools":
                     # 记录 enable_tools 请求的工具名 → 下一轮 tools_for_categories 的 extra 里纳入

@@ -72,7 +72,7 @@ def _scripted_loop(workdir, calls, task="修复 m08.py 里的 bug,并运行测�
                                   "arguments": {"summary": "all done"}}}]},
                 "prompt_eval_count": 500}
 
-    def fake_run_tool(name, args, w):
+    def fake_run_tool(name, args, wd, crawl_state=None):
         for n, a, r in calls:
             if n == name and a == args:
                 return r
