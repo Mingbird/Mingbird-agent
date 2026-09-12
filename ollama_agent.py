@@ -1244,6 +1244,23 @@ def run_tool(name, args, workdir):
             p=os.path.join(workdir,args["path"])
             if not os.path.exists(p):
                 return f"[not found: {args['path']}]"
+            # 爬行守卫:同一文件反复分段读取 = 模型在用对话当计算器。前 2 次温和纠正,
+            # 之后拒绝并指向 run_bash(288 复盘:LH01/4b 曾逐段爬 5000 行 CSV 烧完 180 分钟)。
+            _ck = os.path.normcase(os.path.normpath(p))
+            _c = _crawl.get(_ck, [0, 0])
+            _c[0] += 1
+            _crawl[_ck] = _c
+            if _c[0] >= _CRAWL_DENY:
+                return (f"[crawl-guard: '{args['path']}' 已被读取 {_c[0]} 次,禁止继续分段读取。"
+                        f"用 run_bash 写脚本处理此文件(python 逐行统计/过滤/聚合),"
+                        f"把结果写进产物文件;需要回看小片段时给出精确 start_line/end_line。]")
+            if _c[0] >= _CRAWL_WARN and _c[1] < 2:
+                _c[1] += 1
+                _crawl[_ck] = _c
+                hint = (f"[hint: 这是第 {_c[0]} 次读取 '{args['path']}'。逐段重复读取低效:"
+                        f"改用 run_bash(python 脚本)一次性统计/搜索/聚合,把结论写入产物文件。]")
+                return hint + "\n" + read_text(p)[:4000]
+            _crawl[_ck] = _c
             # 视觉接线:图片不按文本读(乱码),转 base64 随下一条消息附载给多模态模型
             if str(args["path"]).lower().endswith(_IMG_EXTS):
                 real, inside = _safe_path(workdir, str(args["path"]))
@@ -2505,6 +2522,11 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     disabled_recall = {}     # 已禁用工具仍被调用的次数(拒绝循环升级用)
     tool_streak = 0
     streak_warns = 0
+    # 爬行守卫:同一文件被重复 read_file 的计数(path -> [次数, 已注入纠正数])。
+    # 合法批量处理应该用 run_bash 脚本聚合,而不是逐段把大文件读进对话。
+    _crawl = {}
+    _CRAWL_WARN = 3      # 第 3 次读同一文件:注入策略纠正
+    _CRAWL_DENY = 6      # 第 6 次:直接拒绝读取,强制换脚本
     research_streak = 0     # 连续调研类工具(web_search/web_fetch)计数
     research_warns = 0
     # (_RESEARCH 旧二元列表已并入 _RESEARCH_ALL,含 web_search_multi)
