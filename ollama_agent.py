@@ -11,7 +11,7 @@
 环境变量(可被 GUI 设置面板覆盖):
   AGENT_CTX         上下文窗口(默认 131072;过低会频繁压缩,过高在 UMA 机器有内存墙)
   AGENT_TEMP        温度(默认 0)
-  AGENT_NUMPREDICT  输出上限(默认 2048)
+  AGENT_NUMPREDICT  输出上限(默认 8192)
   AGENT_THINK=1     开启思考模型 thinking(默认关)
   AGENT_SYSTEM_FILE 自定义系统提示文件路径
 
@@ -76,7 +76,10 @@ THINK = os.environ.get("AGENT_THINK") == "1"
 # 旧默认 16384;小模型(e2b/4b)128K KV 占用小,实测可跑。
 CTX_BUDGET = int(os.environ.get("AGENT_CTX", "131072"))
 TEMP = float(os.environ.get("AGENT_TEMP", "0"))
-NUM_PREDICT = int(os.environ.get("AGENT_NUMPREDICT", "2048"))
+# 输出上限 8192(帽不是目标:正常短轮零开销;2048 时代单轮工具调用装不下一个
+# 300 行文件的结构化输出,WF-08/4b 截断死亡螺旋实锤)。8192 对齐基准协议行
+# (opencode 同值),更大交付由截断反馈引导分块(create_file 骨架 + append_file 追加)。
+NUM_PREDICT = int(os.environ.get("AGENT_NUMPREDICT", "8192"))
 SYSTEM_FILE = os.environ.get("AGENT_SYSTEM_FILE", "")
 STREAM = os.environ.get("AGENT_STREAM") == "1"   # GUI 开流式时置 1
 # 时间预算(秒)。>0 启用"预算节奏提示"(50%/75%/90% 各注入一次收尾导向提示)。
@@ -202,6 +205,25 @@ P = lambda **kw: kw
 _REQ_ARGS = {"create_file":["path","content"],"read_file":["path"],"edit_file":["path","old","new"],
              "list_dir":["path"],"run_bash":["command"],"append_file":["path","content"],
              "delete_file":["path"],"todo":["action"],"skills":["action"],"finish":["summary"]}
+
+# ---- 消融开关(仅消融实验用;默认全开=原行为) ----
+# AGENT_ABLATION=逗号分隔的关闭清单: finish_gate, anti_loop, flat_prefill, verify_feedback
+_ABLATION = set(x.strip() for x in os.environ.get("AGENT_ABLATION", "").split(",") if x.strip())
+# read_file 爬行守卫 v2(字节预算制;主 agent_loop 与 batch_tools 经 crawl_state 共用计数)。
+# v1(次数阈值硬拒)在 72 格重跑实证致伤:4b 不会写聚合脚本,硬拒只是死墙——LH01/4b 撞墙
+# 62 次得 0.333(fp-0902 慢爬可得 0.714)、WF08/4b 12 次拒绝双超时计 0;且 v1 的 hint 只回
+# 文件头 4000 字符、无视请求区间,配合方拿到的是错误数据。
+# v2 三原则:①永不拒绝——预算耗尽后每次仍返回所请求区间的前 _CRAWL_THROTTLE 字符,
+# 进度不断,只是带宽受限;②提示永不替换数据——只在结果前加一行;③预算按文件大小计
+# (2×文件,下限 64KB,上限 512KB):一遍探索+一遍核对免费,第三遍起限速,重复内容不再
+# 灌满上下文,压缩螺旋(爬行烧穿预算的真因)被掐断。
+_CRAWL_BUDGET_MULT = 2        # 预算倍率:2× 文件大小
+_CRAWL_BUDGET_FLOOR = 64 * 1024    # 小文件下限(几百次的精读回看不触限)
+_CRAWL_BUDGET_CAP = 512 * 1024     # 大语料上限(约 1 遍 512KB 后限速)
+_CRAWL_THROTTLE = 2000        # 预算耗尽后每次读取返回的字符上限
+_CRAWL_NUDGE_AT = (4, 10)     # 第几次读取时各给一次一行建议(每文件最多 2 次)
+# batch_tools 的兜底计数(正常路径经 run_tool 的 crawl_state 注入,与任务级计数同源)
+_BATCH_CRAWL = {}
 
 CORE_TOOLS = [
  _f("create_file","Create or overwrite a file", P(path={"type":"string"},content={"type":"string"}),["path","content"]),
@@ -435,7 +457,7 @@ def web_search_multi(queries, max_results=3):
         parts.append(f"### 查询: {q}\n{results.get(q, '(failed)')}")
     return "\n\n".join(parts)
 
-def batch_tools(calls, workdir):
+def batch_tools(calls, workdir, crawl_state=None):
     """批处理编排:一次执行多个工具调用,合并结果(减少 agent round-trip)。
     输入: [{"tool": "read_file", "args": {...}}, {"tool": "web_search", "args": {...}}, ...]
     - 网络/检索类工具(web_search/web_fetch/web_search_multi/mcp_call)并行执行(提速)
@@ -454,7 +476,7 @@ def batch_tools(calls, workdir):
     def _one(c):
         try:
             tool = c.get("tool", ""); args = c.get("args", {}) or {}
-            r = run_tool(tool, args, workdir)
+            r = run_tool(tool, args, workdir, crawl_state=crawl_state)
             return str(r)[:2000]
         except Exception as e:
             return f"[batch error: {e}]"
@@ -1197,7 +1219,7 @@ def _attach_pending_images(messages, workdir):
     _pending_images_save(workdir, [])
     return n_attached
 
-def run_tool(name, args, workdir):
+def run_tool(name, args, workdir, crawl_state=None):
     try:
         # 工具名别名:小模型常输出业界通名(write_file/list_directory 等),
         # 自动映射到鸣鸟内置工具,而非拒绝("工具已禁用"会让小模型陷入死循环)。
@@ -1240,12 +1262,19 @@ def run_tool(name, args, workdir):
             p=os.path.join(workdir,args["path"])
             if not os.path.exists(p):
                 return f"[not found: {args['path']}]"
-            # 视觉接线:图片不按文本读(乱码),转 base64 随下一条消息附载给多模态模型
+            # 视觉接线:图片不按文本读(乱码),转 base64 随下一条消息附载给多模态模型。
+            # 在爬行守卫之前:重看同一张图(视觉对照)是合法需求,且 read_text 兜底会读出乱码。
             if str(args["path"]).lower().endswith(_IMG_EXTS):
                 real, inside = _safe_path(workdir, str(args["path"]))
                 if not inside:
                     return "[blocked: 路径越界(工作目录边界守护)]"
                 return _read_file_image(workdir, str(args["path"]), real)
+            # 爬行守卫 v2(字节预算制):先按请求区间算出正常结果,守卫只做统计/限幅/提示,
+            # 永不改变"返回哪段内容"、永不拒绝。预算 = clamp(2×文件大小, 64KB, 512KB)。
+            _ck = os.path.normcase(os.path.normpath(p))
+            # 状态: [读取次数, 累计已服务字符, 已给建议次数, 已给过限速说明]
+            _c = (_BATCH_CRAWL if crawl_state is None else crawl_state).get(_ck, [0, 0, 0, 0])
+            _c[0] += 1
             # 按需精读:start_line/end_line 只读指定行区间(科研场景精读全文落盘文件)
             sl = int(args.get("start_line", 0) or 0)
             el = int(args.get("end_line", 0) or 0)
@@ -1254,8 +1283,42 @@ def run_tool(name, args, workdir):
                 if el <= 0: el = len(lines)
                 chunk = lines[max(0, sl-1):el]
                 meta = f"\n[文件共 {len(lines)} 行,已读取 {max(0,sl-1)+1}-{min(el,len(lines))} 行。需要其他部分用 read_file(start_line=.., end_line=..)。]"
-                return "\n".join(chunk)[:6000] + meta
-            return read_text(p)[:6000]
+                body = "\n".join(chunk)[:6000]
+            else:
+                meta = ""
+                body = read_text(p)[:6000]
+            _c[1] += len(body)
+            try:
+                _budget = min(max(_CRAWL_BUDGET_MULT * os.path.getsize(p),
+                                  _CRAWL_BUDGET_FLOOR), _CRAWL_BUDGET_CAP)
+            except OSError:
+                _budget = _CRAWL_BUDGET_FLOOR
+            if _c[1] > _budget:
+                # 预算耗尽:限速而非拒绝。首次给完整出路说明(含可照抄的脚本示例),
+                # 之后一行短提示;返回的是所请求区间的前 2000 字符——进度不断。
+                if not _c[3]:
+                    _c[3] = 1
+                    note = (f"[crawl-guard: '{args['path']}' 累计已读取 {_c[1]} 字符,超出本文件"
+                            f"预算 {_budget}(按 {_CRAWL_BUDGET_MULT}×文件大小)。读取不会被拒绝,"
+                            f"但本文件后续每次最多返回 {_CRAWL_THROTTLE} 字符。要高效处理此文件,"
+                            f"用 run_bash 跑 python 脚本一次完成统计/搜索/聚合,例如:\n"
+                            f"  python -c \"import collections; ls=open(r'{args['path']}',encoding='utf-8').readlines(); "
+                            f"print(collections.Counter(w for l in ls for w in l.split()).most_common(10))\"\n"
+                            f"把结果写进产物文件,需要细节时再精确回看。]")
+                else:
+                    note = (f"[crawl-guard: '{args['path']}' 读取限速中(每次最多 {_CRAWL_THROTTLE} 字符,"
+                            f"累计 {_c[1]}/{_budget})。用 run_bash 脚本可一次取全。]")
+                (_BATCH_CRAWL if crawl_state is None else crawl_state)[_ck] = _c
+                return note + "\n" + body[:_CRAWL_THROTTLE] + meta
+            if _c[0] in _CRAWL_NUDGE_AT and _c[2] < 2:
+                # 温和建议:只在第 4/10 次读取时各一行,不改变返回数据。
+                _c[2] += 1
+                (_BATCH_CRAWL if crawl_state is None else crawl_state)[_ck] = _c
+                return (f"[提示: 这是第 {_c[0]} 次读取 '{args['path']}'。若在做统计/搜索/聚合,"
+                        f"用 run_bash 跑 python 脚本一次完成更快;单纯回看可忽略本提示。]"
+                        "\n" + body + meta)
+            (_BATCH_CRAWL if crawl_state is None else crawl_state)[_ck] = _c
+            return body + meta
         if name=="edit_file":
             p=os.path.join(workdir,args["path"]); s=read_text(p)
             # 编辑前备份 .bak,模型改坏文件时可回滚
@@ -1354,7 +1417,7 @@ def run_tool(name, args, workdir):
             return out
         if name=="web_search": return web_search(args["query"])
         if name=="web_search_multi": return web_search_multi(args.get("queries", []), int(args.get("max_results", 3)))
-        if name=="batch_tools": return batch_tools(args.get("calls", []), workdir)
+        if name=="batch_tools": return batch_tools(args.get("calls", []), workdir, crawl_state=crawl_state)
         if name=="web_fetch": return web_fetch(args["url"], workdir)
         if name=="memory_store": return memory_store(args["text"])
         if name=="memory_recall": return memory_recall(args["query"], int(args.get("limit",3)))
@@ -1903,8 +1966,17 @@ def _semantically_empty(text):
     """content 去掉 think 标签块后无实质正文 = 语义空轮。
     fp-0902 验证批实证(2026-09-02 WF-08 4b):think:false 下残余思考训练让模型把
     字面 `<think>\\n\\n</think>` 当 content 输出,content.strip() 判非空 → 空轮硬复位
-    永不触发,模型以满额 NUM_PREDICT/轮烧思考直到重复探测器强制收尾(0.571)。"""
-    return not _THINK_BLOCK_RE.sub("", text or "").strip()
+    永不触发,模型以满额 NUM_PREDICT/轮烧思考直到重复探测器强制收尾(0.571)。
+    未闭合形态(WF-08/4b 2026-09-13 二次实证):生成在 think 中途被长度截断,
+    `</think>` 没来得及输出,旧正则剥不掉 → 该轮判"有正文"把空轮计数器清零,
+    空轮与残骸轮交替出现,计数器永远到不了 3,全部空轮救护失效。判定:整段以
+    <think> 开头且全文无闭合标签 = 截断残骸,计空轮;正文在前、think 在后者
+    含实质内容,不算空。"""
+    t = text or ""
+    _s = t.lstrip()
+    if _s.lower().startswith("<think>") and not re.search(r"</think>", _s, re.IGNORECASE):
+        return True
+    return not _THINK_BLOCK_RE.sub("", t).strip()
 
 def _similar(a, b, thresh=0.75):
     """判断两段文本是否高度相似(用于重复输出死循环检测)。"""
@@ -2501,6 +2573,9 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     disabled_recall = {}     # 已禁用工具仍被调用的次数(拒绝循环升级用)
     tool_streak = 0
     streak_warns = 0
+    # 爬行守卫:同一文件被重复 read_file 的计数(path -> [次数, 已注入纠正数])。
+    # 合法批量处理应该用 run_bash 脚本聚合,而不是逐段把大文件读进对话。
+    _crawl = {}
     research_streak = 0     # 连续调研类工具(web_search/web_fetch)计数
     research_warns = 0
     # (_RESEARCH 旧二元列表已并入 _RESEARCH_ALL,含 web_search_multi)
@@ -2515,6 +2590,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     plan_gate_warns = 0      # finish 计划完成度核对拒绝次数(≥2 放行,防死锁)
     bash_teach_warns = 0     # 小模型 run_bash 教学提示次数
     empty_turns = 0          # 连续空文本输出计数
+    _len_truncated = False   # 上轮为 done_reason=length 截断空轮(针对性反馈只发一次/段)
     empty_resets = 0         # 空轮硬复位已用次数(上限 3)
     empty_total = 0          # 累计空轮数(transcript 观测用)
     test_guard_warns = 0
@@ -2600,7 +2676,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
             messages = _dedupe_trailing_assistant(messages)
             if qa:
                 ct = _chat_tool_defs()      # 问答:只读工具(根治加戏)
-            elif cats:
+            elif cats and not _ABLATION.__contains__('flat_prefill'):
                 ct = tools_for_categories(cats, extra=allowed_extra)   # 任务:按类别加载(扁平 prefill)
             else:
                 ct = None                    # 全量(兜底)
@@ -2724,8 +2800,11 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
         tcs = msg.get("tool_calls")
         if r.get("done_reason") == "length" and _semantically_empty(content) and not tcs:
             # 生成被 NUM_PREDICT 截断且无实质正文/调用 = 空响应死循环签名(取证插桩;
-            # 判空用语义口径,think 标签壳不算正文)
+            # 判空用语义口径,think 标签壳不算正文)。置旗标:本轮空轮处理给针对性
+            # 分块反馈(通用"别输出空文本"对此无效——模型不是不想干活,是单次
+            # 发射装不下,WF-08/4b 70 轮空转烧穿 90 分钟实锤)。
             print(f"[{i}] ⚠️ done_reason=length 且无正文无调用(eval={r.get('eval_count')})——疑似生成预算被烧尽", flush=True)
+            _len_truncated = True
         if not tcs and not qa:
             # 抢救:模型把工具调用写成文本 JSON 时,尝试解析成真实调用(问答模式禁用,防加戏)
             salvaged = try_parse_tool_calls(content)
@@ -2810,7 +2889,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         f"不要重复输出同一段文字,不要调用任何工具。"})
                     continue
                 else:
-                    res = run_tool(name, args, workdir)
+                    res = run_tool(name, args, workdir, crawl_state=_crawl)
                     last_sig = (name, json.dumps(args, sort_keys=True, ensure_ascii=False))
                 if name == "enable_tools":
                     # 记录 enable_tools 请求的工具名 → 下一轮 tools_for_categories 的 extra 里纳入
@@ -2830,7 +2909,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                 print(f"[{i}|+{int(time.time()-_t0)}s] ⚙ {name} {json.dumps(args,ensure_ascii=False)[:60]} -> {res[:90]}", flush=True)
                 if name=="finish":
                     # 假完成守护:没做任何实际工作就 finish → 拒绝并强制继续
-                    if not productive_used and fake_finish_warns < 2:
+                    if not _ABLATION.__contains__('finish_gate') and not productive_used and fake_finish_warns < 2:
                         fake_finish_warns += 1
                         print(f"[{i}] ⚠️ 拒绝假 finish:未使用任何产出型工具(create_file/edit_file/run_bash)", flush=True)
                         # 拒绝消息必须给下一步可执行动作(LH-01 教训):只说"为什么拒"不给
@@ -2847,7 +2926,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         messages.append({"role":"tool","content":res})
                         continue
                     # 测试验证守护:目录有 test_*.py 时,harness 亲自跑 pytest,不过则拒绝 finish
-                    if glob.glob(os.path.join(workdir, "test_*.py")) and test_guard_warns < 3:
+                    if not _ABLATION.__contains__('finish_gate') and glob.glob(os.path.join(workdir, "test_*.py")) and test_guard_warns < 3:
                         test_guard_warns += 1
                         try:
                             pr = subprocess.run("python -m pytest -q", shell=True,
@@ -2858,7 +2937,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         ok = (pr is not None and pr.returncode == 0)
                         tail = ((pr.stdout or "").strip().splitlines() or [""])[-1][:120]
                         if not ok:
-                            h = _pytest_hint((pr.stdout if pr is not None else "") or "")
+                            h = ("pytest 输出末行" if 'verify_feedback' in _ABLATION else _pytest_hint((pr.stdout if pr is not None else "") or ""))
                             bak_hint = ""
                             if "SyntaxError" in h or "IndentationError" in h:
                                 baks = glob.glob(os.path.join(workdir, "*.py.bak"))
@@ -2876,7 +2955,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                             continue
                     # 产物核对门禁:finish summary 声称的产物逐一对照 workdir,缺失则拒绝。
                     # (裸 finish 曾让模型谎报"已写入/已生成"直接收货——谎报是低分直接死因)
-                    if not qa and finish_claim_warns < 2:
+                    if not qa and 'finish_gate' not in _ABLATION and finish_claim_warns < 2:
                         _missing = _claimed_missing_files(str(args.get("summary","")), workdir)
                         if _missing:
                             finish_claim_warns += 1
@@ -2892,7 +2971,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     # 真实存在。实证(WF-02 e2b):todo.json 里躺着没写的 change_log.md,
                     # summary 不提它就直接穿过了只对 summary 核对的旧门禁。按文件存在性
                     # 核对而非勾选状态——all=true 一键勾选曾被用作绕行通道。
-                    if not qa and _child_sandbox is None and plan_gate_warns < 2:
+                    if not qa and _child_sandbox is None and 'finish_gate' not in _ABLATION and plan_gate_warns < 2:
                         _p_missing = _plan_named_missing(workdir)
                         if _p_missing:
                             plan_gate_warns += 1
@@ -3003,7 +3082,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         f"综合已有结果推进到下一步(写文件 / 换其他工具 / 调用 finish)。"
                         f"若你在做批量步骤(每次参数不同)则属正常,继续。"})
                     tool_streak = 1
-                if tool_streak >= 8 and same_sig_streak >= 4 and name != "finish":
+                if not _ABLATION.__contains__('anti_loop') and tool_streak >= 8 and same_sig_streak >= 4 and name != "finish":
                     # 强升级:同工具连续 8 次且同参数连续 4 次才禁用——真死循环才触发;
                     # 长任务批处理(逐文件/逐切片跑脚本)参数在变,永不命中(LH-01 4b 误伤教训)
                     _disabled_tools.add(name)
@@ -3091,6 +3170,16 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
             if _semantically_empty(content):
                 empty_turns += 1
                 empty_total += 1
+                if _len_truncated and empty_turns == 1:
+                    # 截断死亡反馈(每段只发一次,且只在本段首个空轮):模型不是不想干活,
+                    # 是单次发射装不下。通用"别输出空文本"对此无效,必须给分块交付的
+                    # 可行出路。后续空轮交给下方防护梯升级(3 纠正 → 6 硬复位)。
+                    _len_truncated = False
+                    messages.append({"role":"user","content":
+                        f"⚠️ 你的上一轮输出触到生成 token 上限({NUM_PREDICT})被截断,没有产生有效工具调用。"
+                        "大内容请分块交付:先用 create_file 写文件骨架或开头部分,再用 append_file 逐段追加"
+                        "(每次几百行以内);或者精简实现。不要试图一次输出完整的大文件。"})
+                    continue
                 if empty_turns >= 6 and empty_resets < 3:
                     # 硬复位:连续 6 个空轮 = 当前上下文已把模型推进生成死区(P0-1 修复前的
                     # 典型签名:思考烧光 NUM_PREDICT,content 恒空)。重建最小工作集:
@@ -3113,14 +3202,17 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     print(f"[{i}] 累计 {empty_total} 个空轮且 3 次复位无效,优雅退出", flush=True)
                     save_session(session, messages)
                     sys.exit(1)
-                if empty_turns >= 3:
-                    empty_turns = 0
+                if empty_turns == 3:
+                    # (原写法">=3 且清零计数"令 >=6 硬复位永远不可达——死代码,WF-08/4b
+                    # 70 连空轮全程零复位实证。改为恰在 3 时提醒一次、计数继续累加,
+                    # 6 触发硬复位;硬复位额度用尽后在 3 优雅退出。)
                     messages.append({"role":"user","content":
                         "⚠️ 你连续输出了空文本。立即调用工具做实际工作:"
                         "read_file 读文件 / run_bash 运行命令 / create_file 写文件。不要输出空文本。"})
                     continue
             else:
                 empty_turns = 0
+                _len_truncated = False
                 if last_text and _similar(last_text, content):
                     # 重复输出死循环(问答或任务都可能):同段文字重复 ≥2 次 → 强制收尾
                     repeat_count += 1

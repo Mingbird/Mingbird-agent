@@ -182,7 +182,7 @@ def _scripted_loop(oa, workdir, calls, task="修复 m08.py 里的 bug,并运行�
                     {"function": {"name": "finish", "arguments": {"summary": "all done"}}}]},
                 "prompt_eval_count": 500}
 
-    def fake_run_tool(name, args, wd):
+    def fake_run_tool(name, args, wd, crawl_state=None):
         for n, a, r in calls:
             if n == name and a == args:
                 return r
@@ -705,10 +705,16 @@ def test_semantically_empty_think_tag_shell(oa):
 
 
 def test_semantically_empty_real_content(oa):
-    """有实质正文/思考后接正文 → 非空;残缺标签里的文本不算空(保守不误伤)。"""
+    """有实质正文/思考后接正文 → 非空;开头即未闭合 think → 空轮。
+    (2026-09-13 口径变更:旧版"残缺标签里的文本不算空(保守不误伤)"被 WF-08/4b
+    三次 90 分钟超时证伪——长度截断恰好吞掉 </think>,残骸轮把空轮计数器清零,
+    空轮/残骸交替下计数器永远到不了 3,纠正/硬复位/优雅退出全部失效。开头即
+    <think> 且无闭合 = 整段都是思考残骸,块外无任何正文,判空无误伤面:
+    "正文在前、think 在后"的形态仍判非空。)"""
     assert not oa._semantically_empty("<think>推理过程</think>\n答案是 42")
     assert not oa._semantically_empty("我来读取文件")
-    assert not oa._semantically_empty("<think>被截断的思考没有闭合")
+    assert not oa._semantically_empty("先写计划 <think>被截断的思考没有闭合")
+    assert oa._semantically_empty("<think>被截断的思考没有闭合")
     assert oa._semantically_empty(None)   # None 不抛异常,按空处理
 
 
@@ -826,7 +832,7 @@ def test_wiring_finish_reread_only_after_existence_gates_pass(oa, tmp_path):
                     {"function": {"name": "finish", "arguments": {"summary": "全部完成"}}}]},
                 "prompt_eval_count": 500}
 
-    def fake_run_tool(name, args, wd):
+    def fake_run_tool(name, args, wd, crawl_state=None):
         if name == "create_file":
             return "[created real.txt]"
         if name == "finish":

@@ -1,0 +1,5 @@
+*.iss linguist-vendored
+*.spec linguist-vendored
+*.png linguist-vendored
+*.ico linguist-vendored
+*.csv linguist-vendored
