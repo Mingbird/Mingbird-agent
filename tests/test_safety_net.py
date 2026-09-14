@@ -166,3 +166,16 @@ def test_dd_write_to_device_is_danger(oa, tmp_path, unattended):
     assert "of=/dev/" in oa._DANGER_CMD
     assert "shred " in oa._DANGER_CMD
     assert oa._risk_classify("dd if=a of=b.img", str(tmp_path)) is None  # 普通拷贝放行
+
+
+def test_posix_mv_cp_out_of_home_matches_escape_patterns(oa):
+    """环3 POSIX 启发式:出界 mv/cp 命中确认通道模式(有人问/无人拒)。"""
+    for cmd in ("mv x.txt ~/.config/", "cp dump.txt ~/backup",
+                "mv log.txt /home/user/", "cp conf /etc/app.conf"):
+        assert any(__import__("re").search(p, cmd.lower()) for p in oa._BASH_ESCAPE_PATTERNS), cmd
+
+
+def test_five_ring_map_documented(oa):
+    """五环模型总图必须在 _gate_check docstring 里(未来改动的权威分层说明)。"""
+    assert "五环安全模型" in (oa._gate_check.__doc__ or "")
+    assert "环4 可回滚" in (oa._gate_check.__doc__ or "")

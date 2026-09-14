@@ -1006,9 +1006,12 @@ def child_system_prompt():
 _SYSTEM_DIRS = ("\\windows\\", "\\program files\\", "\\system32\\", "/windows/", "/program files/", "/usr", "/etc/", "/bin/", "/root")
 _DANGER_CMD = ("rm -rf", "rm -fr", "format c:", "format c:\\", "del /s /q c:", "rd /s /q c:\\", "diskpart", "mkfs", "shutdown", "taskkill /f /im",
                "curl | bash", "curl | sh", "wget | bash", "reg add", "reg delete", "netsh", "sc create", "certutil", "del c:\\*",
+               # 注:sc create 建服务=持久化后门路径→环1硬拒;sc delete 走环2 询问/无人值守拒(不对称是有意的)
                "rm -rf /", "rm -fr /", "sudo rm",
                "vssadmin delete", "bcdedit", "cipher /w", "format ", "del /f /s /q c:", "wipefs", "of=/dev/",
-               "shred ", "srm ", "userdel", "halt", "poweroff")
+               "shred ", "srm ", "userdel", "halt", "poweroff",
+               "wsl --unregister", "dism ", "pnputil /delete-driver",
+               "uninstall-windowsfeature", "remove-windowscapability")
 # ---- 通用安全垫(2026-09-14):小模型破坏性行为分级防护 ----
 # 证据:72格重跑中 e2b 用 create_file 覆盖了自己的完整交付物(WF-10,91秒自毁 2354B→368B);
 # 小模型还会无故删文件、卸载依赖、执行系统级破坏。分级原则:
@@ -1022,7 +1025,9 @@ _UNINSTALL_RE = re.compile(
     r"\bwinget\s+uninstall\b|\bchoco\s+(uninstall|remove)\b|\bapt(-get)?\s+(remove|purge)\b|"
     r"\byum\s+remove\b|\bdnf\s+remove\b|\bsnap\s+remove\b|\bpacman\s+(-r|--remove)\b|"
     r"\bzypper\s+(remove|\brm\b)\b|\bbrew\s+(uninstall|remove)\b|\bflatpak\s+uninstall\b|"
-    r"\bemerge\s+--unmerge\b", re.I)
+    r"\bemerge\s+--unmerge\b|\bwsl\s+--uninstall\b|\bmsiexec\s+/x\b|"
+    r"\bscoop\s+uninstall\b|\bwinget\s+remove\b|\bdpkg\s+(-r|--remove|--purge)\b|\brpm\s+-e\b|"
+    r"\bapt(-get)?\s+autoremove\b|\bmake\s+uninstall\b", re.I)
 _ENV_MUTATE_RE = re.compile(r"\bsetx\b|\bschtasks\s+/(create|delete|change)\b|\bsc\s+delete\b|\bsystemctl\s+(stop|disable|mask)\b|\bcrontab\s+-r\b|\blaunchctl\s+(remove|disable|unload)\b", re.I)
 _RECURSE_DELETE_RE = re.compile(
     r"\bremove-item\b[^&|;]*-recurse|\brd\s+/s\b|\bdel\s+/s\b(?!\s*q\s*c:)|\brmdir\s+/s\b|"
@@ -1106,6 +1111,8 @@ _BASH_ESCAPE_PATTERNS = (
     r"echo\s+.*>\\[a-z]:\\", r"more\s+[a-z]:\\", r"xcopy\s+[a-z]:\\", r"rd\s+[a-z]:\\",
     r"attrib\s+[a-z]:\\", r"cacls\s+[a-z]:\\", r"icacls\s+[a-z]:\\", r"takeown\s+[a-z]:\\",
     r"%userprofile%", r"%appdata%", r"%localappdata%", r"\.ssh", r"\.aws", r"\.env",
+    r"mv\s+[^&|;]*\s+~", r"cp\s+[^&|;]*\s+~", r"mv\s+[^&|;]*/home/", r"cp\s+[^&|;]*/home/",
+    r"mv\s+[^&|;]*/etc/", r"mv\s+[^&|;]*/usr/", r"cp\s+[^&|;]*/etc/", r"cp\s+[^&|;]*/usr/",
     r"c:\\users", r"c:\program", r"d:\\", r"e:\\",
 )
 _FILE_TOOLS = ("create_file", "read_file", "edit_file", "append_file", "delete_file",
@@ -1176,7 +1183,22 @@ def _ask_user_confirm(name, real_path, workdir, action="访问"):
 
 def _gate_check(name, args, workdir):
     """工具安全门:拦截危险操作(删系统/危险命令) + 工作目录边界 + 敏感路径。
-    返回拦截消息(字符串)或 None(放行)。"""
+    返回拦截消息(字符串)或 None(放行)。
+
+    ── 五环安全模型(各环唯一职责,互不重叠;改动先读此图) ──
+    环0 子代理沙箱  child_gate:子 agent default-deny,无升级路径
+    环1 不可逆拒绝   _DANGER_CMD+_PS_HIGH_RISK:系统级破坏,直接拒绝无出口
+    环2 行为分级     _risk_classify:卸载/环境变异(有人问/无人拒)、
+                    递归删除(仅工作目录内)、find -delete(同上)
+    环3 边界确认     _BASH_ESCAPE_PATTERNS/_safe_path/_SENSITIVE_PATTERNS/
+                    _SYSTEM_DIRS → 出界与敏感访问交 _ask_user_confirm
+                    (有人值守=用户决定;无人值守=120s 超时拒绝)
+    环4 可回滚       .mingbird_trash(delete)/.bak(edit)/覆盖防护(create):
+                    在环 0-3 之下仍发生的破坏,损失可逆
+    正交机制(不属安全门):爬行守卫 v2(上下文卫生)、反循环梯队、finish 门禁
+    (交付完整性)、8192 上限+截断反馈(生成卫生)。
+    环 3 的 bash 部分是启发式(无法可靠解析 shell);python -c 可绕过工作目录
+    边界是已知边界,由环 1/2 的命令分类与环 4 回滚兜底,OS 级沙箱为远期项。"""
     # 子 agent 安全模型优先(权限严格小于主 agent,default-deny,无升级路径)
     _cg = child_gate(name, args, workdir)
     if _cg:
