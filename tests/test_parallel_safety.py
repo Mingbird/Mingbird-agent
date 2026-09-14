@@ -370,8 +370,10 @@ class TestChildModeInstall:
             assert kw not in blob, kw
 
     def test_prefill_budget_zero_delta(self):
-        """出厂 prefill 净增 token 必须为 0(v1.2.0 基线 774 token = SYSTEM + CORE_TOOLS)。
-        任何对 SYSTEM/CORE_TOOLS 的改动都会使此测试失败 —— 必须是有意为之。"""
+        """出厂 prefill 净增 token 必须为已知值(v1.5.1 基线 797 token = SYSTEM + CORE_TOOLS)。
+        任何对 SYSTEM/CORE_TOOLS 的改动都会使此测试失败 —— 必须是有意为之。
+        797 = 774(v1.2.0) + 23(2026-09-14 通用安全垫:create_file 描述加 replace=true 语义、
+        delete_file 描述改为回收站可恢复)。"""
         import ollama_agent as A
         msgs = [{"role": "system", "content": A.SYSTEM}]
-        assert A._estimate_messages_tokens(msgs, A.CORE_TOOLS) == 774
+        assert A._estimate_messages_tokens(msgs, A.CORE_TOOLS) == 797

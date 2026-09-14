@@ -1,5 +1,20 @@
 # 变更日志 (CHANGELOG)
 
+## v1.6.0 (2026-09)
+
+### 🛡️ 通用安全垫:小模型破坏性行为防护(四层)
+- **覆盖自毁防护**:create_file 用显著更短的内容覆盖既有大文件时拒绝,要求显式 replace=true;
+  补充内容用 append_file,局部修改用 edit_file。(实证:e2b 曾在 91 秒内把完整交付手册覆盖成半截稿。)
+- **可回滚删除**:delete_file 不再直接抹除,移入工作目录 .mingbird_trash/ 可恢复。
+- **命令分级防护**:卸载软件包/环境变异(setx、计划任务、服务删除)在无人值守模式默认拒绝、
+  有人值守询问;递归删除仅允许工作目录内;系统级破坏命令(format/diskpart/vssadmin 等)无条件拒绝。
+- **~ 路径教超**:文件工具拒绝以 ~ 开头的路径,引导使用工作目录内相对路径。
+- 逃生口:AGENT_UNSAFE=1 全关;AGENT_ALLOW_ENV_MUTATION=1 允许无人值守环境变异。
+
+### 🧭 其他
+- 基准消融框架:机制级消融(baseline + finish_gate/anti_loop/flat_prefill/verify_feedback)
+  独立结果目录,续跑互不污染。
+
 ## v1.5.0 (2026-09)
 
 ### 🛡️ harness 健壮性三连(72 格重跑实证驱动)

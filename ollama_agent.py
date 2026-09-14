@@ -226,7 +226,7 @@ _CRAWL_NUDGE_AT = (4, 10)     # 第几次读取时各给一次一行建议(每�
 _BATCH_CRAWL = {}
 
 CORE_TOOLS = [
- _f("create_file","Create or overwrite a file", P(path={"type":"string"},content={"type":"string"}),["path","content"]),
+ _f("create_file","Create or overwrite a file. Overwriting an existing larger file requires replace=true", P(path={"type":"string"},content={"type":"string"},replace={"type":"boolean"}),["path","content"]),
  _f("read_file","Read a file's content (optional start_line/end_line to read a range)", P(path={"type":"string"},start_line={"type":"number"},end_line={"type":"number"}),["path"]),
  _f("edit_file","Find-and-replace text in a file", P(path={"type":"string"},old={"type":"string"},new={"type":"string"}),["path","old","new"]),
  _f("list_dir","List files in a directory", P(path={"type":"string"}),["path"]),
@@ -238,7 +238,7 @@ CORE_TOOLS = [
 ]
 ADVANCED_TOOLS = [
  _f("append_file","Append text to the end of a file", P(path={"type":"string"},content={"type":"string"}),["path","content"]),
- _f("delete_file","Delete a file", P(path={"type":"string"}),["path"]),
+ _f("delete_file","Delete a file (moved to .mingbird_trash/, recoverable)", P(path={"type":"string"}),["path"]),
  _f("search_files","Grep-like content search in a directory", P(path={"type":"string"},pattern={"type":"string"}),["path","pattern"]),
  _f("web_search","Search the web (Bing/Baidu), return titles+links+snippets", P(query={"type":"string"}),["query"]),
  _f("web_fetch","Fetch a URL: full text saved to sources/, return summary+path", P(url={"type":"string"}),["url"]),
@@ -1006,7 +1006,86 @@ def child_system_prompt():
 _SYSTEM_DIRS = ("\\windows\\", "\\program files\\", "\\system32\\", "/windows/", "/program files/", "/usr", "/etc/", "/bin/", "/root")
 _DANGER_CMD = ("rm -rf", "rm -fr", "format c:", "format c:\\", "del /s /q c:", "rd /s /q c:\\", "diskpart", "mkfs", "shutdown", "taskkill /f /im",
                "curl | bash", "curl | sh", "wget | bash", "reg add", "reg delete", "netsh", "sc create", "certutil", "del c:\\*",
-               "rm -rf /", "rm -fr /", "sudo rm")
+               "rm -rf /", "rm -fr /", "sudo rm",
+               "vssadmin delete", "bcdedit", "cipher /w", "format ", "del /f /s /q c:", "wipefs", "of=/dev/",
+               "shred ", "srm ", "userdel", "halt", "poweroff")
+# ---- 通用安全垫(2026-09-14):小模型破坏性行为分级防护 ----
+# 证据:72格重跑中 e2b 用 create_file 覆盖了自己的完整交付物(WF-10,91秒自毁 2354B→368B);
+# 小模型还会无故删文件、卸载依赖、执行系统级破坏。分级原则:
+#   D 类(系统级不可逆)→ _DANGER_CMD 直接拒绝,无出口;
+#   卸载/环境变异 → 有人值守询问,无人值守(run_bench)拒绝+指路;
+#   递归删除 → 仅允许工作目录内,目录外拒绝;
+#   覆盖自毁 → create_file 见下方 overwrite-guard。
+# AGENT_UNSAFE=1 关闭全部安全垫(高级用户);AGENT_ALLOW_ENV_MUTATION=1 允许无人值守卸载/环境变异。
+_UNINSTALL_RE = re.compile(
+    r"\b(pip3?|python\s+-m\s+pip)\s+uninstall\b|\bnpm\s+uninstall\b|\byarn\s+remove\b|"
+    r"\bwinget\s+uninstall\b|\bchoco\s+(uninstall|remove)\b|\bapt(-get)?\s+(remove|purge)\b|"
+    r"\byum\s+remove\b|\bdnf\s+remove\b|\bsnap\s+remove\b|\bpacman\s+(-r|--remove)\b|"
+    r"\bzypper\s+(remove|\brm\b)\b|\bbrew\s+(uninstall|remove)\b|\bflatpak\s+uninstall\b|"
+    r"\bemerge\s+--unmerge\b", re.I)
+_ENV_MUTATE_RE = re.compile(r"\bsetx\b|\bschtasks\s+/(create|delete|change)\b|\bsc\s+delete\b|\bsystemctl\s+(stop|disable|mask)\b|\bcrontab\s+-r\b|\blaunchctl\s+(remove|disable|unload)\b", re.I)
+_RECURSE_DELETE_RE = re.compile(
+    r"\bremove-item\b[^&|;]*-recurse|\brd\s+/s\b|\bdel\s+/s\b(?!\s*q\s*c:)|\brmdir\s+/s\b|"
+    r"\brm\s+(-[a-z]*r[a-z]*|--recursive)\b|\brm\s+-\w+\s+-\w*r\b", re.I)
+_FIND_DELETE_RE = re.compile(r"\bfind\s+(\S+)[^&|;]*-delete\b", re.I)
+_UNATTENDED = os.environ.get("AGENT_UNATTENDED") == "1"
+
+def _risk_classify(cmd, workdir):
+    """破坏性命令分级 → (拒绝原因 or None)。在 _gate_check 的 _DANGER_CMD 之后调用。"""
+    if _UNINSTALL_RE.search(cmd):
+        if os.environ.get("AGENT_ALLOW_ENV_MUTATION") == "1":
+            return None
+        if _UNATTENDED:
+            return ("[安全垫:检测到卸载/移除软件包,无人值守模式下默认拒绝(防小模型冲动卸载依赖)。"
+                    "确需卸载:设置 AGENT_ALLOW_ENV_MUTATION=1 后重试。]")
+        allow, allok, msg = _ask_user_confirm("run_bash", f"uninstall: {cmd[:60]}", workdir, "卸载软件包")
+        return None if allow else (msg or "[安全垫:卸载操作被拒绝]")
+    if _ENV_MUTATE_RE.search(cmd):
+        if os.environ.get("AGENT_ALLOW_ENV_MUTATION") == "1":
+            return None
+        if _UNATTENDED:
+            return ("[安全垫:检测到系统环境变更(setx/计划任务/服务删除),无人值守模式下默认拒绝。"
+                    "确需执行:设置 AGENT_ALLOW_ENV_MUTATION=1 后重试。]")
+        allow, allok, msg = _ask_user_confirm("run_bash", f"env-mutate: {cmd[:60]}", workdir, "修改系统环境")
+        return None if allow else (msg or "[安全垫:系统环境变更被拒绝]")
+    if _RECURSE_DELETE_RE.search(cmd):
+        targets = _delete_targets(cmd)
+        if not targets:
+            return "[安全垫:递归删除命令无法解析出明确目标,已拒绝。请给出明确的目标路径。]"
+        for t in targets:
+            real, inside = _safe_path(workdir, t)
+            if not inside:
+                return (f"[安全垫:递归删除目标 '{t[:60]}' 在工作目录之外,已拒绝。"
+                        f"工作目录内的递归删除不受限;目录外文件请用 delete_file 逐个处理。]")
+    mf = _FIND_DELETE_RE.search(cmd)
+    if mf:
+        real, inside = _safe_path(workdir, mf.group(1))
+        if not inside:
+            return (f"[安全垫: find -delete 的目标 '{mf.group(1)[:60]}' 在工作目录之外,已拒绝。"
+                    f"工作目录内的 find -delete 不受限。]")
+    return None
+
+def _delete_targets(cmd):
+    """从递归删除命令提取目标路径:跳过命令词与旗标(-rf / --recursive / 单字母 /x),
+    其余词元视为路径候选(Windows 与 POSIX 同等对待)。"""
+    m = _RECURSE_DELETE_RE.search(cmd)
+    tail = cmd[m.start():]
+    verbs = {"remove-item", "rd", "del", "rmdir", "rm"}
+    out = []
+    for t in re.split(r"\s+", tail):
+        t = t.strip().strip('"').strip("'")
+        if not t or t.lower() in verbs or t.startswith("-"):
+            continue
+        if re.fullmatch(r"/[a-z]", t.lower()):
+            continue                                   # /s /q /y 之类单字母旗标
+        if re.fullmatch(r"[a-z]:", t.lower()):
+            continue                                   # 盘符
+        out.append(t)
+    return out
+
+# ---- create_file 覆盖自毁防护阈值 ----
+_CLOBBER_MIN_OLD = 300      # 旧文件大于此字节数才触发(小文件随便改)
+_CLOBBER_RATIO = 0.5        # 新内容不足旧文件的 50% → 视为疑似自毁覆盖
 # powershell 不整封(大量合法查询被误伤,是 35b WF-08 转义实验循环的诱因之一),
 # 只拦高危子模式:下载执行/表达式注入/编码命令/隐藏窗口/策略改写/提权。
 _PS_HIGH_RISK = ("iex ", "iex;", "(iex", "invoke-expression", "downloadstring",
@@ -1113,6 +1192,11 @@ def _gate_check(name, args, workdir):
             if "powershell" in low and any(p in low for p in _PS_HIGH_RISK):
                 return (f"[安全门拦截:powershell 命令含高危操作(下载执行/脚本注入/提权),已拒绝。"
                         f"原命令: {cmd[:80]}]")
+            # 通用安全垫:卸载/环境变异/递归删除分级防护(AGENT_UNSAFE=1 关闭)
+            if os.environ.get("AGENT_UNSAFE") != "1":
+                _risk = _risk_classify(cmd, workdir)
+                if _risk:
+                    return _risk
             # 越界命令模式 → 征求同意(允许全部仅本轮豁免路径确认,不含危险命令)
             if name not in _allow_all:
                 for pat in _BASH_ESCAPE_PATTERNS:
@@ -1253,7 +1337,20 @@ def run_tool(name, args, workdir, crawl_state=None):
                          "MCP 的文件工具只对它配置的根目录有效。]")
             return _res
         if name=="create_file":
-            p=os.path.join(workdir,args["path"]); os.makedirs(os.path.dirname(p),exist_ok=True)
+            # 覆盖自毁防护:既有非空文件被显著更短的内容覆盖 → 拒绝并指路(e2b WF-10 自毁实证)。
+            # 确要整体替换:显式传 replace=true;要补充:append_file;要局部改:edit_file。
+            if str(args["path"]).startswith("~"):
+                return ("[安全垫:路径以 ~ 开头会按字面创建到家目录外,已拒绝。"
+                        "请在当前工作目录内用相对路径(如 outputs/data.json)。]")
+            p=os.path.join(workdir,args["path"])
+            if os.path.exists(p) and not args.get("replace"):
+                _old = os.path.getsize(p)
+                _new = len(args.get("content",""))
+                if _old > _CLOBBER_MIN_OLD and _new < _CLOBBER_RATIO * _old:
+                    return (f"[覆盖防护: '{args['path']}' 已有 {_old} 字节内容,你的新内容只有 {_new} 字节"
+                            f"(疑似把大文件覆盖成了小片段)。确要整体替换:加参数 replace=true 重试;"
+                            f"要补充内容:用 append_file;要局部修改:用 edit_file。]")
+            os.makedirs(os.path.dirname(p),exist_ok=True)
             open(p,"w",encoding="utf-8").write(args["content"])
             fixed = _auto_repair(p)
             tag = "已自动修复转义" if fixed else f"{len(args['content'])} bytes"
@@ -1344,7 +1441,16 @@ def run_tool(name, args, workdir, crawl_state=None):
             return f"[appended {args['path']}]"
         if name=="delete_file":
             p=os.path.join(workdir,args["path"])
-            if os.path.exists(p): os.remove(p); return f"[deleted {args['path']}]"
+            if os.path.exists(p):
+                # 可回滚删除:移入工作目录内回收站,而非直接抹除(小模型无故删文件的安全垫)
+                try:
+                    _trash=os.path.join(workdir,".mingbird_trash"); os.makedirs(_trash,exist_ok=True)
+                    _dst=os.path.join(_trash, f"{os.path.basename(p)}.{time.strftime('%H%M%S')}.trash")
+                    os.replace(p,_dst)
+                    return f"[deleted {args['path']} → 已移入 .mingbird_trash/(可恢复)]"
+                except OSError:
+                    os.remove(p)
+                    return f"[deleted {args['path']}]"
             return f"[not found: {args['path']}]"
         if name=="list_dir":
             d=os.path.join(workdir,args.get("path","."))
