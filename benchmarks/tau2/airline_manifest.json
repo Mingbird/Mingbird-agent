@@ -1,0 +1,1097 @@
+{
+ "0": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 104
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 214
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 601
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 53
+  }
+ },
+ "1": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 144
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 273
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 559
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 85
+  }
+ },
+ "2": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 151
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 773
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 782
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 93
+  }
+ },
+ "3": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 85
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 169
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 336
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 76
+  }
+ },
+ "4": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 186
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 141
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1526
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 96
+  }
+ },
+ "5": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 139
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 190
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1505
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 105
+  }
+ },
+ "6": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 133
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 256
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1120
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 52
+  }
+ },
+ "7": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 246
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 198
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 631
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 154
+  }
+ },
+ "8": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 365
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 316
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 486
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 59
+  }
+ },
+ "9": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 421
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1092
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 355
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 117
+  }
+ },
+ "10": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 386
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1153
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 254
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 73
+  }
+ },
+ "11": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 153
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 209
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 902
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 77
+  }
+ },
+ "12": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 188
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 316
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 282
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 78
+  }
+ },
+ "13": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 159
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 208
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 394
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 45
+  }
+ },
+ "14": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 665
+  },
+  "llm_agent": {
+   "status": "error",
+   "error": "ValueError: AssistantMessage must have either content or tool_calls. Got AssistantMessage\nis_final_chunk: True"
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 729
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 77
+  }
+ },
+ "15": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 369
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 192
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 562
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 66
+  }
+ },
+ "16": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 221
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 238
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1098
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 66
+  }
+ },
+ "17": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 210
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 218
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 317
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 74
+  }
+ },
+ "18": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 201
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 393
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 832
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 56
+  }
+ },
+ "19": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 99
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 175
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 204
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 133
+  }
+ },
+ "20": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 521
+  },
+  "llm_agent": {
+   "status": "error",
+   "error": "ValueError: AssistantMessage must have either content or tool_calls. Got AssistantMessage\nis_final_chunk: True"
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1915
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 62
+  }
+ },
+ "21": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 952
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 199
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 431
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 40
+  }
+ },
+ "22": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 177
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 372
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 891
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 66
+  }
+ },
+ "23": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1181
+  },
+  "llm_agent": {
+   "status": "error",
+   "error": "ValueError: AssistantMessage must have either content or tool_calls. Got AssistantMessage\nis_final_chunk: True"
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 91
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 75
+  }
+ },
+ "24": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 91
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 250
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 79
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 106
+  }
+ },
+ "25": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 53
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 201
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 233
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 60
+  }
+ },
+ "26": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 28
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 92
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 250
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 56
+  }
+ },
+ "27": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 55
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 137
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 236
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 40
+  }
+ },
+ "28": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 23
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 59
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 199
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 141
+  }
+ },
+ "29": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 88
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 138
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 63
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 54
+  }
+ },
+ "30": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 51
+  },
+  "llm_agent": {
+   "status": "error",
+   "error": "ValueError: AssistantMessage must have either content or tool_calls. Got AssistantMessage\nis_final_chunk: True"
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 299
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 47
+  }
+ },
+ "31": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 93
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 107
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 267
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 64
+  }
+ },
+ "32": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 95
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 184
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 307
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 62
+  }
+ },
+ "33": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 107
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 466
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 202
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 120
+  }
+ },
+ "34": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 105
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 345
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 227
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 57
+  }
+ },
+ "35": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 39
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 122
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 468
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 84
+  }
+ },
+ "36": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 51
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 52
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 377
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 63
+  }
+ },
+ "37": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 64
+  },
+  "llm_agent": {
+   "status": "error",
+   "error": "ValueError: AssistantMessage must have either content or tool_calls. Got AssistantMessage\nis_final_chunk: True"
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 178
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 41
+  }
+ },
+ "38": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 60
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 207
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 159
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 77
+  }
+ },
+ "39": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 69
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 105
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 250
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 36
+  }
+ },
+ "40": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 19
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 43
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 411
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 70
+  }
+ },
+ "41": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 37
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 130
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 298
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 72
+  }
+ },
+ "42": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 88
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 281
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 80
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 78
+  }
+ },
+ "43": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 52
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 96
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 404
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 47
+  }
+ },
+ "44": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 194
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 76
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 319
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 40
+  }
+ },
+ "45": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 58
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 128
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1031
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 90
+  }
+ },
+ "46": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 24
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 54
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 212
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 53
+  }
+ },
+ "47": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 61
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 111
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 749
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 55
+  }
+ },
+ "48": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 49
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 70
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 235
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 48
+  }
+ },
+ "49": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 24
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 59
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 288
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 58
+  }
+ }
+}

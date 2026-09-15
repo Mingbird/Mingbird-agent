@@ -336,7 +336,7 @@ def main():
     if "--port" in sys.argv:
         port = int(sys.argv[sys.argv.index("--port") + 1])
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"Mingbird Web UI v1.5-alpha: http://127.0.0.1:{port}  (local only · 仅本机访问)")
+    print(f"Mingbird Web UI {_version() or 'v1.6.0'}: http://127.0.0.1:{port}  (local only · 仅本机访问)")
     srv.serve_forever()
 
 
