@@ -8,7 +8,7 @@ Everything here is reproducible on your machine; nothing requires trusting us.
 **Definition.** 4 harnesses × 4 open models × 18 tasks = **288 cells**.
 
 - **Harnesses**: Mingbird, goose, agent-mini, opencode — stock, no patches, each driving the same Ollama backend on the same machine (Intel Arc B390 iGPU, 32 GB shared memory, Windows 11).
-- **Models**: `gemma4:e2b` (2B) · `qwen3.5:4b` (4B) · `gemma4:12b` (12B) · `ornith-1.5:35b` (35B MoE, multimodal).
+- **Models**: `gemma4:e2b` (2B) · `qwen3.5:4b` (4B) · `gemma4:12b` (12B) · `ornith-1.5:35b` (35B, multimodal).
 - **Tasks**: 18 real tasks — 15 workflow tasks (WF-01…WF-15: code+tests, data analysis, web research with real search, file organization, refactoring, …) and 3 long-horizon tasks (LH-01…LH-03, multi-hour multi-phase builds).
 - **Protocol**: per-cell budget — workflow 90 min, long-horizon 180 min; 1 retry, latest attempt wins; **timeouts score 0**; deterministic artifact-based scoring (files exist, tests actually pass, reports contain the required findings). Every cell runs in a fresh working directory; harness processes are isolated from the scoring.
 
@@ -77,8 +77,8 @@ Notes:
 |---|---|---|
 | baseline (all mechanisms on) | 0.821 | — |
 | − finish_gate | 0.723 | **−0.098** |
-| − verify_feedback | 0.772 | −0.049 |
-| − anti_loop | 0.805 | −0.016 |
+| − verify_feedback | 0.772 | −0.048 |
+| − anti_loop | 0.805 | −0.015 |
 | − flat_prefill | 0.818 | −0.003 |
 
 All four mechanisms are non-negative; the contribution gradient is: prevent-early-finish > verify-feedback loop > anti-loop > prefill (neutral at 2B).
