@@ -12,24 +12,24 @@ Everything here is reproducible on your machine; nothing requires trusting us.
 - **Tasks**: 18 real tasks — 15 workflow tasks (WF-01…WF-15: code+tests, data analysis, web research with real search, file organization, refactoring, …) and 3 long-horizon tasks (LH-01…LH-03, multi-hour multi-phase builds).
 - **Protocol**: per-cell budget — workflow 90 min, long-horizon 180 min; 1 retry, latest attempt wins; **timeouts score 0**; deterministic artifact-based scoring (files exist, tests actually pass, reports contain the required findings). Every cell runs in a fresh working directory; harness processes are isolated from the scoring.
 
-**Per-model results** (average over 18 tasks; Mingbird's 35B column includes one timeout scored 0):
+**Per-model results** (average over 18 tasks; two Mingbird cells are noted below the table):
 
 | Harness | 2B gemma4:e2b | 4B qwen3.5:4b | 12B gemma4:12b | 35B ornith-1.5 | overall |
 |---|---|---|---|---|---|
-| **Mingbird** | 0.799 | 0.921 | 0.920 | 0.939 | **0.895** |
+| **Mingbird** | 0.821 | 0.876 | 0.906 | 0.941 | **0.886** |
 | goose | 0.266 | 0.636 | 0.620 | 0.822 | 0.586 |
 | agent-mini | 0.246 | 0.706 | 0.576 | 0.092 | 0.405 |
 | opencode | 0.017 | 0.404 | 0.140 | 0.776 | 0.334 |
 
-On the 3 long-horizon tasks Mingbird leads as well (0.808).
+On the 3 long-horizon tasks Mingbird leads as well (0.827).
 
 **Raw data**: [`lrab_scores.csv`](lrab_scores.csv) — all 288 cells (harness, task, model, score, wall time, attempt directory). Every number above is the mean of 18 rows of this file.
 
-**Deviations & notes** (audited post-publication):
+**Campaigns & notes** (audited post-publication):
 
-- Two 2B cells (WF-13, LH-01) were re-run after the batch ended, for a tool-call parse-failure investigation, under the same latest-attempt-wins aggregation. This lifted Mingbird's overall from 0.883 to 0.895 (2B segment 0.753 → 0.799). The ranking is identical under either convention.
-- Mingbird's frozen test build included a text-file post-processor that rewrote literal `\n`/`\t` escape sequences in Markdown deliverables; it fired on 8 of the 72 cells. A cell-by-cell audit found zero score impact (5 of the 8 cells score 1.0; the other 3 lost points on unrelated items).
-- Mingbird ships more default tools than the baselines (persistent memory, skills, batch dispatch). A transcript audit shows zero uses of any of them across the 72 final transcripts.
+- The matrix was collected in two campaigns under one protocol. The three baseline arms ran first (Sep 1–4) and were frozen at their stock versions; the Mingbird arm was then re-collected with the final v1.5.0 release code (Sep 13–14) on the same machine, task set, budgets, model tags, and scorer — so every published Mingbird cell reflects the released build, not an intermediate one.
+- Mingbird's 72 cells: one zero (WF-08 at 35B — a run that completed in 276 s without producing artifacts; the finish gate rejected its completion claims, visible in the published transcript) and one partial (WF-09 at 4B — first attempt timed out, the allowed retry ended in a runner error, scored from its partial artifacts at 0.5 under latest-attempt-wins). Excluding the zero instead of scoring it would raise the 35B column to 0.996; we report 0.941.
+- Mingbird ships more default tools than the baselines (persistent memory, skills, batch dispatch). A transcript audit shows zero uses of any of them across the 72 published transcripts.
 - goose exposes no context-window knob and runs at its default; the other three harnesses are pinned to 32K. This is the one known configuration asymmetry (see DESIGN.md).
 
 > LRAB was designed by us, so treat it as a *controlled experiment*, not a leaderboard: its value is that everything except the harness is held constant, and that every claim can be recomputed from the CSV.
@@ -38,9 +38,11 @@ On the 3 long-horizon tasks Mingbird leads as well (0.808).
 specifications, scoring architecture, freeze discipline, paired significance
 analysis ([SIGNIFICANCE.md](SIGNIFICANCE.md), recomputable via
 `analyze_significance.py`), and the threats-to-validity section. Short version:
-Mingbird's edge is statistically significant on 2B/4B/12B (Holm-corrected
-Wilcoxon, paired by task); on 35B the field compresses and Mingbird-vs-goose
-does not reach significance (p=0.085) — we state that bound.
+Mingbird's edge over all three competitors is statistically significant on 2B
+and 12B (Holm-corrected Wilcoxon, paired by task). On 4B the goose and
+opencode comparisons are significant while agent-mini — its strongest tier —
+is not (raw p = 0.074). On 35B the field compresses and Mingbird-vs-goose
+does not reach significance (p=0.084) — we state that bound.
 
 ## τ²-bench: three domains × four harnesses (external, final)
 
@@ -83,7 +85,7 @@ Notes:
 
 All four mechanisms are non-negative; the contribution gradient is: prevent-early-finish > verify-feedback loop > anti-loop > prefill (neutral at 2B).
 
-> This baseline is a contemporaneous same-code control (0.821) — a different batch from the LRAB-288 public aggregate (0.895) above. The two are not comparable and are never mixed.
+> The 0.821 baseline is not a separate control: it **is** the 2B column of the LRAB-288 table above — the same 18 cells, the same v1.5.0 code. The ablation and the headline results share one batch and one code version.
 
 ## BFCL v3 multi_turn (external, honest weak spot)
 

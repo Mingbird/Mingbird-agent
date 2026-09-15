@@ -131,56 +131,57 @@ Paired by task within each model (n=18 pairs); bootstrap CI over task resamples 
 
 | comparison | W+ / n | mean diff | 95% bootstrap CI | win/tie/loss | p |
 |---|---|---|---|---|---|
-| Mingbird vs goose | 62 / 11 | +0.299 | [+0.129, +0.490] | 9/7/2 | 0.0098 |
-| Mingbird vs agent-mini | 102 / 14 | +0.344 | [+0.191, +0.504] | 13/4/1 | 0.0017 |
-| Mingbird vs opencode | 171 / 18 | +0.780 | [+0.641, +0.902] | 18/0/0 | 0.0002 |
-  - Holm-adjusted p (Mingbird vs goose): 0.0098  ← significant at 0.05
-  - Holm-adjusted p (Mingbird vs agent-mini): 0.0033  ← significant at 0.05
-  - Holm-adjusted p (Mingbird vs opencode): 0.0005  ← significant at 0.05
+| Mingbird vs goose | 50 / 10 | +0.286 | [+0.109, +0.480] | 8/8/2 | 0.0215 |
+| Mingbird vs agent-mini | 102 / 14 | +0.330 | [+0.175, +0.489] | 12/4/2 | 0.0021 |
+| Mingbird vs opencode | 153 / 17 | +0.766 | [+0.622, +0.894] | 17/1/0 | 0.0003 |
+  - Holm-adjusted p (Mingbird vs goose): 0.0215  ← significant at 0.05
+  - Holm-adjusted p (Mingbird vs agent-mini): 0.0041  ← significant at 0.05
+  - Holm-adjusted p (Mingbird vs opencode): 0.0008  ← significant at 0.05
 
 ## Model: gemma4_e2b
 
 | comparison | W+ / n | mean diff | 95% bootstrap CI | win/tie/loss | p |
 |---|---|---|---|---|---|
-| Mingbird vs goose | 136 / 16 | +0.533 | [+0.376, +0.682] | 16/2/0 | 0.0004 |
-| Mingbird vs agent-mini | 166 / 18 | +0.552 | [+0.386, +0.699] | 17/0/1 | 0.0004 |
-| Mingbird vs opencode | 171 / 18 | +0.782 | [+0.674, +0.881] | 18/0/0 | 0.0002 |
+| Mingbird vs goose | 132 / 16 | +0.555 | [+0.366, +0.726] | 14/2/2 | 0.0009 |
+| Mingbird vs agent-mini | 171 / 18 | +0.574 | [+0.462, +0.688] | 18/0/0 | 0.0002 |
+| Mingbird vs opencode | 171 / 18 | +0.804 | [+0.714, +0.890] | 18/0/0 | 0.0002 |
   - Holm-adjusted p (Mingbird vs goose): 0.0009  ← significant at 0.05
-  - Holm-adjusted p (Mingbird vs agent-mini): 0.0009  ← significant at 0.05
+  - Holm-adjusted p (Mingbird vs agent-mini): 0.0006  ← significant at 0.05
   - Holm-adjusted p (Mingbird vs opencode): 0.0006  ← significant at 0.05
 
 ## Model: ornith1.5_35b
 
 | comparison | W+ / n | mean diff | 95% bootstrap CI | win/tie/loss | p |
 |---|---|---|---|---|---|
-| Mingbird vs goose | 37 / 9 | +0.117 | [-0.010, +0.262] | 8/9/1 | 0.0850 |
-| Mingbird vs agent-mini | 153 / 17 | +0.847 | [+0.710, +0.960] | 17/1/0 | 0.0002 |
-| Mingbird vs opencode | 31 / 8 | +0.163 | [+0.011, +0.338] | 7/10/1 | 0.0684 |
-  - Holm-adjusted p (Mingbird vs goose): 0.1367
-  - Holm-adjusted p (Mingbird vs agent-mini): 0.0006  ← significant at 0.05
-  - Holm-adjusted p (Mingbird vs opencode): 0.1367
+| Mingbird vs goose | 37 / 9 | +0.119 | [-0.008, +0.266] | 8/9/1 | 0.0842 |
+| Mingbird vs agent-mini | 153 / 17 | +0.849 | [+0.711, +0.961] | 17/1/0 | 0.0002 |
+| Mingbird vs opencode | 31 / 8 | +0.165 | [+0.011, +0.343] | 7/10/1 | 0.0680 |
+  - Holm-adjusted p (Mingbird vs goose): 0.1360
+  - Holm-adjusted p (Mingbird vs agent-mini): 0.0005  ← significant at 0.05
+  - Holm-adjusted p (Mingbird vs opencode): 0.1360
 
 ## Model: qwen3.5_4b
 
 | comparison | W+ / n | mean diff | 95% bootstrap CI | win/tie/loss | p |
 |---|---|---|---|---|---|
-| Mingbird vs goose | 78 / 12 | +0.285 | [+0.158, +0.421] | 12/6/0 | 0.0022 |
-| Mingbird vs agent-mini | 70 / 12 | +0.215 | [+0.078, +0.366] | 10/6/2 | 0.0149 |
-| Mingbird vs opencode | 105 / 14 | +0.517 | [+0.326, +0.706] | 14/4/0 | 0.0009 |
-  - Holm-adjusted p (Mingbird vs goose): 0.0043  ← significant at 0.05
-  - Holm-adjusted p (Mingbird vs agent-mini): 0.0149  ← significant at 0.05
-  - Holm-adjusted p (Mingbird vs opencode): 0.0026  ← significant at 0.05
+| Mingbird vs goose | 90 / 13 | +0.240 | [+0.121, +0.374] | 12/5/1 | 0.0021 |
+| Mingbird vs agent-mini | 71 / 13 | +0.170 | [+0.016, +0.335] | 10/5/3 | 0.0743 |
+| Mingbird vs opencode | 124 / 16 | +0.472 | [+0.247, +0.690] | 13/2/3 | 0.0039 |
+  - Holm-adjusted p (Mingbird vs goose): 0.0062  ← significant at 0.05
+  - Holm-adjusted p (Mingbird vs agent-mini): 0.0743
+  - Holm-adjusted p (Mingbird vs opencode): 0.0077  ← significant at 0.05
 
 
 Full tables including task-discrimination: [SIGNIFICANCE.md](SIGNIFICANCE.md).
 
-**Reading.** On 2B/4B/12B the Mingbird-vs-each-competitor difference is
-significant under Wilcoxon with Holm correction across all pairings. On 35B the
-field compresses: many ties reduce the effective pair count, and
-Mingbird-vs-goose/opencode do **not** reach significance (p≈0.07–0.14) despite
-positive means. We state that bound rather than hiding it; the claims we make
-about "the models people actually run" (2B–4B) are exactly the segments where
-the separation is starkest.
+**Reading.** On 2B and 12B the Mingbird-vs-each-competitor difference is
+significant under Wilcoxon with Holm correction across all pairings. On 4B the
+goose and opencode comparisons are significant, while agent-mini — whose 4B
+tier is its best segment — is not (raw p = 0.074). On 35B the field compresses:
+many ties reduce the effective pair count, and Mingbird-vs-goose/opencode do
+**not** reach significance (p≈0.07–0.14) despite positive means. We state that
+bound rather than hiding it; the claims we make about "the models people
+actually run" (2B–4B) are exactly the segments where the separation is starkest.
 
 ## 5. Provenance & freeze discipline
 

@@ -44,12 +44,12 @@ GRAY = "#555555"
 
 # FACTS.md §4 — the script refuses to draw figures from numbers that drift.
 EXPECTED_SEGMENTS = {
-    "Mingbird": [0.799, 0.921, 0.920, 0.939],
+    "Mingbird": [0.821, 0.876, 0.906, 0.941],
     "goose": [0.266, 0.636, 0.620, 0.822],
     "agent-mini": [0.246, 0.706, 0.576, 0.092],
     "opencode": [0.017, 0.404, 0.140, 0.776],
 }
-EXPECTED_OVERALL = {"Mingbird": 0.895, "goose": 0.586, "agent-mini": 0.405, "opencode": 0.334}
+EXPECTED_OVERALL = {"Mingbird": 0.886, "goose": 0.586, "agent-mini": 0.405, "opencode": 0.334}
 
 FIGSIZE = (12, 5.6)  # 1680 x 780 px at dpi=140, same canvas as the old figures
 DPI = 140

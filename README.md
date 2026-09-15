@@ -53,7 +53,7 @@ Layer 1 is the whole picture in four lines; layer 2 gives the design, the table,
 
 | Benchmark | Run by | Result in one line |
 |---|---|---|
-| LRAB-288 | us (self-built) | overall 0.895 vs goose 0.586 / agent-mini 0.405 / opencode 0.334 |
+| LRAB-288 | us (self-built) | overall 0.886 vs goose 0.586 / agent-mini 0.405 / opencode 0.334 |
 | τ²-bench, 3 domains | Sierra Research (external) | retail 0.789 / airline 0.740 / telecom 1.000 — first, tied on telecom |
 | BFCL v3 multi_turn | Berkeley FC Leaderboard (external) | 36.25% vs 46.50% — we lose to the model's native FC channel |
 | Ablations (v1.5.0 code) | us | removing `finish_gate` costs the most: −0.098 |
@@ -66,14 +66,14 @@ Layer 1 is the whole picture in four lines; layer 2 gives the design, the table,
 
 | Harness | 2B | 4B | 12B | 35B | **overall** |
 |---|---|---|---|---|---|
-| **Mingbird** | **0.799** | **0.921** | **0.920** | **0.939** | **0.895** |
+| **Mingbird** | **0.821** | **0.876** | **0.906** | **0.941** | **0.886** |
 | goose | 0.266 | 0.636 | 0.620 | 0.822 | 0.586 |
 | agent-mini | 0.246 | 0.706 | 0.576 | 0.092 | 0.405 |
 | opencode | 0.017 | 0.404 | 0.140 | 0.776 | 0.334 |
 
-- **The 2B column is the story**: 0.799 vs 0.017–0.266 — of the four harnesses, the only one with no small-model cliff, and 2B is the size an iGPU laptop runs comfortably.
-- **Significance** (Holm-corrected Wilcoxon, paired by task): the edge is significant on 2B/4B/12B. At 35B the field compresses — Mingbird vs goose is p=0.085, not significant. We state that bound.
-- On the 3 long-horizon tasks (LH-01…03, 180-minute budget each), Mingbird leads as well (0.808 average).
+- **The 2B column is the story**: 0.821 vs 0.017–0.266 — of the four harnesses, the only one with no small-model cliff, and 2B is the size an iGPU laptop runs comfortably.
+- **Significance** (Holm-corrected Wilcoxon, paired by task): the edge over all three competitors is significant on 2B and 12B; on 4B, goose and opencode are significant while agent-mini (its best tier) is not. At 35B the field compresses — Mingbird vs goose is p=0.084, not significant. We state that bound.
+- On the 3 long-horizon tasks (LH-01…03, 180-minute budget each), Mingbird leads as well (0.827 average).
 
 *Self-built benchmark, 18 tasks — the task set, scoring code, and per-cell data are all public; rerun it yourself.*
 
@@ -121,7 +121,7 @@ On a 4B, the dedicated FC channel beats a general agent loop — the cost of gen
 
 Two mechanisms carry most of the effect (`finish_gate`, the verify-feedback loop); the other two are cheap insurance — anti-loop and flat prefill (the latter is neutral at 2B).
 
-*Each arm is 18 cells, so read this as directional. The 0.821 baseline is a contemporaneous same-code control — a separate batch from the 0.895 above; the two are never mixed.*
+*Each arm is 18 cells, so read this as directional. The 0.821 baseline is not a separate control: it is the 2B column of the LRAB-288 table above — same 18 cells, same v1.5.0 code, one batch.*
 
 **Layer 3 — verify it yourself.** All raw data is public in [benchmarks/](benchmarks/README.md):
 
