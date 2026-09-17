@@ -71,7 +71,10 @@ except Exception:
 _T = {
     "鸣鸟 · 本地 AI 助手": "Mingbird · Local AI Assistant",
     "模型:": "Model:", "会话:无": "Session: none", "目录:": "Dir:",
-    "关闭思考": "Thinking OFF", "⚙ 设置": "⚙ Settings", "🌓 主题": "🌓 Theme",
+    "思考:": "Thinking:", "默认": "Default", "开": "On", "关": "Off",
+    "[思考: ": "[Thinking: ", "留空=用 Ollama 默认": "(empty = Ollama default)",
+    "温度输入无效,已保留原设置": "Invalid temperature; previous setting kept",
+    "⚙ 设置": "⚙ Settings", "🌓 主题": "🌓 Theme",
     "＋ 新对话": "＋ New Chat", "添加附件": "Attachments", "清空": "Clear",
     "会话": "Sessions", "计划": "Plan", "💬 对话": "💬 Chat", "🖥 日志": "🖥 Logs",
     "发送": "Send", "🎤 语音": "🎤 Voice", "🎤 无音频": "🎤 No Audio", "■ 停止录音": "■ Stop",
@@ -422,16 +425,40 @@ class AgentGUI:
 
     # ================= 偏好 =================
     def load_prefs(self):
-        d = {"theme": "minty-light", "ui_mode": "auto", "ctx": 65536, "temp": 0.0,
-             "num_predict": 2048, "sys_enable": False, "sys_text": ""}
+        # v1.7.0 采样三态:temp/think 为 None = 未设置 = 请求不带字段,用 ollama 默认。
+        # prefver 标记:旧版(无标记)文件里的 temp=0.0 是隐藏默认值而非用户显式选择,
+        # 一次性迁移为未设置;标记存在后,用户显式设置的 0 不再被抹掉。
+        d = {"theme": "minty-light", "ui_mode": "auto", "ctx": 65536, "temp": None,
+             "num_predict": 2048, "sys_enable": False, "sys_text": "",
+             "think": None, "prefver": 2}
         try:
             j = json.load(open(PREFS_FILE, encoding="utf-8")); d.update(j)
+            # 与 webui/server.py _prefs_load 同口径:旧版隐藏默认(温度 0、思考开)
+            # 不是用户显式选择,一次性迁为"未设置"(gui_prefs.json 由两端共用,
+            # think=true 可能是旧 webui 默认写入的)。
+            if "prefver" not in j:
+                if d.get("temp") in (0, 0.0):
+                    d["temp"] = None
+                if d.get("think") is True:
+                    d["think"] = None
         except Exception:
             pass
         return d
     def save_prefs(self):
         json.dump(self.prefs, open(PREFS_FILE, "w", encoding="utf-8"),
                   ensure_ascii=False, indent=2)
+
+    # ================= 思考三态(工具栏快切) =================
+    def _think_states(self):
+        """思考下拉的(显示值→prefs 值)映射,None=未设置=ollama 默认。"""
+        return {_t("默认"): None, _t("开"): True, _t("关"): False}
+
+    def _on_think_selected(self, _e=None):
+        self.prefs["think"] = self._think_states().get(self.think_var.get())
+        self.save_prefs()
+        v = self.prefs["think"]
+        _shown = _t("默认") if v is None else (_t("开") if v else _t("关"))
+        self.log_note(_t("[思考: ") + _shown + "]")
 
     # ================= DPI/排版辅助 =================
     def _scaled_geo(self, w, h):
@@ -546,9 +573,18 @@ class AgentGUI:
                                     bootstyle="primary")
         self.model_cb.bind("<<ComboboxSelected>>", lambda e: self.refresh_voice_state())
         self.model_cb.pack(side="left", padx=3)
-        self.think_var = tk.BooleanVar(value=True)
-        tb.Checkbutton(bar, text=_t("关闭思考"), variable=self.think_var,
-                       bootstyle="round-toggle").pack(side="left", padx=6)
+        # 思考三态(v1.7.0):默认=请求不带 think 字段(ollama 出厂默认,thinking 模型
+        # 默认开);开/关=显式下发顶层 think 字段。旧版"关闭思考"勾选框与 env 语义相反
+        # (勾上反而传 AGENT_THINK=1)且从不持久化,已废除。
+        self.think_var = tk.StringVar(
+            value={None: _t("默认"), True: _t("开"), False: _t("关")}.get(
+                self.prefs.get("think"), _t("默认")))
+        tb.Label(bar, text=_t("思考:")).pack(side="left", padx=(6, 0))
+        self.think_cb = tb.Combobox(bar, textvariable=self.think_var,
+                                    values=list(self._think_states().keys()),
+                                    state="readonly", width=5, bootstyle="secondary")
+        self.think_cb.pack(side="left", padx=3)
+        self.think_cb.bind("<<ComboboxSelected>>", self._on_think_selected)
         self.sess_lbl = tb.Label(bar, text=_t("会话:无"), bootstyle="secondary")
         self.sess_lbl.pack(side="right")
 
@@ -1241,9 +1277,11 @@ class AgentGUI:
             prefs["ctx"] = 32768   # 兼容旧保存值,归入梯度
         ctx.set(prefs["ctx"]); ctx.pack(side="left", padx=6)
         tb.Label(r1, text=_t("温度:")).pack(side="left")
-        # tb.Spinbox(ttkbootstrap 样式):裸 ttk.Spinbox 在暗色主题下白底白字不可读
+        # tb.Spinbox(ttkbootstrap 样式):裸 ttk.Spinbox 在暗色主题下白底白字不可读。
+        # 留空=未设置:请求不带 temperature 字段,用 ollama/模型 manifest 默认(v1.7.0)。
         temp = tb.Spinbox(r1, from_=0.0, to=2.0, increment=0.1, width=6)
-        temp.set(prefs["temp"]); temp.pack(side="left", padx=6)
+        temp.set("" if prefs.get("temp") is None else prefs["temp"]); temp.pack(side="left", padx=6)
+        tb.Label(r1, text=_t("留空=用 Ollama 默认"), bootstyle="secondary").pack(side="left")
         tb.Label(r1, text=_t("输出上限:")).pack(side="left")
         np = tb.Combobox(r1, values=[512, 1024, 2048, 4096, 8192], width=8, state="readonly")
         np.set(prefs["num_predict"]); np.pack(side="left", padx=6)
@@ -1258,7 +1296,17 @@ class AgentGUI:
         sys_txt.pack(fill="both", expand=True)
         sys_txt.insert("1.0", prefs["sys_text"])
         def save():
-            prefs["ctx"] = int(ctx.get()); prefs["temp"] = float(temp.get())
+            _raw_t = temp.get().strip()
+            if _raw_t == "":
+                prefs["temp"] = None            # 留空=未设置 → ollama 默认
+            else:
+                try:
+                    prefs["temp"] = max(0.0, min(2.0, float(_raw_t)))
+                except ValueError:
+                    # 手误输入不崩、不静默改语义:保留原设置并提示
+                    prefs["temp"] = self.prefs.get("temp")
+                    self.log_note(_t("温度输入无效,已保留原设置"))
+            prefs["ctx"] = int(ctx.get())
             prefs["num_predict"] = int(np.get()); prefs["sys_enable"] = sys_en.get()
             prefs["sys_text"] = sys_txt.get("1.0", "end").strip()
             self.prefs.update(prefs)
@@ -1419,9 +1467,19 @@ class AgentGUI:
                 pass
         env = dict(os.environ); env["PYTHONIOENCODING"]="utf-8"
         env["AGENT_STREAM"] = "1"   # 对话流式输出 + 思考流
-        env["AGENT_THINK"] = "1" if self.think_var.get() else "0"
+        # 采样三态(v1.7.0):未设置 → 从 env 里删掉继承值,agent 载荷即不带
+        # temperature/think 字段(ollama 默认);显式选择(含 0/关)才透传。
+        _tv = self.prefs.get("think")
+        if _tv is None:
+            env.pop("AGENT_THINK", None)
+        else:
+            env["AGENT_THINK"] = "1" if _tv else "0"
         env["AGENT_CTX"] = str(self.prefs["ctx"])
-        env["AGENT_TEMP"] = str(self.prefs["temp"])
+        _tp = self.prefs.get("temp")
+        if _tp is None:
+            env.pop("AGENT_TEMP", None)
+        else:
+            env["AGENT_TEMP"] = str(_tp)
         env["AGENT_NUMPREDICT"] = str(self.prefs["num_predict"])
         if self.prefs.get("sys_enable"):
             if os.path.exists(SYS_OVERRIDE_FILE):

@@ -10,9 +10,11 @@
 
 环境变量(可被 GUI 设置面板覆盖):
   AGENT_CTX         上下文窗口(默认 131072;过低会频繁压缩,过高在 UMA 机器有内存墙)
-  AGENT_TEMP        温度(默认 0)
+  AGENT_TEMP        温度(未设置=请求不带 temperature 字段,用 ollama/模型默认;
+                    显式设置含 0 则按设置下发)
   AGENT_NUMPREDICT  输出上限(默认 8192)
-  AGENT_THINK=1     开启思考模型 thinking(默认关)
+  AGENT_THINK       思考三态:未设置=不带 think 字段(ollama 出厂默认,thinking
+                    模型默认开);1=显式开;0=显式关
   AGENT_SYSTEM_FILE 自定义系统提示文件路径
 
 用法:
@@ -69,13 +71,37 @@ def _cache_set(key, data):
     except Exception:
         pass
 
-THINK = os.environ.get("AGENT_THINK") == "1"
+# 三态思考(v1.7.0):None=未设置(/api/chat 不带 think 字段,回归 ollama 出厂默认——
+# 具备 thinking 能力的模型默认开思考,返回独立 thinking 字段);True/False=用户显式
+# 开关,显式下发顶层 think 字段。旧版"默认关思考"(能力模型一律 think:false 抑制)
+# 是发布产品的隐藏特殊性,v1.7.0 移除。
+def _parse_think_env(raw):
+    """AGENT_THINK 环境变量 → 三态:未设/空=None;'1'=True;'0'/其他=False。"""
+    raw = (raw or "").strip()
+    if raw == "":
+        return None
+    return raw == "1"
+
+THINK = _parse_think_env(os.environ.get("AGENT_THINK"))
 # 上下文预算默认 128K(2026-09-05 压测定案):35B MoE 在 32GB UMA 机器上实测
 # 64K=28.0 tok/s / 128K=26.4 tok/s(几乎无衰减) / 256K=1.8 tok/s(换页崩塌,
 # load 837s)——128K 是本机甜点,可用空间 4 倍于旧 32K,大幅减少压缩触发。
 # 旧默认 16384;小模型(e2b/4b)128K KV 占用小,实测可跑。
 CTX_BUDGET = int(os.environ.get("AGENT_CTX", "131072"))
-TEMP = float(os.environ.get("AGENT_TEMP", "0"))
+# 三态温度(v1.7.0):None=未设置(请求 options 完全不带 temperature 字段,由模型
+# manifest 烤入值/ollama 默认决定);数值=用户显式设置(含 0),显式下发。旧版默认 0
+# 同为隐藏特殊性,已移除。非法值按未设置处理(配置手误不应让 agent 起不来)。
+def _parse_temp_env(raw):
+    """AGENT_TEMP 环境变量 → float 或 None(未设/空/非法)。"""
+    raw = (raw or "").strip()
+    if raw == "":
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+TEMP = _parse_temp_env(os.environ.get("AGENT_TEMP"))
 # 输出上限 8192(帽不是目标:正常短轮零开销;2048 时代单轮工具调用装不下一个
 # 300 行文件的结构化输出,WF-08/4b 截断死亡螺旋实锤)。8192 对齐基准协议行
 # (opencode 同值),更大交付由截断反馈引导分块(create_file 骨架 + append_file 追加)。
@@ -1618,7 +1644,8 @@ def run_tool(name, args, workdir, crawl_state=None):
 _THINK_CAP_CACHE = {}   # model -> True/False/None(探测失败);进程内缓存,/api/show 每模型只查一次
 
 def _model_can_think(model):
-    """查模型是否具备 thinking 能力(/api/show capabilities)。探测失败返回 None(未知)。"""
+    """查模型是否具备 thinking 能力(/api/show capabilities)。探测失败返回 None(未知)。
+    v1.7.0 起不再参与载荷构造(三态思考显式下发 + 400 去参重试兜底),保留供诊断/测试。"""
     if model not in _THINK_CAP_CACHE:
         try:
             req = urllib.request.Request(f"{appconfig.ollama_host()}/api/show",
@@ -1635,17 +1662,21 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
     """调用 ollama /api/chat。stream=True 时逐 token 回调(on_token=回答, on_think=思考),
     返回结构与非流式一致(message.content / tool_calls / prompt_eval_count / eval_count)。"""
     ctx = ctx or CTX_BUDGET
+    # 三态温度:未设置 → options 完全不带 temperature 字段(ollama 用模型 manifest
+    # 烤入值/默认);显式设置(含 0)→ 按设置下发。
+    _opts = {"num_ctx":ctx,"num_predict":NUM_PREDICT}
+    if TEMP is not None:
+        _opts["temperature"] = TEMP
     payload = {"model":model,"messages":messages,
                "tools": active_tool_defs() if tools is None else tools,
-               "stream":stream, "options":{"num_ctx":ctx,"num_predict":NUM_PREDICT,
-                                          "temperature":TEMP}}
-    # think 是 /api/chat 的顶层字段,放进 options 会被 ollama 静默丢弃(2026-09-02 运行时
-    # 复现实锤:options 形态 thinking=1102/content=0,顶层形态 content 正常)。思考烧光
-    # NUM_PREDICT 且 content 为空 = 空响应死循环的根因。仅对具备 thinking 能力的模型下发;
-    # 能力探测失败时仍下发,模型不支持会 400,由下方去参重试兜底。
-    suppress_think = (not THINK) and _model_can_think(model) is not False
-    if suppress_think:
-        payload["think"] = False
+               "stream":stream, "options":_opts}
+    # 三态思考:think 必须是 /api/chat 的顶层字段,放进 options 会被 ollama 静默丢弃
+    # (2026-09-02 运行时复现实锤:options 形态 thinking=1102/content=0,顶层形态
+    # content 正常)。未设置 → 不带 think 字段(ollama 出厂默认:具备 thinking 能力的
+    # 模型默认开思考);显式开/关 → 顶层 think 字段。思考烧光 NUM_PREDICT 且 content
+    # 为空的空轮由主循环空轮防护梯接管(3 提醒/6 硬复位/额度用尽优雅退出)。
+    if THINK is not None:
+        payload["think"] = bool(THINK)
 
     def _build_request(p):
         return urllib.request.Request(f"{appconfig.ollama_host()}/api/chat",
@@ -1659,9 +1690,9 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
             return json.loads(urllib.request.urlopen(req, timeout=900).read())
     except Exception as e:
         import urllib.error as _ue
-        if not (suppress_think and isinstance(e, _ue.HTTPError) and e.code == 400):
+        if not (("think" in payload) and isinstance(e, _ue.HTTPError) and e.code == 400):
             raise
-        # 非 thinking 模型可能拒收 think 字段:去掉后重试一次
+        # 非 thinking 模型可能拒收 think 字段:去掉后重试一次(显式开/关都走此兜底)
         payload.pop("think", None)
         req = _build_request(payload)
         if stream:
@@ -1694,6 +1725,9 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
             if chunk.get("done"): break
         content = "".join(parts)
         m = {"role": "assistant", "content": content}
+        if thinks:
+            # 思考内容随返回结构上交:content 为空时主循环据此如实上报,不静默丢失
+            m["thinking"] = "".join(thinks)
         if tool_calls: m["tool_calls"] = tool_calls
         return {"message": m, "prompt_eval_count": prompt_ev, "eval_count": eval_ev}
     return json.loads(urllib.request.urlopen(req, timeout=900).read())
@@ -2933,6 +2967,13 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
             # 发射装不下,WF-08/4b 70 轮空转烧穿 90 分钟实锤)。
             print(f"[{i}] ⚠️ done_reason=length 且无正文无调用(eval={r.get('eval_count')})——疑似生成预算被烧尽", flush=True)
             _len_truncated = True
+        _think_txt = msg.get("thinking") or msg.get("reasoning_content") or ""
+        if _think_txt and not tcs and _semantically_empty(content):
+            # 思考非空但正文为空(v1.7.0 回归"ollama 默认开思考"后的正常形态之一:
+            # 思考把生成预算烧光)。把思考摘录如实上报/记录,随后按正常空响应路径
+            # 进入空轮防护梯(3 提醒/6 硬复位/额度用尽优雅退出)——不死循环、不崩溃;
+            # GUI 思考流已实时上屏,用户可见思考并继续对话。
+            print(f"[{i}] 💭 thinking {len(_think_txt)} 字符、正文为空。摘录: {_think_txt[:600]}", flush=True)
         if not tcs and not qa:
             # 抢救:模型把工具调用写成文本 JSON 时,尝试解析成真实调用(问答模式禁用,防加戏)
             salvaged = try_parse_tool_calls(content)

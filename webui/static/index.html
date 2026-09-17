@@ -93,7 +93,7 @@ dialog textarea{width:100%;min-height:90px;font:12px Consolas,monospace;resize:v
         <span class="kicker" id="ver"></span>
         <label data-i18n="model">Model</label>
         <select id="model"></select>
-        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" id="think" checked> <span data-i18n="thinking">Thinking</span></label>
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" id="think"> <span data-i18n="thinking">Thinking</span></label>
         <span id="sessiontag" style="margin-left:auto;color:var(--muted);font-size:12px"></span>
       </div>
       <div id="chat"></div>
@@ -133,10 +133,13 @@ dialog textarea{width:100%;min-height:90px;font:12px Consolas,monospace;resize:v
       <div class="row"><label data-i18n="ctx_l">Context window</label>
         <select id="p-ctx"><option>16384</option><option>32768</option><option>65536</option><option>131072</option><option>262144</option></select>
         <span style="color:var(--muted);font-size:12px" data-i18n="ctx_note">small models: bigger = more memory</span></div>
-      <div class="row"><label data-i18n="temp_l">Temperature</label><input type="number" id="p-temp" step="0.1" min="0" max="2" style="width:80px"></div>
+      <div class="row"><label data-i18n="temp_l">Temperature</label><input type="number" id="p-temp" step="0.1" min="0" max="2" style="width:80px">
+        <span style="color:var(--muted);font-size:12px" data-i18n="temp_note">empty = Ollama default</span></div>
       <div class="row"><label data-i18n="np_l">Output limit</label>
         <select id="p-np"><option>512</option><option>1024</option><option>2048</option><option>4096</option><option>8192</option></select></div>
-      <div class="row"><label data-i18n="think_l">Thinking</label><input type="checkbox" id="p-think" checked></div>
+      <div class="row"><label data-i18n="think_l">Thinking</label>
+        <select id="p-think"><option value="" data-i18n="think_def">default</option><option value="1" data-i18n="think_on">on</option><option value="0" data-i18n="think_off">off</option></select>
+        <span style="color:var(--muted);font-size:12px" data-i18n="think_note">default = let Ollama decide</span></div>
       <div class="row"><label data-i18n="sys_l">Custom system prompt</label><input type="checkbox" id="p-sysen"></div>
       <textarea id="p-systext" placeholder="override system prompt…"></textarea>
       <div style="margin-top:14px"><button class="primary" id="p-save" data-i18n="save">Save</button></div>
@@ -175,6 +178,8 @@ const I18N = {
        thinking:"Thinking", send:"Send", stop:"Stop", resume:"Resume", newchat:"New chat", clear:"Clear",
        model:"Model", plan:"Plan · todo", load_resume:"Load & resume this session", view:"View transcript",
        save:"Save", ctx_l:"Context window", temp_l:"Temperature", np_l:"Output limit", think_l:"Thinking",
+       think_def:"default", think_on:"on", think_off:"off",
+       temp_note:"empty = Ollama default", think_note:"default = let Ollama decide",
        sys_l:"Custom system prompt", ctx_note:"small models: bigger = more memory", prefs_note:"Settings are shared with the desktop app and applied to the next task.",
        you:"You", outside:"⚠ Outside-workspace access", session:"session", plan:"Plan · todo",
        load_resume:"Load & resume this session", view:"View transcript", save:"Save",
@@ -186,6 +191,8 @@ const I18N = {
        thinking:"思考", send:"发送", stop:"停止", resume:"续跑", newchat:"新对话", clear:"清空",
        model:"模型", plan:"计划 · todo", load_resume:"载入并续跑此会话", view:"查看对话记录",
        save:"保存", ctx_l:"上下文窗口", temp_l:"温度", np_l:"输出上限", think_l:"思考",
+       think_def:"默认", think_on:"开", think_off:"关",
+       temp_note:"留空 = 用 Ollama 默认", think_note:"默认 = 由 Ollama 决定(thinking 模型默认开思考)",
        sys_l:"自定义系统提示", ctx_note:"小模型：越大越占内存", prefs_note:"设置与桌面版共用，对下一个任务生效。",
        you:"用户", outside:"⚠ 越界操作确认", session:"会话", plan:"计划 · todo",
        load_resume:"载入并续跑此会话", view:"查看对话记录", save:"保存",
@@ -377,10 +384,30 @@ $("sess-view").onclick = () => {
   }).catch(() => { $("sessview").textContent = "selected: " + name; });
 };
 
+// ---------- thinking 快切(三态:默认=不带 think 字段由 ollama 决定 / 开 / 关) ----------
+let thinkState = null;   // null=默认(复选框呈 indeterminate 半选态), true=开, false=关
+function applyThinkUI(){
+  const el = $("think");
+  el.indeterminate = (thinkState === null);
+  el.checked = (thinkState === true);
+  el.title = thinkState === null ? t("think_def") : (thinkState === true ? t("think_on") : t("think_off"));
+}
+$("think").addEventListener("click", (e) => {
+  e.preventDefault();   // 手动循环三态,不走原生二态切换
+  thinkState = thinkState === null ? true : (thinkState === true ? false : null);
+  applyThinkUI();
+  fetch("/api/prefs", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({think: thinkState})});
+});
+applyThinkUI();   // 开局即呈"默认"半选态,待 loadPrefs/状态同步覆盖
+
 // ---------- settings ----------
 $("p-save").onclick = () => {
-  const prefs = {ctx: parseInt($("p-ctx").value), temp: parseFloat($("p-temp").value),
-                 num_predict: parseInt($("p-np").value), think: $("p-think").checked,
+  const tv = $("p-temp").value.trim();
+  const prefs = {ctx: parseInt($("p-ctx").value),
+                 temp: tv === "" ? null : parseFloat(tv),
+                 num_predict: parseInt($("p-np").value),
+                 think: $("p-think").value === "" ? null : ($("p-think").value === "1"),
                  sys_enable: $("p-sysen").checked, sys_text: $("p-systext").value};
   fetch("/api/prefs", {method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify(prefs)}).then(()=>{ $("p-save").textContent = "✓"; setTimeout(()=>$("p-save").textContent=t("save"), 1200); });
@@ -388,9 +415,13 @@ $("p-save").onclick = () => {
 function loadPrefs(){
   fetch("/api/status").then(r=>r.json()).then(d => {
     const p = d.prefs || {};
-    $("p-ctx").value = p.ctx || 131072; $("p-temp").value = p.temp ?? 0;
-    $("p-np").value = p.num_predict || 2048; $("p-think").checked = !!p.think;
+    $("p-ctx").value = p.ctx || 131072;
+    $("p-temp").value = (p.temp === null || p.temp === undefined) ? "" : p.temp;
+    $("p-np").value = p.num_predict || 2048;
+    $("p-think").value = p.think === true ? "1" : (p.think === false ? "0" : "");
     $("p-sysen").checked = !!p.sys_enable; $("p-systext").value = p.sys_text || "";
+    thinkState = p.think === true ? true : (p.think === false ? false : null);
+    applyThinkUI();
   });
 }
 

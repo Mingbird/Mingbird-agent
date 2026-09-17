@@ -30,8 +30,10 @@ and is designed to stay on your machine.
 - **History page** — lists past sessions; *Load & resume* continues a session
   in the browser (the next message appends to it), *View transcript* shows the
   raw messages.
-- **Settings page** — context window, temperature, output limit, thinking
-  toggle, custom system prompt. Stored in `~/.ollama_agent/gui_prefs.json`,
+- **Settings page** — context window, temperature (empty = ollama default),
+  output limit, thinking selector (default/on/off; default = no think field,
+  ollama decides), custom system prompt. Stored in
+  `~/.ollama_agent/gui_prefs.json`,
   **shared with the desktop app**: change it in one place, the other picks it
   up on the next task.
 - **Plan (todo) panel** — the agent's live todo list, same as the desktop

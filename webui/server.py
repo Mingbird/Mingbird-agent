@@ -54,16 +54,26 @@ def push_event(evt):
 
 
 def _prefs_load():
-    d = {"ui_mode": "auto", "ctx": 131072, "temp": 0.0, "num_predict": 2048,
-         "think": True, "sys_enable": False, "sys_text": ""}
+    # v1.7.0 采样三态:temp/think 为 None = 未设置 = 请求不带字段,用 ollama 默认。
+    # prefver 迁移与桌面版 load_prefs 同口径:旧版(无标记)文件的 temp=0.0 /
+    # think=True 是隐藏默认值而非用户显式选择,一次性迁为未设置。
+    d = {"ui_mode": "auto", "ctx": 131072, "temp": None, "num_predict": 2048,
+         "think": None, "sys_enable": False, "sys_text": "", "prefver": 2}
     try:
-        d.update(json.load(open(PREFS_FILE, encoding="utf-8")))
+        j = json.load(open(PREFS_FILE, encoding="utf-8"))
+        d.update(j)
+        if "prefver" not in j:
+            if d.get("temp") in (0, 0.0):
+                d["temp"] = None
+            if d.get("think") is True:
+                d["think"] = None
     except Exception:
         pass
     return d
 
 
 def _prefs_save(p):
+    p.setdefault("prefver", 2)   # 迁移标记:落盘后不再把显式 0/关 当作旧默认抹掉
     os.makedirs(os.path.dirname(PREFS_FILE), exist_ok=True)
     tmp = PREFS_FILE + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
@@ -109,9 +119,19 @@ def start_agent(prompt, model_key, resume):
     env = dict(os.environ)
     env["PYTHONIOENCODING"] = "utf-8"
     env["AGENT_STREAM"] = "1"
-    env["AGENT_THINK"] = "1" if prefs.get("think", True) else "0"
+    # 采样三态(v1.7.0):未设置 → 从 env 删掉继承值,agent 载荷即不带
+    # temperature/think 字段(ollama 默认);显式选择(含 0/关)才透传。
+    tv = prefs.get("think")
+    if tv is None:
+        env.pop("AGENT_THINK", None)
+    else:
+        env["AGENT_THINK"] = "1" if tv else "0"
     env["AGENT_CTX"] = str(prefs.get("ctx", 131072))
-    env["AGENT_TEMP"] = str(prefs.get("temp", 0.0))
+    tp = prefs.get("temp")
+    if tp is None:
+        env.pop("AGENT_TEMP", None)
+    else:
+        env["AGENT_TEMP"] = str(tp)
     env["AGENT_NUMPREDICT"] = str(prefs.get("num_predict", 2048))
     sys_en = prefs.get("sys_enable")
     sys_file = os.path.join(os.path.expanduser("~"), ".ollama_agent", "system_override.txt")
@@ -336,7 +356,7 @@ def main():
     if "--port" in sys.argv:
         port = int(sys.argv[sys.argv.index("--port") + 1])
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"Mingbird Web UI {_version() or 'v1.6.0'}: http://127.0.0.1:{port}  (local only · 仅本机访问)")
+    print(f"Mingbird Web UI {_version() or 'v1.7.0'}: http://127.0.0.1:{port}  (local only · 仅本机访问)")
     srv.serve_forever()
 
 

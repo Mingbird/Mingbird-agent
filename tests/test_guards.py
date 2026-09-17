@@ -668,7 +668,9 @@ def test_model_can_think_probe_failure_is_none(oa, monkeypatch):
 
 
 def test_think_suppression_payload(oa, monkeypatch):
-    """THINK 关 + 模型具备 thinking 能力 → 请求体带顶层 think=false(options 不含)。"""
+    """用户显式关思考(THINK=False) → 请求体带顶层 think=false(options 不含)。
+    v1.7.0 语义变更:think 下发只由用户显式选择决定,不再按模型能力默认抑制
+    (旧版"默认关思考"是隐藏特殊性);能力探测仅作诊断,不参与载荷构造。"""
     captured = {}
 
     class FakeResp:
@@ -683,8 +685,6 @@ def test_think_suppression_payload(oa, monkeypatch):
 
     monkeypatch.setattr(oa.urllib.request, "urlopen", fake_urlopen)
     monkeypatch.setattr(oa, "THINK", False)
-    oa._THINK_CAP_CACHE.clear()
-    oa._THINK_CAP_CACHE["test:m"] = True
     r = oa.call_chat("test:m", [{"role": "user", "content": "hi"}], ctx=1024, tools=[])
     payload = __import__("json").loads(captured["body"])
     assert payload.get("think") is False
