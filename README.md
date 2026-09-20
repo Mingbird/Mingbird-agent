@@ -54,7 +54,7 @@ Layer 1 is the whole picture in four lines; layer 2 gives the design, the table,
 | Benchmark | Run by | Result in one line |
 |---|---|---|
 | LRAB-288 | us (self-built) | overall 0.886 vs goose 0.631 / opencode 0.479 / agent-mini 0.405 |
-| τ²-bench, 3 domains | Sierra Research (external) | retail 0.763 / airline 0.740 / telecom 1.000 — first everywhere; goose re-run in progress |
+| τ²-bench, 3 domains | Sierra Research (external) | retail 0.763 / airline 0.740 / telecom 1.000 — first everywhere |
 | Ablations (v1.5.0 code) | us | removing `finish_gate` costs the most: −0.098 |
 
 ### LRAB-288 (our benchmark)
@@ -87,9 +87,8 @@ Sierra Research's [τ²-bench](https://github.com/sierra-research/tau2-bench), a
 | **Mingbird** | **0.763** | **0.740** | **1.000** |
 | τ² native agent | 0.675 | 0.740 | 0.930 |
 | opencode | 0.588 | 0.500 | 0.991 |
-| goose | re-run in progress | — | — |
 
-The completed arms finished with zero errored trials. The thinking configuration moves these numbers a lot (opencode's telecom is 0.298 thinking-on vs 0.991 thinking-off) — itself a harness-level effect. The goose column is being re-collected under the unified protocol and will land here when done.
+The completed arms finished with zero errored trials. The thinking configuration moves these numbers a lot (opencode's telecom is 0.298 thinking-on vs 0.991 thinking-off) — itself a harness-level effect. goose is deferred: under the same protocol it needs 40–113 min per task on this benchmark (token audit: ~4.85M input tokens per task, driven by nested sub-agent loops), so its unified-protocol re-run is deferred; the column will be added on arrival.
 
 *The user simulator is cloud `qwen3.8-flash`, identical for every harness — not the official gpt-4o user setup, so these runs are not comparable with the official τ² leaderboard.*
 

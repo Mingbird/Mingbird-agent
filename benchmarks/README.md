@@ -64,7 +64,6 @@ The unified protocol matches the LRAB matrix above, identical for every harness:
 | **Mingbird** | **0.763** | **0.740** | **1.000** | **0.856** |
 | τ² native agent (llm_agent) | 0.675 | 0.740 | 0.930 | 0.791 |
 | opencode | 0.588 | 0.500 | 0.991 | 0.737 |
-| goose | *re-run under the unified protocol; this row completes on arrival* | | | |
 
 \* derived: per-task average over all 278 tasks, error cells counted as 0; recomputable from the per-trial data below.
 
@@ -73,7 +72,7 @@ Notes:
 - retail: the official suite is 115 tasks; 114 run in this environment, scored the same way on all sides.
 - The three completed arms finished with **zero error cells** across all 278 tasks.
 - The thinking configuration moves arms substantially (opencode telecom 0.298 thinking-on vs 0.991 thinking-off; llm_agent airline 0.520 to 0.740) — itself a harness-level effect; the thinking-on numbers are retained as sensitivity data. Mingbird's own scores move least (retail 0.789 to 0.763).
-- goose is slow on this benchmark (40–113 min per task; a token audit shows ~4.85M input tokens per task vs 60–400K for the other arms, driven by nested sub-agent todo/delegation loops); its unified-protocol re-run is in progress and this table completes when it lands.
+- goose is deferred: it is slow on this benchmark (40–113 min per task; a token audit shows ~4.85M input tokens per task vs 60–400K for the other arms, driven by nested sub-agent todo/delegation loops), so completing 278 tasks at that throughput is a multi-day run; its unified-protocol re-run is deferred and the row will be added on arrival.
 - telecom: all 456 cells completed ok, zero errors for all four harnesses — a saturated domain where the two leaders take full marks. It separates nothing; we report it as-is rather than dropping the domain.
 - Adapter disclosure: Mingbird's adapter adds two mechanical safeguards on top of the identical prompt and toolset — a repeat-call nudge (one user-role message after 4 identical `(tool, args)` calls) and a parser fallback that recovers format-leaked tool calls into real ones. Both are verbatim in the published adapter source; the native agent receives no injected messages.
 - Raw data: per-trial manifests for all three domains are in this repository — [tau2/retail_manifest.json](tau2/retail_manifest.json), [tau2/airline_manifest.json](tau2/airline_manifest.json), [tau2/telecom_manifest.json](tau2/telecom_manifest.json) (each keyed by task, with per-harness status/reward/wall).

@@ -54,7 +54,7 @@
 | 基准 | 出品方 | 一句话结果 |
 |---|---|---|
 | LRAB-288 | 我们（自建） | 总分 0.886 vs goose 0.631 / opencode 0.479 / agent-mini 0.405 |
-| τ²-bench 三域 | Sierra Research（外部） | retail 0.763 / airline 0.740 / telecom 1.000——全第一；goose 统一协议补跑中 |
+| τ²-bench 三域 | Sierra Research（外部） | retail 0.763 / airline 0.740 / telecom 1.000——全第一 |
 | 消融（v1.5.0 代码） | 我们 | 去掉 finish_gate 代价最大：−0.098 |
 
 ### LRAB-288（自建基准）
@@ -87,9 +87,8 @@ Sierra Research 的 [τ²-bench](https://github.com/sierra-research/tau2-bench)�
 | **鸣鸟** | **0.763** | **0.740** | **1.000** |
 | τ² 原生 agent | 0.675 | 0.740 | 0.930 |
 | opencode | 0.588 | 0.500 | 0.991 |
-| goose | 统一协议补跑中 | — | — |
 
-已收官三臂全部零 error。思考开关对数字影响巨大（opencode 的 telecom 开思考 0.298、关思考 0.991）——这本身就是 harness 层效应。goose 臂正在按统一协议补收，到齐即更新。
+已收官三臂全部零 error。思考开关对数字影响巨大（opencode 的 telecom 开思考 0.298、关思考 0.991）——这本身就是 harness 层效应。goose 在本基准上吞吐不可行地慢（同协议下 40–113 分钟/题；token 审计：约 485 万输入 tokens/题，嵌套子代理循环所致），统一协议补跑推迟，数据到货即补列。
 
 *user simulator 是云端 `qwen3.8-flash`，各家完全一致——不是官方的 gpt-4o 设定，因此这批数字不与官方 τ² 排行榜比较。*
 
