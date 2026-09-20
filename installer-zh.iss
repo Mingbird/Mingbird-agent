@@ -1,5 +1,5 @@
-﻿; 鸣鸟 v1.7.0 中文安装程序(2026-09 品牌更名;输出文件名用 ASCII,GitHub Release 资产名不支持中文) (Inno Setup)
-#define MyAppVersion "1.7.0"
+﻿; 鸣鸟 v1.8.0 中文安装程序(2026-09 品牌更名;输出文件名用 ASCII,GitHub Release 资产名不支持中文) (Inno Setup)
+#define MyAppVersion "1.8.0"
 #define MyAppName "鸣鸟"
 #define MyAppFullName "鸣鸟 · 本地 AI 助手"
 #define MyAppExe "LocalAgent.exe"
@@ -14,7 +14,7 @@ DefaultDirName={localappdata}\Mingbird
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
-OutputBaseFilename=Mingbird-v1.7.0-CN-Setup
+OutputBaseFilename=Mingbird-v1.8.0-CN-Setup
 OutputDir=dist
 SetupIconFile=app.ico
 Compression=lzma2

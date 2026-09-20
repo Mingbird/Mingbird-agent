@@ -8,7 +8,7 @@
 >
 > 都说本地模型得配大独显。其实一台普通笔记本——核显、16–32 GB 内存——就够了：那些在云风格框架里跑不动的 2–9B 小模型，在这里能交付完整产物，因为你见过的那些失败是 harness 缺陷，不是模型缺陷。端到端实测，288 格数据全部公开。
 
-当前版本 **v1.8.0** · 持续维护中（[CHANGELOG](CHANGELOG.md)）· 一键断网模式 · CI 构建 Linux/macOS 产物 · 459 项测试
+当前版本 **v1.8.0** · 持续维护中（[CHANGELOG](CHANGELOG_zh.md)）· 一键断网模式 · CI 构建 Linux/macOS 产物 · 459 项测试
 
 ![鸣鸟截图](docs/assets/screenshot-app.png)
 

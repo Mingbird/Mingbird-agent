@@ -1,212 +1,203 @@
-# 变更日志 (CHANGELOG)
+# Changelog
 
 ## v1.8.0 (2026-09)
 
-### 🔒 一键断网/联网(offline mode)——把隐私做成架构承诺
-- **工具栏一键切换**(🌐 联网 / 🔒 断网):断网=仅本地 Ollama 模型;
-  联网内置工具(web_search / web_fetch / web_search_multi / batch_tools)
-  **不装配进 prefill**(模型看不到=不会调用,静态 prefill 同步变小);
-  url 型(HTTP)MCP 服务器整体跳过(stdio 本地进程保留);云端 provider 强制禁用。
-  承诺可用 `netstat -ano | findstr <pid>` 验证:断网模式任务全程零出站。
-- CLI/环境口径:`AGENT_OFFLINE=1` 覆盖;config.json `offline_mode` 持久化。
-- 测试:tests/test_offline_mode.py(8 项,装配过滤/云禁用/消息映射,零网络请求)。
+### 🔒 One-click offline/online (offline mode) — privacy as an architectural commitment
+- **One-click toolbar toggle** (🌐 online / 🔒 offline): offline = local Ollama models only; built-in web tools (web_search / web_fetch / web_search_multi / batch_tools) are **not assembled into the prefill** (the model cannot call what it cannot see; static prefill shrinks accordingly); URL-based (HTTP) MCP servers are skipped entirely (local stdio processes kept); the cloud provider is force-disabled. The claim is verifiable with `netstat -ano | findstr <pid>`: zero outbound connections for the whole duration of a task in offline mode.
+- CLI / environment: `AGENT_OFFLINE=1` overrides; `offline_mode` persisted in config.json.
+- Tests: tests/test_offline_mode.py (8 cases — assembly filtering / cloud disable / message mapping; zero network requests).
 
-### ☁️ 云端 provider(OpenAI 兼容端点,可选)
-- config.json `cloud` 段(`base_url` / `api_key` / `model` / `enabled`):
-  启用且非断网时,推理走 OpenAI 兼容 `/chat/completions`(本地优先不变,
-  断网一键回退);api_key 只存本机配置。工具调用 ollama↔OpenAI 双向映射
-  (tool_call_id 按序 FIFO 配对,四 harness 实测同款逻辑)。
+### ☁️ Cloud provider (OpenAI-compatible endpoint, optional)
+- config.json `cloud` section (`base_url` / `api_key` / `model` / `enabled`): when enabled and not offline, inference goes through the OpenAI-compatible `/chat/completions` (local-first unchanged; one-click fallback to offline). The api_key is stored only in the local config. Tool calls are mapped bidirectionally ollama↔OpenAI (tool_call_id paired in FIFO order — the same logic as measured on all four harnesses).
+
 ## v1.7.0 (2026-09)
 
-### 🎛️ 采样三态:移除隐藏默认,回归 ollama 默认
-- **温度三态**:用户未设置 → /api/chat 的 options 完全不带 temperature 字段
-  (由模型 manifest 烤入值/ollama 默认决定);显式设置(含 0)→ 按设置下发。
-  旧版默认 0(继承 v1.5 基准协议的 `AGENT_TEMP` 默认)是发布产品的隐藏特殊性,移除。
-- **思考三态**:未设置 → 不带 think 字段(ollama 出厂默认:具备 thinking 能力的
-  模型默认开思考,返回独立 thinking 字段);显式开/关 → 顶层 think 字段
-  (放 options 会被 ollama 静默丢弃)。旧版"能力模型一律 think:false"的默认
-  抑制移除;非 thinking 模型拒收 think 字段时保留 400 去参重试兜底。
-- **空思考轮妥善处理**:thinking 非空但 content 为空(思考烧光生成预算)时,
-  思考摘录如实上报/记录(流式思考 UI 照常可见),content 空按正常空响应进入
-  空轮防护梯(3 提醒/6 硬复位/额度用尽优雅退出)——不死循环、不崩溃。
-- **设置面贯通**(桌面 GUI + WebUI → gui_prefs.json → agent 运行时 → 载荷):
-  温度留空 = 未设置;思考改为"默认/开/关"三态选择。修复旧"关闭思考"勾选框
-  两处缺陷:接线与语义相反(勾上反而下发 AGENT_THINK=1)且从不持久化;
-  WebUI 工具栏思考快切此前无任何事件绑定(纯摆设),现接入三态。
-- **共享偏好迁移**:gui_prefs.json 增加 prefver 标记;旧版隐藏默认(温度 0、
-  思考开)一次性迁为"未设置",此后用户显式设置的 0/关不再被当作默认抹掉。
-- 环境变量口径:`AGENT_TEMP`/`AGENT_THINK` 未设置 = 载荷不带对应字段;
-  测试:新增 tests/test_sampling_three_state.py(12 项载荷构造断言,不发网络请求)。
+### 🎛️ Three-state sampling: hidden defaults removed, back to ollama defaults
+- **Temperature: three states** — not set by the user → the /api/chat options carry no temperature field at all (the model manifest's baked-in value / the ollama default decides); explicitly set (including 0) → sent as set. The old default of 0 (inherited from the v1.5 benchmark protocol's `AGENT_TEMP` default) was a hidden particularity in a released product; removed.
+- **Thinking: three states** — not set → no think field is sent (ollama factory default: models with thinking capability think by default and return a separate thinking field); explicit on/off → top-level think field (placed inside options it would be silently dropped by ollama). The old default suppression of "think:false for every capable model" is removed; the 400 retry-without-the-param fallback is kept for non-thinking models that reject the think field.
+- **Empty-thinking turns handled properly**: when thinking is non-empty but content is empty (thinking burned through the generation budget), the thinking excerpt is still reported/logged as-is (the streaming thinking UI shows it as usual), and the empty content enters the empty-turn protection ladder as a normal empty response (3 nudges / 6 hard reset / graceful exit when the budget is spent) — no infinite loop, no crash.
+- **Settings wired end to end** (desktop GUI + WebUI → gui_prefs.json → agent runtime → payload): empty temperature = not set; thinking becomes a "default / on / off" three-state selector. Fixed two defects in the old "thinking off" checkbox: the wiring was inverted (checking it actually sent AGENT_THINK=1) and it never persisted; the WebUI toolbar thinking quick-toggle previously had no event binding at all (pure decoration) and is now wired to the three states.
+- **Shared-preferences migration**: gui_prefs.json gains a prefver marker; the old hidden defaults (temperature 0, thinking on) are migrated once to "not set", so an explicit 0 / off set by the user is no longer wiped as a default.
+- Environment-variable behavior: `AGENT_TEMP` / `AGENT_THINK` unset = the payload carries no corresponding field. Tests: new tests/test_sampling_three_state.py (12 payload-construction assertions, no network requests).
 
 ## v1.6.0 (2026-09)
 
-### 🛡️ 通用安全垫:小模型破坏性行为防护(四层)
-- **覆盖自毁防护**:create_file 用显著更短的内容覆盖既有大文件时拒绝,要求显式 replace=true;
-  补充内容用 append_file,局部修改用 edit_file。(实证:e2b 曾在 91 秒内把完整交付手册覆盖成半截稿。)
-- **可回滚删除**:delete_file 不再直接抹除,移入工作目录 .mingbird_trash/ 可恢复。
-- **命令分级防护**:卸载软件包/环境变异(setx、计划任务、服务删除)在无人值守模式默认拒绝、
-  有人值守询问;递归删除仅允许工作目录内;系统级破坏命令(format/diskpart/vssadmin 等)无条件拒绝。
-- **~ 路径教超**:文件工具拒绝以 ~ 开头的路径,引导使用工作目录内相对路径。
-- 逃生口:AGENT_UNSAFE=1 全关;AGENT_ALLOW_ENV_MUTATION=1 允许无人值守环境变异。
+### 🛡️ General safety cushion: protection against small-model destructive behavior (four layers)
+- **Overwrite self-destruction guard**: create_file is refused when it would overwrite an existing large file with much shorter content; an explicit replace=true is required. Use append_file to add content and edit_file for local edits. (Observed in practice: e2b once overwrote a complete delivery manual with a half draft in 91 seconds.)
+- **Rollback-able deletion**: delete_file no longer erases outright; files are moved into .mingbird_trash/ in the working directory and are recoverable.
+- **Tiered command protection**: package uninstalls / environment mutation (setx, scheduled tasks, service deletion) are denied by default in unattended mode and queried when attended; recursive deletes are allowed only inside the working directory; system-level destructive commands (format/diskpart/vssadmin etc.) are refused unconditionally.
+- **~ path guidance**: file tools refuse paths starting with ~ and steer toward relative paths inside the working directory.
+- Escape hatches: AGENT_UNSAFE=1 turns all of it off; AGENT_ALLOW_ENV_MUTATION=1 allows unattended environment mutation.
 
-### 🧭 其他
-- 基准消融框架:机制级消融(baseline + finish_gate/anti_loop/flat_prefill/verify_feedback)
-  独立结果目录,续跑互不污染。
+### 🧭 Other
+- Benchmark ablation framework: mechanism-level ablations (baseline + finish_gate/anti_loop/flat_prefill/verify_feedback) get independent result directories; resumed runs no longer contaminate each other.
 
 ## v1.5.0 (2026-09)
 
-### 🛡️ harness 健壮性三连(72 格重跑实证驱动)
-- **read_file 爬行守卫 v2(字节预算制)**:预算 = clamp(2×文件大小, 64KB, 512KB),永不拒绝——预算耗尽后每次仍返回所请求区间的前 2000 字符,进度不断;第 4/10 次读取给一行策略提示。v1 次数硬拒在真实批次中把小模型逼成撞墙循环(实证后重设计)。
-- **输出上限 2048 → 8192**(帽不是目标):单次工具调用可容纳完整中型代码文件;原 2048 会把大文件发射拦腰截断成空轮螺旋。截断死亡签名(done_reason=length 且无正文无调用)现在会给"create_file 骨架 + append_file 追加"的针对性分块反馈。
-- **空轮防护梯修复**:未闭合 <think> 截断残骸正确计为空轮;连续空轮的纠正(×3)→ 硬复位(×6)→ 优雅退出梯队全部真实可达。
+### 🛡️ harness robustness, three fixes (driven by evidence from a 72-cell rerun)
+- **read_file crawl guard v2 (byte-budget based)**: budget = clamp(2× file size, 64KB, 512KB), never refuses — after the budget is spent, each read still returns the first 2000 characters of the requested range, so progress never breaks; the 4th/10th read adds a one-line policy hint. v1's hard refusal by call count pushed small models into wall-banging loops in real batches (redesigned after the evidence).
+- **Output cap 2048 → 8192** (a cap, not a target): a single tool call can now carry a complete medium-sized code file; the old 2048 cut large-file emissions in half and spiraled into empty turns. The truncation death signature (done_reason=length with no body text and no calls) now gets targeted chunked feedback: "create_file the skeleton + append_file the rest".
+- **Empty-turn ladder fix**: truncation debris from an unclosed <think> is correctly counted as an empty turn; the consecutive-empty-turn ladder — nudge (×3) → hard reset (×6) → graceful exit — is now fully reachable in practice.
 
-### 🧭 其他
-- run_matrix 格级断点续跑:已出分格自动跳过,重启零浪费。
-- 富版发布文档(中英 README + 基准证据包 benchmarks/)入库。
-- 完整变更见 git log;基准数字口径: LRAB-288 终局(详见 benchmarks/)。
+### 🧭 Other
+- run_matrix cell-level checkpoint resume: cells already scored are skipped automatically; restarts waste nothing.
+- Rich release documentation committed (bilingual README + benchmark evidence pack in benchmarks/).
+- Full changes in git log; benchmark-number basis: LRAB-288 final (see benchmarks/ for details).
 
 ## v1.4.0 (2026-09)
 
-### 🎀 品牌定名:鸣鸟/Mingbird
-- 英文名、GUI 标题、安装器、门面文档统一以 Mingbird 品牌发布。新名在 GitHub/npm/PyPI/crates 四注册表零冲突,中文「鸣鸟」零软件占用。
-- 用户数据零迁移:配置目录 `~/.ollama_agent` 与 `%LOCALAPPDATA%\LocalAgent` 不变;新增环境变量 `MINGBIRD_HOME`/`MINGBIRD_DEPTH`。
-- Inno 安装目录为 `{localappdata}\Mingbird`。
+### 🎀 Brand naming: Mingbird
+- The English name, GUI title, installer and facade docs all ship under the Mingbird brand. The new name has zero conflicts across the four registries GitHub/npm/PyPI/crates, and the Chinese name has zero usage by existing software.
+- Zero user-data migration: config directories `~/.ollama_agent` and `%LOCALAPPDATA%\LocalAgent` unchanged; new environment variables `MINGBIRD_HOME` / `MINGBIRD_DEPTH`.
+- The Inno install directory is `{localappdata}\Mingbird`.
 
-### 交付自查门禁(finish 回读)
-- 任务收尾触发 finish 时,动态回注一次任务原文,要求模型对照题面自查格式/单位/点名子项后重新 finish(防长任务末尾语义漂移)。仅在全部存在性门禁通过后触发,单任务一次性,问答/子 agent 豁免;静态 prefill 净增 0。
+### Delivery self-check gate (finish re-read)
+- When a task's finish fires, the original task text is dynamically re-injected once and the model must re-check format / units / named sub-items against the assignment before calling finish again (guards against semantic drift at the tail of long tasks). Fires only after all existence gates pass; once per task; Q&A and sub-agents exempt; static prefill net growth 0.
 
 ## v1.3.0 (2026-09-01)
 
-### todolist 计划管线(重点修复)
-- **修复:任务进行中的简短追加指令可能被误判为闲聊**,导致计划(todo)工具被卸下、写文件/命令被拦截——现在只要会话里已有真实工作记录,短追加指令一律按任务延续处理;显式寒暄不受影响。
-- **计划生命周期兜底**:连续多步实际工作但计划未更新时动态提醒(每任务至多 2 次);收尾时计划未同步会被拦下,并给出可执行的补记调用(`todo(update, all=true)`);上下文压缩后自动把当前计划原文回注,进度坐标不丢。
-- **GUI 计划面板**:新任务自动清空上一任务的旧计划;标题实时显示完成进度(n/m);支持滚动并自动定位到首个未完成项。
+### todolist planning pipeline (key fix)
+- **Fix: short follow-up instructions mid-task could be misread as chit-chat**, unloading the planning (todo) tools and intercepting file writes / commands — as long as the session already holds real work, short follow-ups are now always treated as task continuation; explicit greetings are unaffected.
+- **Planning lifecycle backstop**: a dynamic reminder when several real work steps pass without a plan update (at most 2 per task); a finish with an out-of-sync plan is intercepted with an executable catch-up call (`todo(update, all=true)`); after context compaction the current plan text is re-injected automatically, so the progress coordinate is never lost.
+- **GUI plan panel**: a new task clears the previous task's stale plan; the title shows completion progress live (n/m); scrollable and auto-positioned on the first unfinished item.
 
-### 任务时限(新功能,默认关闭)
-- GUI 目录栏新增「任务时限」输入框:默认空=不限时;接受 `40` / `1.5h` / `90m` / `半小时` 等写法。
-- 也可直接在任务描述里用中英文自然语言写明时限(如"限时 40 分钟"),会自动识别并回填输入框;冲突时**以提示词为最高优先级**。
-- 越过 50% / 75% / 90% 时各收到一条收尾导向提示;断点恢复后时钟续接,不重复轰炸。命令行等价 `--time-budget <分钟>`。
-- 本地模型运行慢、用户时间敏感场景下,避免在单一死点上燃尽全部时间。
+### Task time limit (new, off by default)
+- New "task time limit" input in the GUI directory bar: empty by default = no limit; accepts forms such as `40` / `1.5h` / `90m` / `half an hour`.
+- The limit can also be written in natural language (Chinese or English) directly in the task description (e.g. "timebox 40 minutes"); it is auto-detected and back-fills the input box; on conflict, **the prompt takes highest priority**.
+- Crossing 50% / 75% / 90% each produces one wind-down nudge; after a checkpoint resume the clock continues without repeat nagging. CLI equivalent: `--time-budget <minutes>`.
+- For slow local models and time-sensitive users: keeps the run from burning all its time on a single dead point.
 
-### 编辑收敛守护
-- 同一文件连续多次成功编辑仍未收敛(改完测试仍挂)时,注入策略提示:先读完整报错定位根因、先验证假设再动手;每文件至多提醒 2 次,不禁用任何工具。
+### Edit convergence guard
+- When several consecutive successful edits to the same file still do not converge (tests still fail after the changes), a strategy hint is injected: read the full error and locate the root cause first, verify the hypothesis before acting; at most 2 reminders per file, and no tool is disabled.
 
-### 小模型长输出瘦身
-- ≤4B 模型的超长命令输出只保留末尾摘要(测试结果与报错都在末尾)并附"完整输出落盘再分段读"的逃生通道,显著降低上下文压力、减少压缩;≥12B 模型输出逐字节不变。
+### Long-output slimming for small models
+- For ≤4B models, very long command output keeps only a tail summary (test results and errors live at the end) plus an escape hatch — full output written to disk, then read back in chunks — noticeably lowering context pressure and reducing compaction; output for ≥12B models is byte-for-byte unchanged.
 
-### 并行子 agent 派发(新功能,默认关闭)
-- 自动探测当前硬件余量(按物理内存预算,适配核显共享显存机器),当计划中出现大量"简单不易出错"的机械小任务时,派沙箱化子 agent 并行处理,完成后六步确定性验收整合,失败自动回退主模型串行。
-- **安全模型:子 agent 权限严格小于主 agent**——工作分区之外的一切路径默认拒绝写入(无配置可解)、敏感目录(凭据/虚拟机磁盘/系统区)双重清单、危险命令黑名单(含引号/转义/链式变体)、全量审计日志、严重违规立即熔断回退;确认弹窗通道对子 agent 整体短路(default-deny)。
+### Parallel sub-agent dispatch (new, off by default)
+- Detects spare hardware capacity automatically (budgeted on physical RAM, fitting iGPU shared-memory machines); when the plan contains many mechanical small tasks that are simple and hard to get wrong, sandboxed sub-agents are dispatched in parallel, integrated after a six-step deterministic acceptance pass, with automatic fallback to serial execution on the main model on failure.
+- **Security model: sub-agents hold strictly fewer permissions than the main agent** — any path outside the work partition is deny-by-default for writes (no configuration can undo it); sensitive directories (credentials / VM disks / system areas) are double-listed; a dangerous-command blacklist (including quoted / escaped / chained variants); full audit logging; immediate circuit-breaker fallback on severe violations; the confirmation-dialog channel is short-circuited for sub-agents as a whole (default-deny).
 
-### 其它
-- 出厂 prefill(首 token 前注入的系统提示+工具定义)保持与 v1.2.0 逐字节一致——所有新功能均为运行中动态注入,不增加常驻 token、不拖慢首响应。
+### Other
+- The factory prefill (system prompt + tool definitions injected before the first token) stays byte-for-byte identical to v1.2.0 — all new features are injected dynamically at runtime, adding no resident tokens and slowing nothing before the first response.
 
 ## v1.2.0 (2026-08-31)
-### harness 可靠性(由 LRAB 基准长视野层驱动迭代)
-- **反循环保护修复**:「同一工具连续调用 → 禁用」的强禁用现要求「同参数连续」才算死循环——逐切片跑脚本、逐文件读取等参数在变的正当批处理不再被误缴械;`enable_tools` 无新增时明确回执「已可用,直接调用」;禁用消息改为给出下一步可执行动作,不再把小模型逼进绕道/死锁。
-- **finish 门禁**:任务收尾统一走显式完成调用,减少 early_finish 弃赛。
-- **小模型工具降级**:小上下文模型自动收缩工具面,降低误调用率。
+
+### harness reliability (iterated on the LRAB benchmark's long-horizon layer)
+- **Anti-loop fix**: the hard rule "same tool called repeatedly → disable" now requires "repeated with identical arguments" to count as a death loop — legitimate batch work with varying arguments (a script per slice, a read per file) is no longer wrongly disarmed; `enable_tools` with nothing new to enable now replies explicitly "already enabled, call directly"; disable messages now give a concrete next action instead of pushing small models into detours and deadlocks.
+- **Finish gate**: task completion uniformly goes through an explicit finish call, reducing early_finish walkaways.
+- **Tool downgrade for small models**: small-context models shrink their tool surface automatically, lowering the mis-call rate.
 
 ## v1.1.0 (2026-08-26)
-- **工作目录边界守护系统**:越界文件操作 GUI 弹窗确认、敏感路径(.ssh/.env 等)保护、危险命令拦截扩充、verify-before-retry。
-- **工具分层 + 扁平类别路由**:工具/MCP 按类别打标按需加载,prefill 再降 50%+。
-- **上下文工程**:通用磁盘缓存、全量落盘+摘要+按需精读、分层压缩、并行检索。
-- **MCP 连接池**(根治间歇 500)、上下文事前估算、批处理编排;接入远程 MCP(搜索)。
+- **Working-directory boundary guard system**: out-of-bounds file operations raise a GUI confirmation dialog; sensitive paths (.ssh/.env etc.) protected; dangerous-command interception expanded; verify-before-retry.
+- **Tool layering + flat category routing**: tools/MCP tagged by category and loaded on demand; prefill down another 50%+.
+- **Context engineering**: universal disk cache; full spill-to-disk + summaries + on-demand close reading; tiered compaction; parallel retrieval.
+- **MCP connection pool** (cures intermittent 500s); context pre-estimation; batch orchestration; remote MCP (search) integrated.
 
-## v1.0.0 (2026-08-21) — 正式版
-### 🎉 里程碑:本地小模型 agent「鸣鸟/Mingbird」首个正式版
-- **定位**:为 0.5-9B 小模型 / 核显 / 16GB 内存笔记本特化的本地 AI agent。
-- **核心能力**(V1-V38d 基准 + 10 轮调研迭代验证):
-  - 扁平 prefill:工具按类别按需加载,prefill 减 50%+,提速
-  - 问答/任务分层:闲聊直接答(聊天提示+只读工具),任务全量执行
-  - 流式输出 + 思考过程折叠显示
-  - 工具安全门(rm -rf/系统路径拦截)
-  - harness 兜底三件套:.bak 备份回滚 / 精确失败注入 / 语法错误恢复提示
-  - 严格重复工具调用拦截 + 死循环检测
-  - 模型自动识别 + 上下文梯度(16K-256K)+ 语音(sherpa-onnx)
-- **三模型画像**(实测):qwen3.5:2b(长上下文/明确任务最稳)、gemma4:e2b(40t/s 最快/网络调研)、Mellum2(规则/代码强,短会话限定)。
-- 安装包:`Mingbird-v1.0.0-EN-Setup.exe` / `鸣鸟-v1.0.0-中文安装包.exe`(各 247MB,内含离线语音 STT 模型,安装即用),含完整文档(AGENTS.md)。
+## v1.0.0 (2026-08-21) — first stable release
 
-### 🔧 发布前收尾修复(2026-08-21 下午)
-- **双语言纯净**:全量 i18n——此前仅主工具栏做了翻译,198 处可见中文串(模型名/侧栏/按钮/对话框/状态栏/思考折叠/语音反馈)在英文版仍显示中文。现英文版全英文、中文版全中文。
-- **语音不再几秒自动结束**:修复陈旧定时器 bug(手动停录未 `after_cancel` 挂起回调,导致下次录音被上一个 20s 定时器提前掐断)。新增能量 VAD——开口后静音约 1.2s 自动停止转写(无需手动点停),60s 保险上限;顺带修 `_voice_worker` 线程访问 Tk 变量的隐患。
-- **窗口默认最大化**:双击打开自适应大窗口(此前小窗口只显示左上角)。
-- **安装器健壮性**:安装前先结束运行中的 LocalAgent.exe,避免文件锁导致拷贝中断、装出残缺版本(缺失 base_library.zip → 启动报 `encodings` 致命错误)。
-- **UI 增强**:空状态欢迎语、ℹ关于对话框(版本/文档/安装目录)、Ollama 在线状态灯(点击可自动拉起)、ttkbootstrap 2.0 主题(消除 legacy 弃用警告)。
+### 🎉 Milestone: first stable release of the local small-model agent Mingbird
+- **Positioning**: a local AI agent specialized for 0.5-9B small models / integrated graphics / 16 GB laptops.
+- **Core capabilities** (validated by the V1-V38d benchmarks + 10 rounds of research iteration):
+  - flat prefill: tools load by category on demand — prefill down 50%+, faster
+  - Q&A/task layering: chit-chat answers directly (chat prompt + read-only tools), tasks execute with the full toolset
+  - streaming output + collapsible thinking display
+  - tool safety gate (rm -rf / system-path interception)
+  - harness backstop trio: .bak backup rollback / precise failure injection / syntax-error recovery hints
+  - strict repeated-tool-call interception + death-loop detection
+  - model auto-detection + context gradient (16K-256K) + voice input (sherpa-onnx)
+- **Three-model profile** (measured): qwen3.5:2b (most stable on long context / well-specified tasks), gemma4:e2b (fastest at 40 t/s / web research), Mellum2 (strong on rules / code, short sessions only).
+- Installers: `Mingbird-v1.0.0-EN-Setup.exe` / `鸣鸟-v1.0.0-中文安装包.exe` (247 MB each, bundling the offline voice STT model, ready on install), with full documentation (AGENTS.md).
+
+### 🔧 Pre-release closing fixes (2026-08-21 afternoon)
+- **Bilingual purity**: full i18n — previously only the main toolbar had been translated, and 198 visible Chinese strings (model names / sidebar / buttons / dialogs / status bar / thinking fold / voice feedback) still displayed Chinese in the English build. The English build is now all English, the Chinese build all Chinese.
+- **Voice input no longer ends by itself after a few seconds**: fixed a stale-timer bug (manual stop-recording did not `after_cancel` the pending callback, so the next recording was cut short by the previous 20 s timer). Added energy VAD — about 1.2 s of silence after speech stops transcription automatically (no manual stop needed), with a 60 s safety cap; also fixed `_voice_worker` touching Tk variables from its thread.
+- **Window maximized by default**: double-click opens an adaptive large window (previously a small window showed only the top-left corner).
+- **Installer robustness**: the installer now terminates a running LocalAgent.exe before installing, avoiding file locks that abort the copy and leave a broken install (missing base_library.zip → fatal `encodings` error at startup).
+- **UI polish**: empty-state welcome copy; ℹ about dialog (version / docs / install directory); Ollama online status light (click to auto-start); ttkbootstrap 2.0 theme (removes legacy deprecation warnings).
 
 ## v0.12.0 (2026-08-21)
-### agent 可靠性加固
 
-(开发期内部基准 V1-V38d 驱动;关键结论:小模型"自修 bug"弱是普遍短板,harness 兜底——备份+精确失败反馈——显著缓解,修复任务从卡死 42+ 轮降到 16-24 轮完成。)
-- **`.bak` 文件备份**:edit_file 前自动备份,模型改坏文件时可回滚(三模型实测:修复任务从卡死 42+ 轮到 16-24 轮完成)。
-- **语法错误恢复提示**:pytest 失败含 SyntaxError 时,提示用 .bak 恢复或重建文件。
-- **精确失败注入 `_pytest_hint`**:测试失败时把失败测试/文件/行/断言注入给模型,帮它定位。
-- **工具安全门**:拦截 rm -rf / format / 系统路径写入删除。
-**模型路由模块**:按任务类型自动推荐模型,可作 GUI 自动选型参考。
+### agent reliability hardening
+
+(Driven by the internal V1-V38d development benchmarks; key finding: weak self-debugging is a common small-model shortfall, and harness backstops — backups + precise failure feedback — relieve it markedly: repair tasks went from stuck at 42+ turns to done in 16-24 turns.)
+- **`.bak` file backup**: automatic backup before edit_file, so the model can roll back when it wrecks a file (measured on three models: repair tasks from stuck at 42+ turns to done in 16-24 turns).
+- **Syntax-error recovery hint**: when a pytest failure contains a SyntaxError, the model is told to restore from .bak or rebuild the file.
+- **Precise failure injection `_pytest_hint`**: on test failure, the failing test / file / line / assertion is injected for the model, helping it localize the defect.
+- **Tool safety gate**: intercepts rm -rf / format / writes and deletes to system paths.
+**Model routing module**: recommends a model automatically by task type; usable as the GUI's auto-selection reference.
 
 ## v0.11.0 (2026-08-20)
-### 产品
-- **品牌定名「鸣鸟 / Mingbird」**(原名 LocalAgent):GUI 标题、安装器、文档全链路更新。
-### 架构(根因级)
-- **问答/任务分层 prefill**:根因确认——小模型"问答死循环"是【任务向系统提示+全量工具+Continue 注入】导致,非模型缺陷。问答 → 聊天提示+只读工具,答完即停。
-- **标签化扁平 prefill**:工具按类别(文件/代码/网络/记忆/MCP)打标,任务自动路由到相关类别,**只暴露相关工具**(实测搜索→8 工具,写程序→12,而非全量 17)→ prefill 减 50%+,提速。
-- **重复输出死循环检测**:文本相似度≥0.75 重复≥2 次 → 强制收尾(问答/任务都防)。
-- **语音修复**:numpy 从 MKL 版换 OpenBLAS 版(MKL DLL 删除曾导致语音失效)。
-### 验证
-- 扁平 prefill 三强实机验证:qwen2b ✅23 / e2b ⚠️16(stddev 公式,模型能力)/ Mellum2 ✅11。
+
+### Product
+- **Brand named Mingbird** (formerly LocalAgent): GUI title, installer and docs updated across the chain.
+
+### Architecture (root-cause level)
+- **Q&A/task layered prefill**: root cause confirmed — the small-model "Q&A death loop" comes from [task-style system prompt + full tools + Continue injection], not a model defect. Q&A → chat prompt + read-only tools; answer once and stop.
+- **Tagged flat prefill**: tools tagged by category (files / code / web / memory / MCP), tasks routed automatically to the relevant categories, **exposing only the relevant tools** (measured: search → 8 tools, coding → 12, instead of all 17) → prefill down 50%+, faster.
+- **Repeated-output death-loop detection**: text similarity ≥ 0.75 repeated ≥ 2 times → forced wind-down (guards both Q&A and tasks).
+- **Voice fix**: numpy switched from the MKL build to the OpenBLAS build (MKL DLL removal had broken voice).
+
+### Verification
+- flat prefill verified on real hardware across the three models: qwen2b ✅23 / e2b ⚠️16 (stddev formula; model capability) / Mellum2 ✅11.
 
 ## v0.10.0 (2026-08-20)
-### 新增
-- **流式输出(核心提速)**:对话回复逐 token 实时上屏,告别"盯空白等整段"。首字 1 秒内出现。
-- **思考过程流式 + 自动折叠**:思考流灰色显示,思考结束自动折叠成"🤔 思考过程 (N 字)— 点击展开/折叠",点击可切换。
-- **新三强模型**:qwen3.5:2b(256K 长上下文)/ gemma4:e2b(128K, 40t/s)/ Mellum2(代码)。模型列表已更新,替换旧 e4b/lfm。
-- **上下文梯度扩展**:16K / 32K / 64K / 128K / 256K 五档(256K 预留)。
-- 实测小模型可安全吃大上下文(qwen2b 256K、e2b 128K、Mellum2 64K),相比旧 e4b 32K 死锁是质的提升。
 
-### v0.10.0 修复(2026-08-20 第二轮)
-- **乱码修复**:agent 子进程 stdout 强制 UTF-8(PyInstaller 默认 GBK → 中文乱码)。
-- **思考折叠重写**:tag 区域追踪,折叠只动思考区不碰正文,点击正常展开/折叠(不再重复复制)。
-- **语音修复**:打包加 `--collect-all numpy`(原 numpy 从源码目录导入报错)。
-- **默认模型修正**:e4b → 自动取模型列表第一个。
-- **模型自动识别**:从 ollama `/api/tags` 动态读取模型列表(不同用户/机器自动适配),已知模型给友好名,未知显示原始 tag。
-- **agent 运行修复**:打包后 exe 以 agent CLI 模式跑(不再发消息弹新窗口)。
+### Added
+- **Streaming output (the core speedup)**: conversation replies render token by token in real time — no more staring at a blank panel waiting for the whole block. The first token appears within 1 second.
+- **Streaming thinking + auto-fold**: the thinking stream renders in gray and folds automatically into "🤔 Thinking (N chars) — click to expand/collapse"; clicking toggles.
+- **New top-three models**: qwen3.5:2b (256K long context) / gemma4:e2b (128K, 40 t/s) / Mellum2 (code). The model list is updated, replacing the old e4b/lfm.
+- **Context gradient extended**: five tiers — 16K / 32K / 64K / 128K / 256K (256K reserved).
+- Measured: small models can safely take large contexts (qwen2b 256K, e2b 128K, Mellum2 64K) — a step change from the old e4b's 32K deadlocks.
+
+### v0.10.0 fixes (2026-08-20, round two)
+- **Mojibake fix**: agent subprocess stdout forced to UTF-8 (PyInstaller's default GBK → garbled Chinese text).
+- **Thinking fold rewritten**: tag-region tracking; folding touches only the thinking region, never the body; clicking expands/collapses normally (no more duplicated copies).
+- **Voice fix**: packaging adds `--collect-all numpy` (numpy previously failed importing from the source directory).
+- **Default model fixed**: e4b → automatically take the first entry of the model list.
+- **Model auto-detection**: the model list is read dynamically from ollama `/api/tags` (adapting to each user/machine); known models get friendly names, unknown ones show the raw tag.
+- **Agent-run fix**: the packaged exe runs in agent CLI mode (no longer pops a new window on message).
 
 ## v0.9.0 (2026-08-20)
-### 新增
-- **按需启动 ollama(不常驻)**:不再开机自启。打开 agent(GUI 或 CLI)时 `ensure_ollama()` 自动检测并拉起 ollama serve(带核显环境变量,≤25s 就绪)。开机零负担,用时才加载。
+
+### Added
+- **On-demand ollama (not resident)**: no more auto-start at boot. Opening the agent (GUI or CLI) triggers `ensure_ollama()`, which detects and starts ollama serve (with iGPU environment variables, ready in ≤25 s). Zero boot cost; loaded only when used.
 
 ## v0.8.0 (2026-08-20)
-### 新增
-- **上下文死锁修复(关键)**:CTX_BUDGET 默认 32768→**16384**。此前 3.3GB 模型+32K KV 缓存打满 13.7GB 内存致 ollama 服务死锁(连最小请求都超时),降到 16K 后稳定运行。
-- **检查点恢复加固 `sanitize_ckpt()`**:崩溃点若停在"assistant 带 tool_calls 但无 tool 结果",恢复时会清理悬空调用/空内容/`response:unknown{...}` 垃圾,防止模型输出损坏内容。
-- **缺参报错可操作化 `_REQ_ARGS`**:edit_file 等工具缺参数时,报错明确列出所需参数和已传参数(此前 `[tool error: 'path']` 模型看不懂反复重试)。
-- **永续循环第二批 V24-V26 设计完成**:V24 技能结晶 / V25 自然语言定时 / V26 复合语音命令。
+
+### Added
+- **Context deadlock fix (critical)**: CTX_BUDGET default 32768 → **16384**. Previously a 3.3 GB model + 32K KV cache filled 13.7 GB of RAM and deadlocked the ollama service (even the smallest requests timed out); at 16K it runs stably.
+- **Checkpoint-restore hardening `sanitize_ckpt()`**: if a crash lands on "assistant with tool_calls but no tool results", recovery cleans dangling calls / empty content / `response:unknown{...}` junk, preventing the model from emitting corrupted content.
+- **Actionable missing-argument errors `_REQ_ARGS`**: when a tool such as edit_file lacks a parameter, the error clearly lists the required and the received arguments (the old `[tool error: 'path']` was unreadable to the model, which retried in place).
+- **Second batch of internal benchmark iterations V24-V26 designed**: V24 skill crystallization / V25 natural-language scheduling / V26 compound voice commands.
 
 ## v0.7.0 (2026-08-19)
-### 新增
-- **永续循环第一批(V21-V23)完成**:结构输出加固(repair_json)/ 本地知识库(RAG)/ 模型路由层
-- 测试验证守护在 V18-V23 持续生效(拦下大量"未验证即 finish")
-- **关键发现**:qwen3.5:4b 本批次 3 版全过(e4b 长会话质量退化,V22 未实现;lfm 复杂任务持续偏弱)
-- LocalAgent_setup.exe 安装器完成并端到端验证(onefile 137MB)
+
+### Added
+- **First batch of internal benchmark iterations (V21-V23) completed**: structured-output hardening (repair_json) / local knowledge base (RAG) / model routing layer
+- The test-verification guard stayed effective across V18-V23 (blocked a large number of "finish without verifying")
+- **Key finding**: qwen3.5:4b passed all three versions of this batch (e4b degrades over long sessions and V22 was not implemented; lfm stayed weak on complex tasks)
+- LocalAgent_setup.exe installer completed and verified end to end (onefile, 137 MB)
 
 ## v0.6.0 (2026-08-19)
-### 新增
-- **UI 现代化第一轮(现代极简)**:按 UI 设计 skill 重构——暖米白底+炭灰文字+单点缀绿,扁平按钮,去 emoji,编辑式排版;窗口标题动态显示真实版本号(修复硬编码"v4")
-- **打包**:LocalAgent.exe 构建成功(PyInstaller,瘦身 710MB→77MB);安装器 LocalAgent_setup.exe(onefile,自带 app)
-- **竞品调研**:首轮完成,写入 research/2026-08-19-competitor-analysis.md(SmoLAgents/Hermes/VoiceAgent 等)
-- **测试验证守护**:模型 finish 时若目录有 test_*.py,harness 亲自跑 pytest,不过则拒绝 finish(治"未验证即完成")
+
+### Added
+- **UI modernization round one (modern minimal)**: rebuilt following the UI design skill — warm off-white background + charcoal text + a single green accent, flat buttons, no emoji, editorial typography; the window title shows the real version dynamically (fixed the hardcoded "v4")
+- **Packaging**: LocalAgent.exe builds (PyInstaller, slimmed 710 MB → 77 MB); installer LocalAgent_setup.exe (onefile, app bundled)
+- **Competitor research**: first round completed, written to research/2026-08-19-competitor-analysis.md (SmoLAgents/Hermes/VoiceAgent etc.)
+- **Test-verification guard**: when the model calls finish and the directory holds test_*.py, the harness runs pytest itself and refuses finish on failure (cures "done without verifying")
 
 ## v0.5.0 (2026-08-19)
-### 新增
-- **中文语音输入**:sherpa-onnx 14M 模型(快于实时 20×),所有模型可用,两段式录音(开始/停止)
-- **MCP 集成**:3 个 server(官方 filesystem/memory + 自建 utils 时间/计算/哈希),参数名宽容别名
-- **20 版本迭代基准**:V1-V17 完成(见 bench/results.md),验证 e4b/qwen/lfm 三模型能力
 
-### agent 核心改进(18 项)
-- 修复 ollama 0.32 用量字段 bug(上下文自动压缩首次真正生效)
-- 假完成守护(没做实际工作就 finish 会被拒绝)
-- 文件自愈(任意层数转义)、run_bash 命令规范化、Linux 路径幻觉提示
-- 工具调用抢救、重复失败/成功/调研/todo 循环四级检测、禁用机制
-- 前置 token 精简至 737(MyAgents 的 1/13)
+### Added
+- **Chinese voice input**: sherpa-onnx 14M model (20× faster than real time), available to every model, two-stage recording (start/stop)
+- **MCP integration**: 3 servers (official filesystem/memory + in-house utils for time/math/hash), lenient parameter-name aliases
+- **20-version iteration benchmark**: V1-V17 completed (see bench/results.md), validating capability across the e4b/qwen/lfm trio
 
-(本段机制由开发期内部 V1-V17 基准驱动——三模型互测暴露的 18 项 harness 缺陷逐条修复;过程记录不随产品 changelog 发布。)
+### Core agent improvements (18 items)
+- Fixed the ollama 0.32 usage-field bug (automatic context compaction actually took effect for the first time)
+- Fake-finish guard (finishing without doing real work is refused)
+- File self-healing (escaping at any depth), run_bash command normalization, Linux path-hallucination hints
+- Tool-call rescue; four-level detection of repeated failure / success / research / todo loops; disable mechanism
+- Prefill tokens trimmed to 737 (1/13 of MyAgents)
+
+(The mechanisms in this section were driven by the internal V1-V17 development benchmarks — 18 harness defects exposed by cross-testing the three models, fixed one by one; the process notes are not published with the product changelog.)
