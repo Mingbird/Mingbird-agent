@@ -10,9 +10,8 @@ pip install -r requirements.txt          # or your env of choice; python 3.10+
 ollama pull qwen3.5:4b                   # the campaign model tag
 
 # run one cell: fresh workdir, 90-min budget, artifact scoring
-# (the Mingbird arm is registered under the repo's historical name "hummingbird")
 python bench/lrab/runners/run_bench.py `
-  --agent hummingbird `
+  --agent mingbird `
   --task  bench/lrab/tasks/tier3_workflow/WF-01.json `
   --model qwen3.5:4b
 ```

@@ -316,7 +316,7 @@ def gen_lh03():
         "final_artifacts": final, "judge_rubric": "rubrics/LH-03.md",
         "max_wall_minutes": 90, "resume_test": True, "kill_at_pct": 50,
         "notes": "Endurance (~40 tool calls) + resume: runner kills at 50% budget and relaunches; "
-                 "tests whether checkpoint/persistence machinery recovers (hummingbird) or state is lost (competitors).",
+                 "tests whether checkpoint/persistence machinery recovers (the Mingbird arm) or state is lost (competitors).",
         "extra_judge_note": "",
     }
     return task, truth

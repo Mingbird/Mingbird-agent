@@ -162,6 +162,6 @@
  "max_wall_minutes": 90,
  "resume_test": true,
  "kill_at_pct": 50,
- "notes": "Endurance (~40 tool calls) + resume: runner kills at 50% budget and relaunches; tests whether checkpoint/persistence machinery recovers (hummingbird) or state is lost (competitors).",
+ "notes": "Endurance (~40 tool calls) + resume: runner kills at 50% budget and relaunches; tests whether checkpoint/persistence machinery recovers (the Mingbird arm) or state is lost (competitors).",
  "extra_judge_note": ""
 }

@@ -3,7 +3,7 @@
 """LRAB benchmark runner: run one task on one agent runtime, then score.
 
 Usage:
-  python run_bench.py --agent hummingbird --task tasks/tier2_synthesis/WF-06.json \
+  python run_bench.py --agent mingbird --task tasks/tier2_synthesis/WF-06.json \
       --model ornith-1.5:35b --results results/
 
 Prepares a clean workdir (copies fixtures, writes task prompt), invokes the
@@ -35,12 +35,12 @@ def prepare_workdir(task, base_workdir):
     return workdir
 
 
-def _cmd_hummingbird(task, workdir, model):
+def _cmd_mingbird(task, workdir, model):
     taskfile = os.path.join(workdir, "task_input.txt")
     env = dict(os.environ)
     env.pop("AGENT_STREAM", None)
     # 基准隔离: 干净实例(仅 tavily MCP, 无私人 skills)
-    env["HUMMINGBIRD_HOME"] = os.path.expanduser("~/.hummingbird_bench")
+    env["MINGBIRD_HOME"] = os.path.expanduser("~/.mingbird_bench")
     # 公平性: 与其他 agent 对齐 num_ctx=32768(自省P0-1, 原默认16384)
     env["AGENT_CTX"] = os.environ.get("AGENT_CTX", "32768")
     # 无人值守: 安全垫的卸载/环境变异类操作直接拒绝(不进入 120s 询问超时)
@@ -55,7 +55,7 @@ def _cmd_opencode(task, workdir, model):
         r"%LOCALAPPDATA%\MyAgents\nodejs\opencode.cmd")
     env = dict(os.environ)
     # 基准隔离: 干净配置(仅 DDG MCP, 无私人 skills)
-    cfg_path = os.path.expanduser("~/.hummingbird_bench/opencode-config/opencode.json")
+    cfg_path = os.path.expanduser("~/.mingbird_bench/opencode-config/opencode.json")
     # OC_BASE_URL: 把 opencode 的 Ollama 端点改指(如采样归一化代理 11435),
     # 写入派生配置副本, 不动基准母本。
     if os.environ.get("OC_BASE_URL"):
@@ -145,7 +145,7 @@ def _cmd_goose(task, workdir, model):
 
 
 RUNNERS = {
-    "hummingbird": _cmd_hummingbird,
+    "mingbird": _cmd_mingbird,
     "opencode": _cmd_opencode,
     "agent-mini": _cmd_agent_mini,
     "goose": _cmd_goose,
@@ -217,7 +217,7 @@ def run_kill_resume(agent, task, workdir, model, timeout_min, kill_at_pct):
     """Two-phase run: kill the agent tree at kill_at_pct of budget, relaunch the
     SAME command with the remaining budget, score ONCE at the end.
 
-    This measures checkpoint/resume machinery: hummingbird continues from
+    This measures checkpoint/resume machinery: the Mingbird arm continues from
     .agent_state.json (same command, no --new); competitors rely on whatever
     state they persist in the workdir — that persistence IS the measured
     property, applied identically to all four. killed=False when the agent
@@ -298,12 +298,12 @@ def wait_for_quiet(workdir, quiet_secs=20, max_wait=180):
 
 def main():
     # 隔离与归档: 每 run 一个唯一目录(agent_model_task_时间戳), workdir 和产物同放,
-    # 归档到 ~/dev/hummingbird/eval_results/ (持久, 论文/HN 数据源, 不互相污染)
+    # 归档到 ~/dev/mingbird/eval_results/ (持久, 论文/HN 数据源, 不互相污染)
     ap = argparse.ArgumentParser()
     ap.add_argument("--agent", required=True, choices=sorted(RUNNERS))
     ap.add_argument("--task", required=True)
     ap.add_argument("--model", default="ornith-1.5:35b")
-    ap.add_argument("--results", default=os.path.expanduser("~/dev/hummingbird/eval_results"))
+    ap.add_argument("--results", default=os.path.expanduser("~/dev/mingbird/eval_results"))
     ap.add_argument("--timeout-min", type=int, default=60)
     ap.add_argument("--kill-at-pct", type=int, default=None,
                     help="force the kill-resume protocol at this %% of budget "
