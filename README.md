@@ -8,7 +8,7 @@
 >
 > You've been told local models need a big discrete GPU. On an ordinary laptop — integrated graphics, 16–32 GB of RAM — the same 2–9B models that stall in cloud-style frameworks deliver finished artifacts here, because the failures you have seen are harness defects, not model defects. Measured end to end; all 288 cells public.
 
-Current release **v1.7.0** · actively maintained ([CHANGELOG](CHANGELOG.md)) · CI builds Linux/macOS artifacts · 451 tests
+Current release **v1.8.0** · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 459 tests
 
 ![Mingbird screenshot](docs/assets/screenshot-app.png)
 
@@ -38,6 +38,7 @@ This is not a lonely observation. Recent public work points the same way — gua
 ## What it can do
 
 - **Real tasks**: write code and run the tests, organize files, web research, analyze data, call MCP tools.
+- **One-click offline mode (v1.8.0)** — 🔒 in the toolbar: local model only, web tools not even assembled into the prompt, zero outbound by construction (see [Where your data lives](#where-your-data-lives)).
 - **Streaming output + visible thinking** — the delivery streams; the thinking folds away once the run is done.
 - **Drag-and-drop / paste attachments** — drop a file into the chat or press Ctrl+V: clipboard files and screenshots become attachments on the spot, sent along with your instruction.
 - **Voice input out of the box** — the installer bundles a local STT model (pure CPU, ~20× real time) that stops automatically when you stop talking.
@@ -117,6 +118,15 @@ history — deleted keys, abandoned branches, things you forgot were ever
 committed. Whether that directory can leave your machine is an
 architectural question, not a settings question. Here it cannot: inference
 is local, and rollbacks (`.bak`, `.mingbird_trash/`) never leave the disk.
+There is no workspace packaging, no background snapshot, no upload
+mechanism of any kind in the code — nothing that could ship your directory
+somewhere even by accident.
+
+**v1.8.0: one-click offline mode.** The toolbar has a 🔒 toggle. In
+offline mode the agent runs the local model only; web tools and URL-based
+MCP servers are not even assembled into the prompt (the model cannot call
+what it cannot see), and the optional cloud provider is disabled. Zero
+outbound by construction — not by policy.
 
 **Check it yourself.** Run a purely local task and watch the connections:
 
@@ -127,12 +137,12 @@ netstat -ano | findstr <pid>   # <pid> = the agent's python process
 You should see loopback (127.0.0.1) connections to Ollama, and nothing
 else. The Web UI binds 127.0.0.1 only.
 
-**Honest edges.** Mingbird does reach the network in exactly two places,
-both visible in the code: (1) when the model decides to search the web —
-default backends are Bing and Baidu (configurable), and the query words go
-to that engine; (2) any MCP servers you configure yourself. No preconfigured
-servers, no bundled keys, nothing else. Sessions and settings stay in
-`~/.ollama_agent`.
+**Honest edges.** In normal (online) mode Mingbird does reach the network
+in exactly two places, both visible in the code: (1) when the model decides
+to search the web — default backends are Bing and Baidu (configurable), and
+the query words go to that engine; (2) any MCP servers you configure
+yourself. No preconfigured servers, no bundled keys, nothing else. Sessions
+and settings stay in `~/.ollama_agent`.
 
 ## Safety
 
