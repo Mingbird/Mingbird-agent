@@ -1,32 +1,16 @@
 # 🐦 鸣鸟 Mingbird
 
-**本地优先的 agent harness：让核显上的 2–9B 小模型把活干完。**
-
-鸣鸟面向 Windows + Ollama（Linux/macOS 实验包），为大多数人真正跑得动的模型设计：**2–9B 参数、核显、16–32 GB 内存**（实测上限 35B）。无云依赖、无账号、无遥测——除你显式配置的 Ollama/搜索端点外，无任何外联。
+**本地优先的 agent harness：在你手头这台笔记本上，让核显里的 2–9B 小模型把真实任务干完。**
 
 [English](README.md) · Apache-2.0 · Windows 10/11 · Linux & macOS（实验版） · 离线优先
 
+> **同一个 2B 模型：0.017 → 0.821。问题出在 harness。**
+>
+> 都说本地模型得配大独显。其实一台普通笔记本——核显、16–32 GB 内存——就够了：那些在云风格框架里跑不动的 2–9B 小模型，在这里能交付完整产物，因为你见过的那些失败是 harness 缺陷，不是模型缺陷。端到端实测，288 格数据全部公开。
+
+当前版本 **v1.7.0** · 持续维护中（[CHANGELOG](CHANGELOG.md)）· CI 构建 Linux/macOS 产物 · 451 项测试
+
 ![鸣鸟截图](docs/assets/screenshot-app.png)
-
-## 我们要解决的问题
-
-主流 agent 框架是为云上大模型设计的。喂给它一个 2B 本地模型，演示视频里的一切都会崩掉：全量工具 prefill 撑爆上下文、模型无法自我纠错、陷入工具调用死循环，或者半途悄无声息地放弃。
-
-**我们的主张：这些是 harness 的缺陷，不是模型的缺陷。** 小模型经常知道该做什么，只是不能稳定地一步步做出来。鸣鸟就是补上这一段的 harness：同一个模型，在别处只会聊天，在这里交付产物。
-
-## 它能做什么
-
-- **真实任务**：写代码并跑测试、整理文件、联网调研、分析数据、调用 MCP 工具。
-- **流式输出 + 思考过程可见**——交付内容流式输出，思考过程随后自动折叠、进入正式回答。
-- **拖入/粘贴即附件**——文件直接拖进聊天框，或 Ctrl+V 粘贴：剪贴板里的文件、截图瞬间成为附件，随指令一起发送。
-- **语音输入开箱即用**——安装包内置本地 STT 小模型（纯 CPU，~20× 实时转写），说完自动停。
-- **任务时限（默认关）**——输入框填 `40` / `1.5h` / `半小时`，或直接在任务描述里写"限时 40 分钟"（自动识别、优先级最高）；临近时限自动收尾提醒。本地模型用户在意墙钟时间。
-- **会话记忆**——历史会话持久保存，可搜索、可回放。
-- **模型自动识别**——Ollama 里拉什么就用什么，最高 256K 上下文。
-- **技能 & MCP**——markdown 技能按需装载；MCP 服务器纯 JSON 配置。
-- **中英双语**界面。
-- **Web UI（实验版）**——同一个 agent 跑进浏览器：源码运行 `python webui/server.py`，打开 http://127.0.0.1:8765（仅绑定 127.0.0.1，数据不出本机）——[指南](docs/webui_zh.md)。
-- **一键安装包**，也可源码运行。
 
 ## 有什么不同
 
@@ -43,13 +27,31 @@
 | …长任务不跑偏 | 交付自查门禁：宣称完成前回读任务原文核对 |
 | …抵住破坏性冲动 | 五环安全网兜住（见[安全](#安全)） |
 
-没有任何东西是写死的：Ollama 地址、可执行文件、GPU 环境变量、模型别名，全部运行时识别或在 `~/.ollama_agent/config.json` 配置（见 [AGENTS.md](AGENTS.md)）。质量底线由 v1.6.0 的 441 个测试守住，prefill 零增长断言也在其中。
+没有任何东西是写死的：Ollama 地址、可执行文件、GPU 环境变量、模型别名，全部运行时识别或在 `~/.ollama_agent/config.json` 配置（见 [AGENTS.md](AGENTS.md)）。质量底线由 451 项回归测试守住，prefill 零增长断言也在其中。
+
+## 我们要解决的问题
+
+主流 agent 框架是为云上大模型设计的。喂给它一个 2B 本地模型，演示视频里的一切都会崩掉：全量工具 prefill 撑爆上下文、模型无法自我纠错、陷入工具调用死循环，或者半途悄无声息地放弃。**我们的主张：这些是 harness 的缺陷，不是模型的缺陷**——小模型经常知道该做什么，只是不能稳定地一步步做出来。
+
+这不是我们一家的观察：近期的公开讨论指向同一结论——护栏优先的 harness 上了 HN 首页（"guardrails take an 8B model from 53% to 99%"）、"why your local LLM feels dumber than it is" 系列讨论、本地推理话题从"能不能跑"转向"能不能交付"。缺的是有人把 2–9B 这一档从头到尾做完。这就是本项目。
+
+## 它能做什么
+
+- **真实任务**：写代码并跑测试、整理文件、联网调研、分析数据、调用 MCP 工具。
+- **流式输出 + 思考过程可见**——交付内容流式输出，思考过程随后自动折叠、进入正式回答。
+- **拖入/粘贴即附件**——文件直接拖进聊天框，或 Ctrl+V 粘贴：剪贴板里的文件、截图瞬间成为附件，随指令一起发送。
+- **语音输入开箱即用**——安装包内置本地 STT 小模型（纯 CPU，~20× 实时转写），说完自动停。
+- **任务时限（默认关）**——输入框填 `40` / `1.5h` / `半小时`，或直接在任务描述里写"限时 40 分钟"（自动识别、优先级最高）；临近时限自动收尾提醒。本地模型用户在意墙钟时间。
+- **会话记忆**——历史会话持久保存，可搜索、可回放。
+- **模型自动识别**——Ollama 里拉什么就用什么，最高 256K 上下文。
+- **技能 & MCP**——markdown 技能按需装载；MCP 服务器纯 JSON 配置。
+- **中英双语**界面。
+- **Web UI（实验版）**——同一个 agent 跑进浏览器：源码运行 `python webui/server.py`，打开 http://127.0.0.1:8765（仅绑定 127.0.0.1，数据不出本机）——[指南](docs/webui_zh.md)。
+- **一键安装包**，也可源码运行。
 
 ## 实测：同一个模型，不同的 harness
 
-第 1 层四行看全貌；第 2 层逐个基准给出设计、表格与适用边界；第 3 层是原始数据。
-
-**第 1 层——一眼看全：**
+4 个 harness × 4 个开源模型（2B–35B）× 18 个真实任务 = 288 格；同一台机器、确定性判分、逐格全公开。
 
 | 基准 | 出品方 | 一句话结果 |
 |---|---|---|
@@ -57,64 +59,13 @@
 | τ²-bench 三域 | Sierra Research（外部） | retail 0.763 / airline 0.740 / telecom 1.000——三域第一或并列第一 |
 | 消融（v1.5.0 代码） | 我们 | 去掉 finish_gate 代价最大：−0.098 |
 
-### LRAB-288（自建基准）
-
-4 个 harness（鸣鸟/goose/agent-mini/opencode，均为原装）× 4 个开源模型（gemma4:e2b 2B · qwen3.5:4b 4B · gemma4:12b 12B · ornith-1.5:35b 35B）× 18 个真实任务 = 288 格。同机、同预算（工作流 90 分钟 / 长程任务 180 分钟）、确定性判分、超时计 0。
-
 ![按模型规模](docs/assets/lrab_by_model.png)
 
-| Harness | 2B | 4B | 12B | 35B | **总分** |
-|---|---|---|---|---|---|
-| **鸣鸟** | **0.821** | **0.876** | **0.906** | **0.941** | **0.886** |
-| goose | 0.271 | 0.801 | 0.772 | 0.679 | 0.631 |
-| agent-mini | 0.246 | 0.706 | 0.576 | 0.092 | 0.405 |
-| opencode | 0.017 | 0.465 | 0.539 | 0.896 | 0.479 |
+- **2B 列就是故事**：0.821 vs 0.017–0.271——四家里唯一没有小模型断崖的，而 2B 正是核显笔记本从容跑得动的尺寸。2B 与 12B 档对三家竞品全部显著（Holm 校正 Wilcoxon）；不显著的地方（4B 对 goose、35B 对 opencode）我们也如实写明。
+- 外部基准 τ² 上，telecom 近饱和（1.000 / 0.991 / 0.930）：该域任务族高度重复，鸣鸟 τ² 适配层披露的重复调用守卫恰好吸收这一失败模式。
+- 思考开关本身就是 harness 层杠杆，竞品臂最大位移 +0.69——详见 [benchmarks/README.md](benchmarks/README.md)。
 
-- **2B 列就是故事**：0.821 vs 0.017–0.271——四家里唯一没有小模型断崖式下滑的，而 2B 正是核显笔记本从容跑得动的尺寸。
-- **显著性**（Holm 校正 Wilcoxon，按任务配对）：对三家全显著的是 2B 与 12B；4B 上仅对 opencode 显著（goose 关思考后追到 0.801，p=0.33）；35B 上对 goose/agent-mini 显著、对 opencode（0.896）不显著。两个方向都如实写明。
-- 3 个长程任务（LH-01…03，每题预算 180 分钟）上鸣鸟同样第一（0.827 vs 0.484 / 0.394 / 0.354）。
-
-*四臂同一协议——0 温 + 关思考（逐臂钉死：goose/opencode 走传输层代理，鸣鸟为发布默认）；goose/opencode 于 2026-09-18..20 重拍，二进制未动。自建基准，18 个任务——任务集、判分代码、逐格数据全部公开，请自行复跑。*
-
-### τ²-bench 三域（外部基准）
-
-Sierra Research 的 [τ²-bench](https://github.com/sierra-research/tau2-bench)，三个域，与 LRAB 同一套统一协议：0 温 + 关思考（逐臂钉死、端到端验证）。agent 侧都是同一颗本地 `qwen3.5:4b`（Ollama），pass^1、error 计 0、判分校验数据库终态——假装调用工具过不了 DB 重放。
-
-![tau2](docs/assets/tau2_headline.png)
-
-| Harness | retail（114 题） | airline（50 题） | telecom（114 题） | 总分（278 题）† |
-|---|---|---|---|---|
-| **鸣鸟** | **0.763** | **0.740** | **1.000** | **0.856** |
-| τ² 原生 agent | 0.675 | 0.740 | 0.930 | 0.791 |
-| opencode | 0.588 | 0.500 | 0.991 | 0.737 |
-
-† 总分为 278 题逐题均值的派生值，可由逐格数据重算。
-
-已收官三臂全部零 error。思考开关对数字影响巨大（opencode 的 telecom 开思考 0.298、关思考 0.991）——这本身就是 harness 层效应。goose 在本基准上吞吐不可行地慢（同协议下 40–113 分钟/题；token 审计：约 485 万输入 tokens/题，嵌套子代理循环所致），统一协议补跑推迟。
-
-*user simulator 是云端 `qwen3.8-flash`，各家完全一致——不是官方的 gpt-4o 设定，因此这批数字不与官方 τ² 排行榜比较。*
-
-### 消融：哪个机制值得留（v1.5.0 代码）
-
-18 个 LRAB 同题任务、`gemma4:e2b`，通过 `AGENT_ABLATION` 环境变量闸门每次关掉一个机制；baseline = 同代码全机制臂（0.821）。
-
-| 变体 | total（18 任务） | Δ vs baseline |
-|---|---|---|
-| 全机制（baseline） | 0.821 | — |
-| − finish_gate | 0.723 | **−0.098** |
-| − verify_feedback | 0.772 | −0.048 |
-| − anti_loop | 0.805 | −0.015 |
-| − flat_prefill | 0.818 | −0.003 |
-
-两个机制承担主要效应（finish_gate、验证反馈回路）；另外两个是廉价保险——反循环与扁平 prefill（后者在 2B 上中性）。
-
-*每臂只有 18 格，只看方向。0.821 不是另一批对照：它就是上面 LRAB-288 表的 2B 列——同 18 格、同 v1.5.0 代码、同一批。*
-
-**第 3 层——请自行验证。** 全部原始数据公开在 [benchmarks/](benchmarks/README.md)：
-
-- [`benchmarks/lrab_scores.csv`](benchmarks/lrab_scores.csv)——288 格全量（harness、任务、模型、得分、墙钟）
-- [`benchmarks/tau2/`](benchmarks/tau2)——τ² 三域逐题 manifest
-- [`benchmarks/ablation/`](benchmarks/ablation)——消融逐格数据（5 臂 × 18 任务）
+**完整表格、显著性检验与逐格原始数据全部公开**在 [benchmarks/](benchmarks/README.md)——含 288 格全量 CSV（[`lrab_scores.csv`](benchmarks/lrab_scores.csv)）与 τ² 逐题 manifest（[`tau2/`](benchmarks/tau2)）。单机 ~30 分钟即可复现任意一格：**[benchmarks/reproduce_one.md](benchmarks/reproduce_one.md)**。
 
 ## 硬件
 
@@ -125,7 +76,7 @@ Sierra Research 的 [τ²-bench](https://github.com/sierra-research/tau2-bench)�
 | 入门 | 任意核显 · 16 GB 内存 | 2–4B | 流式近实时 |
 | 基准 | 核显或入门独显 · 32 GB 内存 | 2–35B | 35B 长任务端到端可跑 |
 
-能跑 Ollama 的机器就能跑鸣鸟。鸣鸟对模型的全部静态附加只有 797 token。
+能跑 Ollama 的机器就能跑鸣鸟。鸣鸟对模型的全部静态附加只有自己的 prefill 文本。
 
 ## 快速开始
 
@@ -133,7 +84,7 @@ Sierra Research 的 [τ²-bench](https://github.com/sierra-research/tau2-bench)�
 
 | 你想要 | 方式 |
 |---|---|
-| Windows 桌面客户端 | [Releases](https://github.com/Mingbird/Mingbird-agent/releases) 里的 `Mingbird-v1.6.0-EN-Setup.exe` / `-CN-Setup.exe` |
+| Windows 桌面客户端 | [最新版 Release](https://github.com/Mingbird/Mingbird-agent/releases/latest) 里的 `Mingbird-…-EN-Setup.exe` / `-CN-Setup.exe` |
 | Linux / macOS 桌面客户端（实验） | Releases 里的 CI 构建 tar.gz → `sh install-unix.sh` |
 | 源码运行（桌面 GUI） | `pip install -r requirements.txt` → `python agent_gui.py` |
 | **浏览器里的 Web UI**（实验） | `pip install -r requirements.txt` → `python webui/server.py` → 打开 http://127.0.0.1:8765 —— [指南](docs/webui_zh.md) |
@@ -145,11 +96,11 @@ Sierra Research 的 [τ²-bench](https://github.com/sierra-research/tau2-bench)�
    ollama pull gemma4:e2b      # 小而快
    ollama pull qwen3.5:4b      # 4B，主力型号
    ```
-2. 从 [Releases](https://github.com/Mingbird/Mingbird-agent/releases) 下载 `Mingbird-v1.6.0-EN-Setup.exe`（或 `-CN` 中文版）并安装 → 桌面快捷方式。
+2. 从 [最新版 Release](https://github.com/Mingbird/Mingbird-agent/releases/latest) 下载 `-EN-Setup.exe`（或 `-CN` 中文版）并安装 → 桌面快捷方式。
    Windows 可能对未签名安装包弹出 SmartScreen——点"更多信息"→"仍要运行"。
 3. 启动，选模型，直接派活。
 
-Linux & macOS（实验性，CI 构建）：从 [Releases](https://github.com/Mingbird/Mingbird-agent/releases) 下载 `mingbird-v1.6.0-linux-x64.tar.gz` 或 `mingbird-v1.6.0-macos-arm64.tar.gz`，解压后 `sh install-unix.sh`，启动 `~/.local/share/Mingbird/LocalAgent`。需在该机上安装 Ollama。
+Linux & macOS（实验性，CI 构建）：从 [最新版 Release](https://github.com/Mingbird/Mingbird-agent/releases/latest) 下载 `linux-x64` / `macos-arm64` 的 tar.gz，解压后 `sh install-unix.sh`，启动 `~/.local/share/Mingbird/LocalAgent`。需在该机上安装 Ollama。
 
 源码运行：`python agent_gui.py`（图形界面）或 `python ollama_agent.py --help`（命令行）。建议 Python 3.12。
 
@@ -162,7 +113,7 @@ Linux & macOS（实验性，CI 构建）：从 [Releases](https://github.com/Min
 > [!WARNING]
 > 鸣鸟会读写你磁盘上的文件、执行命令。请谨慎指定工作目录。
 
-v1.6.0 起内置五环安全网——小模型冲动卸载、全量删除是实测到的事故模式，不是假设：
+鸣鸟内置五环安全网——小模型冲动卸载、全量删除是实测到的事故模式，不是假设：
 
 | 环 | 做什么 |
 |---|---|

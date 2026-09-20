@@ -59,6 +59,8 @@ The unified protocol matches the LRAB matrix above, identical for every harness:
 - **User simulator**: cloud `qwen3.8-flash` for every harness — not the official gpt-4o user setup, so official leaderboard numbers are a different setup and not comparable.
 - pass^1, error cells score 0, DB final-state validation included; error cells got up to 2 retry passes.
 
+![τ² three domains + derived total](../docs/assets/tau2_headline.png)
+
 | Harness | retail (114) | airline (50) | telecom (114) | 3-domain total (278) * |
 |---|---|---|---|---|
 | **Mingbird** | **0.763** | **0.740** | **1.000** | **0.856** |
