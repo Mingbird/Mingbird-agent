@@ -71,3 +71,7 @@ Paired by task within each model (n=18 pairs); bootstrap CI over task resamples 
 | WF15 | — | gemma4_12b, gemma4_e2b, ornith1.5_35b, qwen3.5_4b |
 
 written: SIGNIFICANCE.md
+
+## Task-family cluster robustness (2026-09-20)
+
+The 18 tasks are generated in four families (tier1 2 / tier2 4 / tier3 9 / tier4 3), so task-level pairing overstates independence. `cluster_significance.py` re-runs the analysis with the family as the unit: cluster bootstrap over the four families (10k resamples, tier members drawn whole) plus a family-stratified sign permutation test (10k, Holm-corrected within model). Headline: **at 2B all three comparisons remain significant (adjusted permutation p = 0.0003 each; cluster-bootstrap CIs exclude zero)** — the 2B advantage is present in all four families. 12B vs goose survives marginally (CI lower bound +0.029, adjusted p = 0.036; effect concentrated in two families). No nonsignificant comparison becomes significant; 4B vs agent-mini's edge finding disappears (CI now crosses zero, consistent with its adjusted p).

@@ -76,7 +76,7 @@ Measured on real machines, not estimated:
 | Entry | any iGPU · 16 GB RAM | 2–4B | streaming, near raw-Ollama speed |
 | Base | iGPU or entry-level dGPU · 32 GB RAM | 2–35B | 35B long tasks run end-to-end |
 
-If it runs Ollama, it runs Mingbird. The only thing Mingbird adds to the model is its own static prefill text.
+If it runs Ollama, it runs Mingbird. The only thing Mingbird adds to the model is its own static prefill text. And local is not just a speed or cost choice — it is what decides whether your working directory can ever leave this machine.
 
 ## Getting started
 
@@ -104,9 +104,35 @@ Linux & macOS (experimental, CI-built): download the `linux-x64` / `macos-arm64`
 
 From source: `python agent_gui.py` (GUI) or `python ollama_agent.py --help` (CLI). Python 3.12 recommended.
 
-## Privacy
+## Where your data lives
 
-No telemetry, no account, no outbound connections beyond the Ollama/search endpoints you explicitly configure. Sessions and settings stay in ~/.ollama_agent.
+The model runs on your machine, so there is nothing to upload. That is an
+architectural statement, not a promise: no account system (nothing to tie
+you to), no telemetry, no crash reports, no update checks, no analytics.
+We audited every network call in the source, and a purely local task shows
+zero non-loopback connections while it runs — check it yourself below.
+
+Your working directory is not just your current code. It is your `.git`
+history — deleted keys, abandoned branches, things you forgot were ever
+committed. Whether that directory can leave your machine is an
+architectural question, not a settings question. Here it cannot: inference
+is local, and rollbacks (`.bak`, `.mingbird_trash/`) never leave the disk.
+
+**Check it yourself.** Run a purely local task and watch the connections:
+
+```powershell
+netstat -ano | findstr <pid>   # <pid> = the agent's python process
+```
+
+You should see loopback (127.0.0.1) connections to Ollama, and nothing
+else. The Web UI binds 127.0.0.1 only.
+
+**Honest edges.** Mingbird does reach the network in exactly two places,
+both visible in the code: (1) when the model decides to search the web —
+default backends are Bing and Baidu (configurable), and the query words go
+to that engine; (2) any MCP servers you configure yourself. No preconfigured
+servers, no bundled keys, nothing else. Sessions and settings stay in
+`~/.ollama_agent`.
 
 ## Safety
 
