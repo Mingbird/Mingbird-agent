@@ -79,6 +79,15 @@ Notes:
 - Adapter disclosure: Mingbird's adapter adds two mechanical safeguards on top of the identical prompt and toolset — a repeat-call nudge (one user-role message after 4 identical `(tool, args)` calls) and a parser fallback that recovers format-leaked tool calls into real ones. Both are verbatim in the published adapter source; the native agent receives no injected messages.
 - Raw data: per-trial manifests for all three domains are in this repository — [tau2/retail_manifest.json](tau2/retail_manifest.json), [tau2/airline_manifest.json](tau2/airline_manifest.json), [tau2/telecom_manifest.json](tau2/telecom_manifest.json) (each keyed by task, with per-harness status/reward/wall; batch composition documented in [tau2/README.md](tau2/README.md)). The superseded thinking-on legacy batch is archived under [tau2_thinking_on/](tau2_thinking_on/) as sensitivity data only.
 
+## Frontier-model probe: pin the model, swap the harness
+
+All four harnesses ran the same 18 LRAB tasks against one hosted frontier
+model (`qwen3.8-flash`, temperature 0, thinking off) through a local shim —
+no harness modified. Result: **mingbird 0.997 / goose 0.989 / opencode 0.925
+/ agent-mini 0.478**, vs a best-to-worst gap of 0.17 under the local 4B
+model: the stronger the model, the more a weak harness strands. Protocol,
+per-cell scores (72 rows), and caveats: **[frontier_probe/](frontier_probe/)**.
+
 ## Ablations: which mechanism pays for itself (v1.5.0 code)
 
 **Design.** 4 variants × 18 tasks (the LRAB task set, `gemma4:e2b`), one mechanism disabled per variant via the `AGENT_ABLATION` environment gate; **baseline = the same-code all-mechanisms arm** (n=18, total 0.821). Each variant writes to its own results directory, so resumed runs never cross-contaminate. Per-cell data: [ablation/ablation_scores.csv](ablation/ablation_scores.csv) (5 arms × 18 tasks).
