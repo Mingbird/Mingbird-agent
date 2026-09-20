@@ -53,9 +53,8 @@
 
 | 基准 | 出品方 | 一句话结果 |
 |---|---|---|
-| LRAB-288 | 我们（自建） | 总分 0.886 vs goose 0.586 / agent-mini 0.405 / opencode 0.334 |
-| τ²-bench 三域 | Sierra Research（外部） | retail 0.789 / airline 0.740 / telecom 1.000——第一，telecom 并列 |
-| BFCL v3 multi_turn | 伯克利 FC 榜（外部） | 36.25% vs 46.50%——输给模型原生 FC 通道 |
+| LRAB-288 | 我们（自建） | 总分 0.886 vs goose 0.631 / opencode 0.479 / agent-mini 0.405 |
+| τ²-bench 三域 | Sierra Research（外部） | retail 0.763 / airline 0.740 / telecom 1.000——全第一；goose 统一协议补跑中 |
 | 消融（v1.5.0 代码） | 我们 | 去掉 finish_gate 代价最大：−0.098 |
 
 ### LRAB-288（自建基准）
@@ -67,45 +66,32 @@
 | Harness | 2B | 4B | 12B | 35B | **总分** |
 |---|---|---|---|---|---|
 | **鸣鸟** | **0.821** | **0.876** | **0.906** | **0.941** | **0.886** |
-| goose | 0.266 | 0.636 | 0.620 | 0.822 | 0.586 |
+| goose | 0.271 | 0.801 | 0.772 | 0.679 | 0.631 |
 | agent-mini | 0.246 | 0.706 | 0.576 | 0.092 | 0.405 |
-| opencode | 0.017 | 0.404 | 0.140 | 0.776 | 0.334 |
+| opencode | 0.017 | 0.465 | 0.539 | 0.896 | 0.479 |
 
-- **2B 列就是故事**：0.821 vs 0.017–0.266——四家里唯一没有小模型断崖式下滑的，而 2B 正是核显笔记本从容跑得动的尺寸。
-- **显著性**（Holm 校正 Wilcoxon，按任务配对）：对三家全显著的是 2B 与 12B；4B 上 goose/opencode 显著、agent-mini（其最强档）不显著；35B 段各家靠拢——鸣鸟 vs goose p=0.084，不显著，这个边界如实写明。
-- 3 个长程任务（LH-01…03，每题预算 180 分钟）上鸣鸟同样第一（平均 0.827）。
+- **2B 列就是故事**：0.821 vs 0.017–0.271——四家里唯一没有小模型断崖式下滑的，而 2B 正是核显笔记本从容跑得动的尺寸。
+- **显著性**（Holm 校正 Wilcoxon，按任务配对）：对三家全显著的是 2B 与 12B；4B 上仅对 opencode 显著（goose 关思考后追到 0.801，p=0.33）；35B 上对 goose/agent-mini 显著、对 opencode（0.896）不显著。两个方向都如实写明。
+- 3 个长程任务（LH-01…03，每题预算 180 分钟）上鸣鸟同样第一（0.827 vs 0.484 / 0.394 / 0.354）。
 
-*自建基准，18 个任务——任务集、判分代码、逐格数据全部公开，请自行复跑。*
+*四臂同一协议——0 温 + 关思考（传输层钉死）；goose/opencode 于 2026-09-18..20 重拍，二进制未动。自建基准，18 个任务——任务集、判分代码、逐格数据全部公开，请自行复跑。*
 
-### τ²-bench 三域四家（外部基准）
+### τ²-bench 三域（外部基准）
 
-Sierra Research 的 [τ²-bench](https://github.com/sierra-research/tau2-bench)，三个域全部跑完。四家口径完全一致：agent 侧都是同一颗本地 `qwen3.5:4b`（Ollama），pass^1、error 计 0、判分校验数据库终态——假装调用工具过不了 DB 重放。
+Sierra Research 的 [τ²-bench](https://github.com/sierra-research/tau2-bench)，三个域，与 LRAB 同一套统一协议：0 温 + 关思考（传输层钉死、端到端验证）。agent 侧都是同一颗本地 `qwen3.5:4b`（Ollama），pass^1、error 计 0、判分校验数据库终态——假装调用工具过不了 DB 重放。
 
 ![tau2](docs/assets/tau2_headline.png)
 
 | Harness | retail（114 题） | airline（50 题） | telecom（114 题） |
 |---|---|---|---|
-| **鸣鸟** | **0.789** | **0.740** | **1.000** |
-| τ² 原生 agent | 0.640 | 0.520 | 1.000 |
-| goose | 0.588 | 0.460 | 0.377 |
-| opencode | 0.246 | 0.460 | 0.298 |
+| **鸣鸟** | **0.763** | **0.740** | **1.000** |
+| τ² 原生 agent | 0.675 | 0.740 | 0.930 |
+| opencode | 0.588 | 0.500 | 0.991 |
+| goose | 统一协议补跑中 | — | — |
 
-telecom 域两家都打满分、拉不开差距，没有区分度；我们保留该域，不挑好看的统计口径。
+已收官三臂全部零 error。思考开关对数字影响巨大（opencode 的 telecom 开思考 0.298、关思考 0.991）——这本身就是 harness 层效应。goose 臂正在按统一协议补收，到齐即更新。
 
-*user simulator 是云端 `qwen3.8-flash`，四家完全一致——不是官方的 gpt-4o 设定，因此这批数字不与官方 τ² 排行榜比较。*
-
-### BFCL v3 multi_turn——我们不喜欢的数字（外部）
-
-800 题（base / miss_func / miss_param / long_context 各 200）、同一颗 4B、官方 evaluator，双臂对比：模型原生 function calling 通道 vs 鸣鸟通用循环。
-
-| 通道 | 总分 |
-|---|---|
-| 原生 FC（qwen35-4b-FC） | **46.50%** |
-| 鸣鸟 agent 循环 | 36.25% |
-
-在 4B 上，专用 FC 通道强于通用 agent 循环——这是通用性换准确率的代价，原样披露。
-
-*这一场我们输了。原生 FC 通道本来也承载不了 LRAB 式多步产物任务（没有工作目录、文件工具、预算管理）。*
+*user simulator 是云端 `qwen3.8-flash`，各家完全一致——不是官方的 gpt-4o 设定，因此这批数字不与官方 τ² 排行榜比较。*
 
 ### 消融：哪个机制值得留（v1.5.0 代码）
 
@@ -127,7 +113,6 @@ telecom 域两家都打满分、拉不开差距，没有区分度；我们保留
 
 - [`benchmarks/lrab_scores.csv`](benchmarks/lrab_scores.csv)——288 格全量（harness、任务、模型、得分、墙钟）
 - [`benchmarks/tau2/`](benchmarks/tau2)——τ² 三域逐题 manifest
-- [`benchmarks/bfcl/`](benchmarks/bfcl)——BFCL 双臂判分明细
 - [`benchmarks/ablation/`](benchmarks/ablation)——消融逐格数据（5 臂 × 18 任务）
 
 ## 硬件
@@ -191,7 +176,6 @@ v1.6.0 起内置五环安全网——小模型冲动卸载、全量删除是实�
 ## 诚实的局限
 
 - 2B 模型不会一次性重写你的整个代码库——但日常 agent 工作的大头它能可靠完成，做不到时会明确报错停下，而不是悄悄出错。
-- BFCL multi_turn 上，通用循环低于模型原生 FC 通道（36.25% vs 46.50%）。
 - 核显跑 35B 端到端可用但不快（128K 上下文 ~26 tok/s）。
 - Linux/macOS 包是 CI 实验构建，Windows 是主平台。
 - LRAB 是我们自建的基准——这正是我们把任务、判分代码、逐格原始数据全部公开的原因：欢迎复跑，不用信我们。

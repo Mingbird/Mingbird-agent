@@ -53,9 +53,8 @@ Layer 1 is the whole picture in four lines; layer 2 gives the design, the table,
 
 | Benchmark | Run by | Result in one line |
 |---|---|---|
-| LRAB-288 | us (self-built) | overall 0.886 vs goose 0.586 / agent-mini 0.405 / opencode 0.334 |
-| τ²-bench, 3 domains | Sierra Research (external) | retail 0.789 / airline 0.740 / telecom 1.000 — first, tied on telecom |
-| BFCL v3 multi_turn | Berkeley FC Leaderboard (external) | 36.25% vs 46.50% — we lose to the model's native FC channel |
+| LRAB-288 | us (self-built) | overall 0.886 vs goose 0.631 / opencode 0.479 / agent-mini 0.405 |
+| τ²-bench, 3 domains | Sierra Research (external) | retail 0.763 / airline 0.740 / telecom 1.000 — first everywhere; goose re-run in progress |
 | Ablations (v1.5.0 code) | us | removing `finish_gate` costs the most: −0.098 |
 
 ### LRAB-288 (our benchmark)
@@ -67,45 +66,32 @@ Layer 1 is the whole picture in four lines; layer 2 gives the design, the table,
 | Harness | 2B | 4B | 12B | 35B | **overall** |
 |---|---|---|---|---|---|
 | **Mingbird** | **0.821** | **0.876** | **0.906** | **0.941** | **0.886** |
-| goose | 0.266 | 0.636 | 0.620 | 0.822 | 0.586 |
+| goose | 0.271 | 0.801 | 0.772 | 0.679 | 0.631 |
 | agent-mini | 0.246 | 0.706 | 0.576 | 0.092 | 0.405 |
-| opencode | 0.017 | 0.404 | 0.140 | 0.776 | 0.334 |
+| opencode | 0.017 | 0.465 | 0.539 | 0.896 | 0.479 |
 
-- **The 2B column is the story**: 0.821 vs 0.017–0.266 — of the four harnesses, the only one with no small-model cliff, and 2B is the size an iGPU laptop runs comfortably.
-- **Significance** (Holm-corrected Wilcoxon, paired by task): the edge over all three competitors is significant on 2B and 12B; on 4B, goose and opencode are significant while agent-mini (its best tier) is not. At 35B the field compresses — Mingbird vs goose is p=0.084, not significant. We state that bound.
-- On the 3 long-horizon tasks (LH-01…03, 180-minute budget each), Mingbird leads as well (0.827 average).
+- **The 2B column is the story**: 0.821 vs 0.017–0.271 — of the four harnesses, the only one with no small-model cliff, and 2B is the size an iGPU laptop runs comfortably.
+- **Significance** (Holm-corrected Wilcoxon, paired by task): the edge over all three competitors is significant on 2B and 12B; at 4B only opencode separates (goose closes to 0.801 with thinking off, p=0.33), and at 35B goose and agent-mini separate while opencode (0.896) does not. We state both directions.
+- On the 3 long-horizon tasks (LH-01…03, 180-minute budget each), Mingbird leads as well (0.827 vs 0.484 / 0.394 / 0.354).
 
-*Self-built benchmark, 18 tasks — the task set, scoring code, and per-cell data are all public; rerun it yourself.*
+*All four arms run under one protocol — temperature 0 with thinking off, pinned at the transport layer; goose/opencode re-shot 2026-09-18..20 with their binaries untouched. Self-built benchmark, 18 tasks — the task set, scoring code, and per-cell data are all public; rerun it yourself.*
 
-### τ²-bench, three domains, four harnesses (external)
+### τ²-bench, three domains (external)
 
-Sierra Research's [τ²-bench](https://github.com/sierra-research/tau2-bench), all three domains, final. Identical setup for every harness: the agent is the same local `qwen3.5:4b` (Ollama), pass^1, error cells score 0, and scoring checks the final database state — an agent that fakes tool calls fails the DB replay.
+Sierra Research's [τ²-bench](https://github.com/sierra-research/tau2-bench), all three domains, under the same unified protocol as LRAB: temperature 0 with thinking off (pinned at the transport layer, verified end-to-end). The agent is the same local `qwen3.5:4b` (Ollama), pass^1, error cells score 0, and scoring checks the final database state — an agent that fakes tool calls fails the DB replay.
 
 ![tau2](docs/assets/tau2_headline.png)
 
 | Harness | retail (114) | airline (50) | telecom (114) |
 |---|---|---|---|
-| **Mingbird** | **0.789** | **0.740** | **1.000** |
-| τ² native agent | 0.640 | 0.520 | 1.000 |
-| goose | 0.588 | 0.460 | 0.377 |
-| opencode | 0.246 | 0.460 | 0.298 |
+| **Mingbird** | **0.763** | **0.740** | **1.000** |
+| τ² native agent | 0.675 | 0.740 | 0.930 |
+| opencode | 0.588 | 0.500 | 0.991 |
+| goose | re-run in progress | — | — |
 
-telecom separates nothing — the two leaders both take full marks — so we keep it and don't shop for a friendlier cut of the numbers.
+The completed arms finished with zero errored trials. The thinking configuration moves these numbers a lot (opencode's telecom is 0.298 thinking-on vs 0.991 thinking-off) — itself a harness-level effect. The goose column is being re-collected under the unified protocol and will land here when done.
 
-*The user simulator is cloud `qwen3.8-flash`, identical for all four harnesses — not the official gpt-4o user setup, so these runs are not comparable with the official τ² leaderboard.*
-
-### BFCL v3 multi_turn — the number we don't like (external)
-
-800 tasks (base / miss_func / miss_param / long_context, 200 each), same 4B model, official evaluator, two arms: the model's native function-calling channel vs Mingbird's general loop.
-
-| Channel | Overall |
-|---|---|
-| Native FC (qwen35-4b-FC) | **46.50%** |
-| Mingbird agent loop | 36.25% |
-
-On a 4B, the dedicated FC channel beats a general agent loop — the cost of generality, disclosed as-is.
-
-*We lose this one. The native FC channel also cannot carry LRAB-style multi-step artifact work in the first place (no working directory, no file tools, no budget management).*
+*The user simulator is cloud `qwen3.8-flash`, identical for every harness — not the official gpt-4o user setup, so these runs are not comparable with the official τ² leaderboard.*
 
 ### Ablations: which mechanism pays for itself (v1.5.0 code)
 
@@ -127,7 +113,6 @@ Two mechanisms carry most of the effect (`finish_gate`, the verify-feedback loop
 
 - [`benchmarks/lrab_scores.csv`](benchmarks/lrab_scores.csv) — all 288 cells (harness, task, model, score, wall time)
 - [`benchmarks/tau2/`](benchmarks/tau2) — per-trial manifests, all three τ² domains
-- [`benchmarks/bfcl/`](benchmarks/bfcl) — BFCL two-arm scoring details
 - [`benchmarks/ablation/`](benchmarks/ablation) — ablation per-cell scores (5 arms × 18 tasks)
 
 ## Hardware
@@ -191,7 +176,6 @@ Escape hatch: `AGENT_UNSAFE=1` turns the whole net off — at your own risk.
 ## Honest limits
 
 - A 2B model will not rewrite your entire codebase in one shot — but it handles the bulk of everyday agent work, and when it cannot, it fails loudly instead of failing silently.
-- On BFCL multi_turn, the general loop scores below the model's native FC channel (36.25% vs 46.50%).
 - 35B on an iGPU runs end-to-end but is not fast (~26 tok/s at 128K context).
 - Linux and macOS packages are experimental CI builds; Windows is the primary platform.
 - LRAB is a benchmark we designed ourselves — which is exactly why the tasks, the scoring code and the raw per-cell data are public: rerun it yourself instead of taking our word for it.

@@ -43,13 +43,14 @@ COLORS = {
 GRAY = "#555555"
 
 # FACTS.md §4 — the script refuses to draw figures from numbers that drift.
+# 2026-09-20 unified protocol (temp 0 + thinking off); goose/opencode re-shot.
 EXPECTED_SEGMENTS = {
     "Mingbird": [0.821, 0.876, 0.906, 0.941],
-    "goose": [0.266, 0.636, 0.620, 0.822],
+    "goose": [0.271, 0.801, 0.772, 0.679],
     "agent-mini": [0.246, 0.706, 0.576, 0.092],
-    "opencode": [0.017, 0.404, 0.140, 0.776],
+    "opencode": [0.017, 0.465, 0.539, 0.896],
 }
-EXPECTED_OVERALL = {"Mingbird": 0.886, "goose": 0.586, "agent-mini": 0.405, "opencode": 0.334}
+EXPECTED_OVERALL = {"Mingbird": 0.886, "goose": 0.631, "agent-mini": 0.405, "opencode": 0.479}
 
 FIGSIZE = (12, 5.6)  # 1680 x 780 px at dpi=140, same canvas as the old figures
 DPI = 140
