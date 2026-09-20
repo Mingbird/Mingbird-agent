@@ -54,7 +54,7 @@ Layer 1 is the whole picture in four lines; layer 2 gives the design, the table,
 | Benchmark | Run by | Result in one line |
 |---|---|---|
 | LRAB-288 | us (self-built) | overall 0.886 vs goose 0.631 / opencode 0.479 / agent-mini 0.405 |
-| τ²-bench, 3 domains | Sierra Research (external) | retail 0.763 / airline 0.740 / telecom 1.000 — first everywhere |
+| τ²-bench, 3 domains | Sierra Research (external) | retail 0.763 / airline 0.740 / telecom 1.000 — first or tied-first in every domain |
 | Ablations (v1.5.0 code) | us | removing `finish_gate` costs the most: −0.098 |
 
 ### LRAB-288 (our benchmark)
@@ -74,11 +74,11 @@ Layer 1 is the whole picture in four lines; layer 2 gives the design, the table,
 - **Significance** (Holm-corrected Wilcoxon, paired by task): the edge over all three competitors is significant on 2B and 12B; at 4B only opencode separates (goose closes to 0.801 with thinking off, p=0.33), and at 35B goose and agent-mini separate while opencode (0.896) does not. We state both directions.
 - On the 3 long-horizon tasks (LH-01…03, 180-minute budget each), Mingbird leads as well (0.827 vs 0.484 / 0.394 / 0.354).
 
-*All four arms run under one protocol — temperature 0 with thinking off, pinned at the transport layer; goose/opencode re-shot 2026-09-18..20 with their binaries untouched. Self-built benchmark, 18 tasks — the task set, scoring code, and per-cell data are all public; rerun it yourself.*
+*All four arms run under one protocol — temperature 0 with thinking off (pinned per arm: transport proxy for goose/opencode, released default for Mingbird); goose/opencode re-shot 2026-09-18..20 with their binaries untouched. Self-built benchmark, 18 tasks — the task set, scoring code, and per-cell data are all public; rerun it yourself.*
 
 ### τ²-bench, three domains (external)
 
-Sierra Research's [τ²-bench](https://github.com/sierra-research/tau2-bench), all three domains, under the same unified protocol as LRAB: temperature 0 with thinking off (pinned at the transport layer, verified end-to-end). The agent is the same local `qwen3.5:4b` (Ollama), pass^1, error cells score 0, and scoring checks the final database state — an agent that fakes tool calls fails the DB replay.
+Sierra Research's [τ²-bench](https://github.com/sierra-research/tau2-bench), all three domains, under the same unified protocol as LRAB: temperature 0 with thinking off (pinned per arm, verified end-to-end). The agent is the same local `qwen3.5:4b` (Ollama), pass^1, error cells score 0, and scoring checks the final database state — an agent that fakes tool calls fails the DB replay.
 
 ![tau2](docs/assets/tau2_headline.png)
 
@@ -90,7 +90,7 @@ Sierra Research's [τ²-bench](https://github.com/sierra-research/tau2-bench), a
 
 † derived: per-task mean over all 278 tasks, recomputable from the per-trial data.
 
-The completed arms finished with zero errored trials. The thinking configuration moves these numbers a lot (opencode's telecom is 0.298 thinking-on vs 0.991 thinking-off) — itself a harness-level effect. goose is deferred: under the same protocol it needs 40–113 min per task on this benchmark (token audit: ~4.85M input tokens per task, driven by nested sub-agent loops), so its unified-protocol re-run is deferred; the column will be added on arrival.
+The completed arms finished with zero errored trials. The thinking configuration moves these numbers a lot (opencode's telecom is 0.298 thinking-on vs 0.991 thinking-off) — itself a harness-level effect. goose is deferred: under the same protocol it needs 40–113 min per task on this benchmark (token audit: ~4.85M input tokens per task, driven by nested sub-agent loops), so its unified-protocol re-run is deferred.
 
 *The user simulator is cloud `qwen3.8-flash`, identical for every harness — not the official gpt-4o user setup, so these runs are not comparable with the official τ² leaderboard.*
 

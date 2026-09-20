@@ -2,1772 +2,1037 @@
  "0": {
   "mingbird": {
    "status": "ok",
-   "reward": 0.0,
-   "wall": 34
+   "reward": 1.0,
+   "wall": 159
   },
   "llm_agent": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 51
+   "reward": 0.0,
+   "wall": 190
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 495
   },
   "opencode": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 95
+   "wall": 1303
   }
  },
  "1": {
   "mingbird": {
    "status": "ok",
-   "reward": 0.0,
-   "wall": 49
+   "reward": 1.0,
+   "wall": 140
   },
   "llm_agent": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 47
+   "reward": 0.0,
+   "wall": 286
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 650
   },
   "opencode": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 99
+   "wall": 1636
   }
  },
  "2": {
   "mingbird": {
    "status": "ok",
-   "reward": 0.0,
-   "wall": 49
+   "reward": 1.0,
+   "wall": 143
   },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 73
+   "wall": 325
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 510
   },
   "opencode": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 93
+   "reward": 0.0,
+   "wall": 1660
   }
  },
  "3": {
   "mingbird": {
    "status": "ok",
-   "reward": 0.0,
-   "wall": 63
+   "reward": 1.0,
+   "wall": 166
   },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 84
+   "wall": 336
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 634
   },
   "opencode": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 97
+   "wall": 1449
   }
  },
  "4": {
   "mingbird": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 58
+   "reward": 0.0,
+   "wall": 196
   },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 71
+   "wall": 417
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1467
   },
   "opencode": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 115
+   "wall": 1646
   }
  },
  "5": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 270
+   "wall": 157
   },
   "llm_agent": {
    "status": "ok",
-   "reward": 0.0,
-   "wall": 75
+   "reward": 1.0,
+   "wall": 294
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 657
   },
   "opencode": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 256
+   "reward": 0.0,
+   "wall": 1293
   }
  },
  "6": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 50
+   "wall": 142
   },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 54
+   "wall": 279
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 514
   },
   "opencode": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 79
+   "wall": 1960
   }
  },
  "7": {
   "mingbird": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 55
+   "reward": 0.0,
+   "wall": 141
   },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 54
+   "wall": 288
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1143
   },
   "opencode": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 98
+   "wall": 2368
   }
  },
  "8": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 69
+   "wall": 151
   },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 68
+   "wall": 273
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 503
   },
   "opencode": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 119
+   "reward": 0.0,
+   "wall": 958
   }
  },
  "9": {
   "mingbird": {
    "status": "ok",
-   "reward": 0.0,
-   "wall": 61
+   "reward": 1.0,
+   "wall": 123
   },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 58
+   "wall": 384
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 433
   },
   "opencode": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 151
+   "wall": 670
   }
  },
  "10": {
   "mingbird": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 49
+   "reward": 0.0,
+   "wall": 111
   },
   "llm_agent": {
    "status": "ok",
+   "reward": 1.0,
+   "wall": 158
+  },
+  "goose": {
+   "status": "ok",
    "reward": 0.0,
-   "wall": 39
+   "wall": 1209
   },
   "opencode": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 86
+   "wall": 2759
   }
  },
  "11": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 49
+   "wall": 91
   },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 46
+   "wall": 175
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1457
   },
   "opencode": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 87
+   "reward": 0.0,
+   "wall": 4754
   }
  },
  "12": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 52
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 62
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 100
-  }
- },
- "13": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 47
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 53
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 107
-  }
- },
- "14": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 31
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 44
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 122
-  }
- },
- "15": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 43
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 40
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 72
-  }
- },
- "16": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 51
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 68
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 128
-  }
- },
- "17": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 24
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 29
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 50
-  }
- },
- "18": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 47
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 51
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 114
-  }
- },
- "19": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 143
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 95
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 116
-  }
- },
- "20": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 102
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 118
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 115
-  }
- },
- "21": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 93
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 114
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 175
-  }
- },
- "22": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 54
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 55
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 134
-  }
- },
- "23": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 71
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 93
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 138
-  }
- },
- "24": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 43
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 115
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 78
-  }
- },
- "25": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 83
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 60
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 61
-  }
- },
- "26": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 30
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 62
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 73
-  }
- },
- "27": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 51
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 100
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 74
-  }
- },
- "28": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 77
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 78
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 221
-  }
- },
- "29": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 89
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 157
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 143
-  }
- },
- "30": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 65
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 73
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 182
-  }
- },
- "31": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 100
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 71
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 209
-  }
- },
- "32": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 75
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 93
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 18
-  }
- },
- "33": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 38
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 62
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 51
-  }
- },
- "34": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 62
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 48
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 130
-  }
- },
- "35": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 58
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 82
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 115
-  }
- },
- "36": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 82
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 74
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 177
-  }
- },
- "37": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 152
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 194
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 171
-  }
- },
- "38": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 87
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 142
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 183
-  }
- },
- "39": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 92
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 124
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 181
-  }
- },
- "40": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 36
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 47
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 106
-  }
- },
- "41": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 45
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 113
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 90
-  }
- },
- "42": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 91
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 90
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 160
-  }
- },
- "43": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 95
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 112
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 195
-  }
- },
- "44": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 42
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 55
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 85
-  }
- },
- "45": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 50
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 59
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 152
-  }
- },
- "46": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 60
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 63
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 165
-  }
- },
- "47": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 55
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 107
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 151
-  }
- },
- "48": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 34
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 46
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 62
-  }
- },
- "49": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 45
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 60
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 77
-  }
- },
- "50": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 26
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 54
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 44
-  }
- },
- "51": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 28
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 27
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 60
-  }
- },
- "52": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 92
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 61
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 86
-  }
- },
- "53": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 46
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 48
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 73
-  }
- },
- "54": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 78
+   "wall": 88
   },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
    "wall": 131
   },
-  "opencode": {
+  "goose": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 124
-  }
- },
- "55": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 105
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 217
+   "wall": 878
   },
   "opencode": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 140
+   "wall": 1567
   }
  },
- "56": {
+ "13": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 48
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 67
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 104
-  }
- },
- "57": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 28
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 27
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 71
-  }
- },
- "58": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 57
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 55
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 96
-  }
- },
- "59": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 55
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 75
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 75
-  }
- },
- "60": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 45
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 81
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 101
-  }
- },
- "61": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 39
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 39
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 46
-  }
- },
- "62": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 65
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 84
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 138
-  }
- },
- "63": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
    "wall": 100
   },
   "llm_agent": {
    "status": "ok",
-   "reward": 0.0,
-   "wall": 60
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
+   "reward": 1.0,
    "wall": 180
-  }
- },
- "64": {
-  "mingbird": {
+  },
+  "goose": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 63
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 38
+   "wall": 933
   },
   "opencode": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 45
+   "wall": 2036
   }
  },
- "65": {
+ "14": {
   "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 42
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 48
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 48
-  }
- },
- "66": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 35
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 37
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 140
-  }
- },
- "67": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 71
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 51
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 98
-  }
- },
- "68": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 33
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 61
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 58
-  }
- },
- "69": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 47
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 34
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 91
-  }
- },
- "70": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 61
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 65
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 60
-  }
- },
- "71": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 75
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 84
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 107
-  }
- },
- "72": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 96
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 81
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 109
-  }
- },
- "73": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 28
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 24
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 60
-  }
- },
- "74": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 57
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 97
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 218
-  }
- },
- "75": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 25
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 27
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 85
-  }
- },
- "76": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 97
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 176
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 91
-  }
- },
- "77": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 39
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 40
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 44
-  }
- },
- "78": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 97
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 437
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 174
-  }
- },
- "79": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 46
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 77
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 99
-  }
- },
- "80": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 52
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 95
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 72
-  }
- },
- "81": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 34
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 56
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 115
-  }
- },
- "82": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 69
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 66
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 95
-  }
- },
- "83": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 55
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 112
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 97
-  }
- },
- "84": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 43
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 74
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 69
-  }
- },
- "85": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 42
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 48
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 82
-  }
- },
- "86": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 54
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 61
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 600
-  }
- },
- "87": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 75
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 62
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 67
-  }
- },
- "88": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 39
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 36
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 56
-  }
- },
- "89": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 58
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 68
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 321
-  }
- },
- "90": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 40
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 50
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 94
-  }
- },
- "91": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 77
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 94
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 173
-  }
- },
- "92": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 81
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 157
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 93
-  }
- },
- "93": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 80
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 88
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 78
-  }
- },
- "94": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 32
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 40
-  },
-  "opencode": {
    "status": "ok",
    "reward": 1.0,
    "wall": 83
-  }
- },
- "95": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 77
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 123
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 134
-  }
- },
- "96": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 50
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 217
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 166
-  }
- },
- "97": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 73
   },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 112
+   "wall": 185
   },
-  "opencode": {
+  "goose": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 105
-  }
- },
- "98": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 137
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 84
+   "wall": 932
   },
   "opencode": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 147
+   "wall": 1577
   }
  },
- "99": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 192
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 174
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 175
-  }
- },
- "100": {
+ "15": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 115
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 91
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 91
-  }
- },
- "101": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 76
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 88
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 1603
-  }
- },
- "102": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 81
-  },
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 92
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 130
-  }
- },
- "103": {
-  "mingbird": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 148
+   "wall": 98
   },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
    "wall": 124
   },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 746
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 668
+  }
+ },
+ "16": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 109
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 201
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 660
+  },
   "opencode": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 198
+   "wall": 1585
   }
  },
- "104": {
+ "17": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 58
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 79
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1297
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1042
+  }
+ },
+ "18": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 107
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 175
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1238
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1385
+  }
+ },
+ "19": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 204
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 471
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 686
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1577
+  }
+ },
+ "20": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 279
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 301
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1167
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1671
+  }
+ },
+ "21": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 210
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 433
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1067
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3767
+  }
+ },
+ "22": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 119
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 139
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 968
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1427
+  }
+ },
+ "23": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 229
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 467
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 2128
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2534
+  }
+ },
+ "24": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 98
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 181
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1091
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 2844
+  }
+ },
+ "25": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 124
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 119
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 620
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 527
+  }
+ },
+ "26": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 72
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 101
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1364
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1966
+  }
+ },
+ "27": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 176
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 257
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1205
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1297
+  }
+ },
+ "28": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 170
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 362
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 2637
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 8549
+  }
+ },
+ "29": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 181
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 336
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 894
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3049
+  }
+ },
+ "30": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 211
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 345
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2393
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 12065
+  }
+ },
+ "31": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 141
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 362
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 827
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2059
+  }
+ },
+ "32": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 197
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 347
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 2015
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 9971
+  }
+ },
+ "33": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 112
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 121
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 398
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1488
+  }
+ },
+ "34": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 121
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 279
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1280
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1147
+  }
+ },
+ "35": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 172
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 329
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1287
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2132
+  }
+ },
+ "36": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 389
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 644
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2931
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1097
+  }
+ },
+ "37": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 327
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 611
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1633
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 4497
+  }
+ },
+ "38": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 208
+  },
+  "llm_agent": {
+   "status": "error",
+   "error": "ValueError: AssistantMessage must have either content or tool_calls. Got AssistantMessage\nis_final_chunk: True"
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1383
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3902
+  }
+ },
+ "39": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 185
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 343
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 963
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3228
+  }
+ },
+ "40": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 70
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 149
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1436
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 611
+  }
+ },
+ "41": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 154
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 344
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 834
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 4721
+  }
+ },
+ "42": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 165
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 371
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1682
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1021
+  }
+ },
+ "43": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 221
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 320
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1396
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3180
+  }
+ },
+ "44": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 112
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 210
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 473
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2420
+  }
+ },
+ "45": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 129
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 212
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 723
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1582
+  }
+ },
+ "46": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 145
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 225
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 814
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2223
+  }
+ },
+ "47": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
@@ -1776,66 +1041,217 @@
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 164
+   "wall": 259
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1009
   },
   "opencode": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 271
+   "wall": 2174
   }
  },
- "105": {
+ "48": {
   "mingbird": {
    "status": "ok",
-   "reward": 0.0,
-   "wall": 126
+   "reward": 1.0,
+   "wall": 87
   },
   "llm_agent": {
    "status": "ok",
-   "reward": 0.0,
-   "wall": 104
+   "reward": 1.0,
+   "wall": 162
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1392
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 609
+  }
+ },
+ "49": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 106
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 196
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 851
   },
   "opencode": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 364
+   "wall": 295
   }
  },
- "106": {
+ "50": {
   "mingbird": {
    "status": "ok",
-   "reward": 0.0,
-   "wall": 74
+   "reward": 1.0,
+   "wall": 60
   },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
    "wall": 91
   },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 302
+  },
   "opencode": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 273
+   "wall": 474
   }
  },
- "107": {
+ "51": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 136
+   "wall": 68
   },
   "llm_agent": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 209
+   "wall": 112
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 840
   },
   "opencode": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 141
+   "wall": 516
   }
  },
- "108": {
+ "52": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 156
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 277
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 895
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 2245
+  }
+ },
+ "53": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 86
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 159
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 372
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 987
+  }
+ },
+ "54": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 253
+  },
+  "llm_agent": {
+   "status": "error",
+   "error": "ValueError: AssistantMessage must have either content or tool_calls. Got AssistantMessage\nis_final_chunk: True"
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2039
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 4920
+  }
+ },
+ "55": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 809
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 232
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 528
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3683
+  }
+ },
+ "56": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 111
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 206
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 908
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 2323
+  }
+ },
+ "57": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
@@ -1843,98 +1259,1247 @@
   },
   "llm_agent": {
    "status": "ok",
-   "reward": 0.0,
-   "wall": 66
+   "reward": 1.0,
+   "wall": 110
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1496
   },
   "opencode": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 135
+   "wall": 2593
+  }
+ },
+ "58": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 157
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 315
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1602
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2801
+  }
+ },
+ "59": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 125
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 234
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 576
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3789
+  }
+ },
+ "60": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 77
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 169
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 200
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1503
+  }
+ },
+ "61": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 84
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 183
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 214
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 847
+  }
+ },
+ "62": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 131
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 230
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1399
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 2678
+  }
+ },
+ "63": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 146
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 276
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2085
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1957
+  }
+ },
+ "64": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 75
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 192
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1250
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1252
+  }
+ },
+ "65": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 69
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 141
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1599
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1278
+  }
+ },
+ "66": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 92
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 200
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1247
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2679
+  }
+ },
+ "67": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 105
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 330
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 973
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 3279
+  }
+ },
+ "68": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 121
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 271
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 456
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1703
+  }
+ },
+ "69": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 96
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 128
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 658
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1465
+  }
+ },
+ "70": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 97
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 176
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1019
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 3004
+  }
+ },
+ "71": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 199
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 385
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1558
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2332
+  }
+ },
+ "72": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 162
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 303
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1158
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2435
+  }
+ },
+ "73": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 68
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 107
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 900
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1019
+  }
+ },
+ "74": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 94
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 335
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1292
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1054
+  }
+ },
+ "75": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 50
+  },
+  "llm_agent": {
+   "status": "error",
+   "error": "ValueError: AssistantMessage must have either content or tool_calls. Got AssistantMessage\nis_final_chunk: True"
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 864
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1438
+  }
+ },
+ "76": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 157
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 351
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1008
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1875
+  }
+ },
+ "77": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 91
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 149
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 675
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1629
+  }
+ },
+ "78": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 199
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 303
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1064
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1572
+  }
+ },
+ "79": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 138
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 215
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 788
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 3778
+  }
+ },
+ "80": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 99
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 200
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 604
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2656
+  }
+ },
+ "81": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 129
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 210
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 868
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 2496
+  }
+ },
+ "82": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 131
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 240
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 922
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 2216
+  }
+ },
+ "83": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 112
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 183
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1252
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 2033
+  }
+ },
+ "84": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 113
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 258
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 824
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1691
+  }
+ },
+ "85": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 117
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 122
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 843
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1282
+  }
+ },
+ "86": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 201
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 346
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1173
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 6642
+  }
+ },
+ "87": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 163
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 230
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1341
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 6384
+  }
+ },
+ "88": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 93
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 129
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 717
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1776
+  }
+ },
+ "89": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 122
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 199
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 640
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2304
+  }
+ },
+ "90": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 104
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 164
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1631
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1582
+  }
+ },
+ "91": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 206
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 328
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1065
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1966
+  }
+ },
+ "92": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 111
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 271
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1169
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2056
+  }
+ },
+ "93": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 93
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 300
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 658
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1306
+  }
+ },
+ "94": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 91
+  },
+  "llm_agent": {
+   "status": "error",
+   "error": "ValueError: AssistantMessage must have either content or tool_calls. Got AssistantMessage\nis_final_chunk: True"
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 419
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1871
+  }
+ },
+ "95": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 228
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 303
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1163
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1123
+  }
+ },
+ "96": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 176
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 371
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 588
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1540
+  }
+ },
+ "97": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 141
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 214
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1184
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1215
+  }
+ },
+ "98": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 340
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 704
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1681
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1427
+  }
+ },
+ "99": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 217
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 478
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1566
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 944
+  }
+ },
+ "100": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 233
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 476
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1259
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 4450
+  }
+ },
+ "101": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 296
+  },
+  "llm_agent": {
+   "status": "error",
+   "error": "ValueError: AssistantMessage must have either content or tool_calls. Got AssistantMessage\nis_final_chunk: True"
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 796
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2045
+  }
+ },
+ "102": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 186
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 485
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1321
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 4156
+  }
+ },
+ "103": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 209
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 447
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2038
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 4201
+  }
+ },
+ "104": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 266
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 542
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1806
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3253
+  }
+ },
+ "105": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 251
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 359
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1456
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 4805
+  }
+ },
+ "106": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 113
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 173
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1097
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1059
+  }
+ },
+ "107": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 200
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 330
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1522
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1720
+  }
+ },
+ "108": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 120
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 183
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 638
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2105
   }
  },
  "109": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 196
+   "wall": 175
   },
   "llm_agent": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 329
+   "wall": 632
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1145
   },
   "opencode": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 353
+   "wall": 1832
   }
  },
  "110": {
   "mingbird": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 179
+   "wall": 320
   },
   "llm_agent": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 415
+   "reward": 0.0,
+   "wall": 402
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1409
   },
   "opencode": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 970
+   "wall": 1115
   }
  },
  "111": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 148
+   "wall": 296
   },
   "llm_agent": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 259
+   "wall": 313
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 991
   },
   "opencode": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 184
+   "wall": 1535
   }
  },
  "112": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 116
+   "wall": 236
   },
   "llm_agent": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 255
+   "reward": 0.0,
+   "wall": 592
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1833
   },
   "opencode": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 132
+   "wall": 4478
   }
  },
  "113": {
   "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 45
+   "wall": 81
   },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 57
+   "wall": 162
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 311
   },
   "opencode": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 72
+   "reward": 0.0,
+   "wall": 1566
   }
  }
 }

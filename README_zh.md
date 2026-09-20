@@ -54,7 +54,7 @@
 | 基准 | 出品方 | 一句话结果 |
 |---|---|---|
 | LRAB-288 | 我们（自建） | 总分 0.886 vs goose 0.631 / opencode 0.479 / agent-mini 0.405 |
-| τ²-bench 三域 | Sierra Research（外部） | retail 0.763 / airline 0.740 / telecom 1.000——全第一 |
+| τ²-bench 三域 | Sierra Research（外部） | retail 0.763 / airline 0.740 / telecom 1.000——三域第一或并列第一 |
 | 消融（v1.5.0 代码） | 我们 | 去掉 finish_gate 代价最大：−0.098 |
 
 ### LRAB-288（自建基准）
@@ -74,11 +74,11 @@
 - **显著性**（Holm 校正 Wilcoxon，按任务配对）：对三家全显著的是 2B 与 12B；4B 上仅对 opencode 显著（goose 关思考后追到 0.801，p=0.33）；35B 上对 goose/agent-mini 显著、对 opencode（0.896）不显著。两个方向都如实写明。
 - 3 个长程任务（LH-01…03，每题预算 180 分钟）上鸣鸟同样第一（0.827 vs 0.484 / 0.394 / 0.354）。
 
-*四臂同一协议——0 温 + 关思考（传输层钉死）；goose/opencode 于 2026-09-18..20 重拍，二进制未动。自建基准，18 个任务——任务集、判分代码、逐格数据全部公开，请自行复跑。*
+*四臂同一协议——0 温 + 关思考（逐臂钉死：goose/opencode 走传输层代理，鸣鸟为发布默认）；goose/opencode 于 2026-09-18..20 重拍，二进制未动。自建基准，18 个任务——任务集、判分代码、逐格数据全部公开，请自行复跑。*
 
 ### τ²-bench 三域（外部基准）
 
-Sierra Research 的 [τ²-bench](https://github.com/sierra-research/tau2-bench)，三个域，与 LRAB 同一套统一协议：0 温 + 关思考（传输层钉死、端到端验证）。agent 侧都是同一颗本地 `qwen3.5:4b`（Ollama），pass^1、error 计 0、判分校验数据库终态——假装调用工具过不了 DB 重放。
+Sierra Research 的 [τ²-bench](https://github.com/sierra-research/tau2-bench)，三个域，与 LRAB 同一套统一协议：0 温 + 关思考（逐臂钉死、端到端验证）。agent 侧都是同一颗本地 `qwen3.5:4b`（Ollama），pass^1、error 计 0、判分校验数据库终态——假装调用工具过不了 DB 重放。
 
 ![tau2](docs/assets/tau2_headline.png)
 
@@ -90,7 +90,7 @@ Sierra Research 的 [τ²-bench](https://github.com/sierra-research/tau2-bench)�
 
 † 总分为 278 题逐题均值的派生值，可由逐格数据重算。
 
-已收官三臂全部零 error。思考开关对数字影响巨大（opencode 的 telecom 开思考 0.298、关思考 0.991）——这本身就是 harness 层效应。goose 在本基准上吞吐不可行地慢（同协议下 40–113 分钟/题；token 审计：约 485 万输入 tokens/题，嵌套子代理循环所致），统一协议补跑推迟，数据到货即补列。
+已收官三臂全部零 error。思考开关对数字影响巨大（opencode 的 telecom 开思考 0.298、关思考 0.991）——这本身就是 harness 层效应。goose 在本基准上吞吐不可行地慢（同协议下 40–113 分钟/题；token 审计：约 485 万输入 tokens/题，嵌套子代理循环所致），统一协议补跑推迟。
 
 *user simulator 是云端 `qwen3.8-flash`，各家完全一致——不是官方的 gpt-4o 设定，因此这批数字不与官方 τ² 排行榜比较。*
 

@@ -30,4 +30,4 @@ Deterministic, artifact-based: files exist, tests actually pass, reports contain
 
 ## Full matrix
 
-288 cells at ~10 min/cell median is a multi-day single-machine job; the per-cell protocol above is identical, so any subset re-derives the corresponding rows. The complete raw data lives in [`lrab_scores.csv`](lrab_scores.csv) and the per-trial τ² data under [`tau2_nt0/`](tau2_nt0/).
+288 cells at ~6–12 min/cell median (harness-dependent) is a multi-day single-machine job; the per-cell protocol above is identical, so any subset re-derives the corresponding rows. The complete raw data lives in [`lrab_scores.csv`](lrab_scores.csv) and the per-trial τ² data under [`tau2/`](tau2/).

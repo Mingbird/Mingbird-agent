@@ -1,107 +1,10 @@
 {
  "[mobile_data_issue]user_abroad_roaming_enabled_off[PERSONA:None]": {
-  "llm_agent": {
+  "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 63
+   "wall": 96
   },
-  "goose": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 275
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 315
-  }
- },
- "[mobile_data_issue]user_abroad_roaming_disabled_on[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 41
-  },
-  "goose": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 289
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 142
-  }
- },
- "[mobile_data_issue]user_abroad_roaming_disabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 335
-  },
-  "goose": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 136
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 125
-  }
- },
- "[mobile_data_issue]data_mode_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 42
-  },
-  "goose": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 6317
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 164
-  }
- },
- "[mobile_data_issue]data_saver_mode_on[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 67
-  },
-  "goose": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 732
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 133
-  }
- },
- "[mobile_data_issue]bad_network_preference[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 71
-  },
-  "goose": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 7037
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 176
-  }
- },
- "[mobile_data_issue]bad_vpn[PERSONA:None]": {
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
@@ -110,150 +13,20 @@
   "goose": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 2972
+   "wall": 565
   },
   "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 424
-  }
- },
- "[mobile_data_issue]data_usage_exceeded[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 71
-  },
-  "goose": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 6812
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 69
-  }
- },
- "[mobile_data_issue]airplane_mode_on|user_abroad_roaming_enabled_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 59
-  },
-  "goose": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 2366
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 117
-  }
- },
- "[mobile_data_issue]airplane_mode_on|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 61
-  },
-  "goose": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 94
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 138
-  }
- },
- "[mobile_data_issue]airplane_mode_on|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 129
-  },
-  "goose": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 15724
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 205
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_mode_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 102
-  },
-  "goose": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 5253
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 110
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_saver_mode_on[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 71
-  },
-  "goose": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 1379
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 116
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_network_preference[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 59
-  },
-  "goose": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 5074
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 1357
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_vpn[PERSONA:None]": {
-  "llm_agent": {
    "status": "ok",
    "reward": 1.0,
    "wall": 85
-  },
-  "goose": {
-   "status": "error",
-   "error": "TimeoutExpired: Command '['C:\\\\Users\\\\Hao Wang\\\\Desktop\\\\tau2-telecom-portable\\\\pkg\\\\cli_agents\\\\goose\\\\goose.exe', 'run', '-q', '--path', 'C:\\\\Users\\\\Hao Wang/tau2_cli_workdir_GooseTau2', '-t', 'The full task instru"
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 204
   }
  },
- "[mobile_data_issue]airplane_mode_on|data_usage_exceeded[PERSONA:Easy]": {
+ "[mobile_data_issue]user_abroad_roaming_disabled_on[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 99
+  },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
@@ -262,75 +35,249 @@
   "goose": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 3911
+   "wall": 2093
   },
   "opencode": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 93
+   "reward": 0.0,
+   "wall": 120
   }
  },
- "[mobile_data_issue]data_mode_off|user_abroad_roaming_enabled_off[PERSONA:None]": {
+ "[mobile_data_issue]user_abroad_roaming_disabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 121
+  },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 56
-  },
-  "goose": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 517
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 154
-  }
- },
- "[mobile_data_issue]data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 77
+   "wall": 66
   },
   "goose": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 679
+   "wall": 2393
   },
   "opencode": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 168
+   "reward": 0.0,
+   "wall": 59
   }
  },
- "[mobile_data_issue]bad_network_preference|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
+ "[mobile_data_issue]data_mode_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 94
+  },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 50
+   "wall": 69
   },
   "goose": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 6239
+   "wall": 234
   },
   "opencode": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 1076
+   "wall": 104
   }
  },
- "[mobile_data_issue]bad_vpn|user_abroad_roaming_enabled_off[PERSONA:None]": {
+ "[mobile_data_issue]data_saver_mode_on[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 113
+  },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 47
+   "wall": 82
   },
   "goose": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 2537
+   "wall": 735
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 68
+  }
+ },
+ "[mobile_data_issue]bad_network_preference[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 113
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 79
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 727
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 130
+  }
+ },
+ "[mobile_data_issue]bad_vpn[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 115
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 87
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 477
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 112
+  }
+ },
+ "[mobile_data_issue]data_usage_exceeded[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 131
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 78
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2053
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 269
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|user_abroad_roaming_enabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 113
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 83
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 888
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 48
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 85
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 76
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 338
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 271
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 122
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 89
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3349
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 404
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_mode_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 121
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 98
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 311
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 62
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_saver_mode_on[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 107
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 187
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1360
   },
   "opencode": {
    "status": "ok",
@@ -338,7 +285,232 @@
    "wall": 117
   }
  },
+ "[mobile_data_issue]airplane_mode_on|bad_network_preference[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 113
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 84
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 333
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 197
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_vpn[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 108
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 100
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 287
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 42
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_usage_exceeded[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 136
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 109
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2311
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 238
+  }
+ },
+ "[mobile_data_issue]data_mode_off|user_abroad_roaming_enabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 88
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 75
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 410
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 90
+  }
+ },
+ "[mobile_data_issue]data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 116
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 84
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 376
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 85
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 139
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 101
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 665
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 153
+  }
+ },
+ "[mobile_data_issue]bad_vpn|user_abroad_roaming_enabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 124
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 96
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 729
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 94
+  }
+ },
  "[mobile_data_issue]data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 142
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 131
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2405
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 46
+  }
+ },
+ "[mobile_data_issue]data_mode_off|user_abroad_roaming_disabled_on[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 110
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 67
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1464
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 245
+  }
+ },
+ "[mobile_data_issue]data_saver_mode_on|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 140
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 129
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3284
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 287
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|user_abroad_roaming_disabled_on[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 119
+  },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
@@ -347,60 +519,205 @@
   "goose": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 6518
+   "wall": 3029
   },
   "opencode": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 116
+   "reward": 0.0,
+   "wall": 84
   }
  },
- "[mobile_data_issue]data_mode_off|user_abroad_roaming_disabled_on[PERSONA:None]": {
+ "[mobile_data_issue]bad_vpn|user_abroad_roaming_disabled_on[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 121
+  },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 78
+   "wall": 89
   },
   "goose": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 75
+   "wall": 2029
   },
   "opencode": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 52
+   "reward": 0.0,
+   "wall": 216
   }
  },
- "[mobile_data_issue]data_saver_mode_on|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
+ "[mobile_data_issue]data_usage_exceeded|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 138
+  },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 55
+   "wall": 80
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1223
   },
   "opencode": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 124
+   "reward": 0.0,
+   "wall": 89
   }
  },
- "[mobile_data_issue]bad_network_preference|user_abroad_roaming_disabled_on[PERSONA:Hard]": {
+ "[mobile_data_issue]data_mode_off|user_abroad_roaming_disabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 127
+  },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 116
+   "wall": 83
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2486
   },
   "opencode": {
    "status": "ok",
+   "reward": 0.0,
+   "wall": 245
+  }
+ },
+ "[mobile_data_issue]data_saver_mode_on|user_abroad_roaming_disabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
    "reward": 1.0,
+   "wall": 96
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 95
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1335
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 190
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 133
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 134
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1730
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 118
+  }
+ },
+ "[mobile_data_issue]bad_vpn|user_abroad_roaming_disabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 100
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 69
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1830
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 194
+  }
+ },
+ "[mobile_data_issue]data_usage_exceeded|user_abroad_roaming_disabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 176
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 99
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 366
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
    "wall": 198
   }
  },
- "[mobile_data_issue]bad_vpn|user_abroad_roaming_disabled_on[PERSONA:None]": {
+ "[mobile_data_issue]data_mode_off|data_saver_mode_on[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 101
+  },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 94
+   "wall": 84
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 716
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 71
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_mode_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 101
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 76
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1183
   },
   "opencode": {
    "status": "ok",
@@ -408,683 +725,65 @@
    "wall": 90
   }
  },
- "[mobile_data_issue]data_usage_exceeded|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 110
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 161
-  }
- },
- "[mobile_data_issue]data_mode_off|user_abroad_roaming_disabled_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 51
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 77
-  }
- },
- "[mobile_data_issue]data_saver_mode_on|user_abroad_roaming_disabled_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 41
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 101
-  }
- },
- "[mobile_data_issue]bad_network_preference|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 87
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 105
-  }
- },
- "[mobile_data_issue]bad_vpn|user_abroad_roaming_disabled_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 85
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 109
-  }
- },
- "[mobile_data_issue]data_usage_exceeded|user_abroad_roaming_disabled_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 53
-  },
-  "opencode": {
+ "[mobile_data_issue]bad_vpn|data_mode_off[PERSONA:Hard]": {
+  "mingbird": {
    "status": "ok",
    "reward": 1.0,
    "wall": 114
-  }
- },
- "[mobile_data_issue]data_mode_off|data_saver_mode_on[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 47
   },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 107
-  }
- },
- "[mobile_data_issue]bad_network_preference|data_mode_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 55
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 134
-  }
- },
- "[mobile_data_issue]bad_vpn|data_mode_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 43
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 139
-  }
- },
- "[mobile_data_issue]data_mode_off|data_usage_exceeded[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 69
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 106
-  }
- },
- "[mobile_data_issue]bad_network_preference|data_saver_mode_on[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 51
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 108
-  }
- },
- "[mobile_data_issue]bad_vpn|data_saver_mode_on[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 85
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 1987
-  }
- },
- "[mobile_data_issue]data_saver_mode_on|data_usage_exceeded[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 89
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 211
-  }
- },
- "[mobile_data_issue]bad_network_preference|bad_vpn[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 58
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 146
-  }
- },
- "[mobile_data_issue]bad_network_preference|data_usage_exceeded[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 51
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 150
-  }
- },
- "[mobile_data_issue]bad_vpn|data_usage_exceeded[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 72
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 1141
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_mode_off|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 96
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 132
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 64
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 174
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_network_preference|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 49
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 116
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_vpn|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 84
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 444
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 65
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 195
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_mode_off|user_abroad_roaming_disabled_on[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 85
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 501
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_saver_mode_on|user_abroad_roaming_disabled_on[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 199
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 144
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_network_preference|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 167
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 127
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_vpn|user_abroad_roaming_disabled_on[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 109
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 1152
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_usage_exceeded|user_abroad_roaming_disabled_on[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 64
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 78
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_mode_off|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 287
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 177
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_saver_mode_on|user_abroad_roaming_disabled_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 328
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 157
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_network_preference|user_abroad_roaming_disabled_off[PERSONA:Easy]": {
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
    "wall": 70
   },
-  "opencode": {
+  "goose": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 203
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_vpn|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 394
+   "wall": 1362
   },
   "opencode": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 139
+   "reward": 0.0,
+   "wall": 100
   }
  },
- "[mobile_data_issue]airplane_mode_on|data_usage_exceeded|user_abroad_roaming_disabled_off[PERSONA:None]": {
-  "llm_agent": {
+ "[mobile_data_issue]data_mode_off|data_usage_exceeded[PERSONA:None]": {
+  "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 64
+   "wall": 151
   },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 78
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_mode_off|data_saver_mode_on[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 54
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 1020
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_network_preference|data_mode_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 41
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 144
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_vpn|data_mode_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 82
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 137
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_mode_off|data_usage_exceeded[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 102
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 883
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_network_preference|data_saver_mode_on[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 58
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 118
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_vpn|data_saver_mode_on[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 69
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 155
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_saver_mode_on|data_usage_exceeded[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 65
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 138
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_network_preference|bad_vpn[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 107
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 183
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_network_preference|data_usage_exceeded[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 62
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 122
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_vpn|data_usage_exceeded[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 124
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 196
-  }
- },
- "[mobile_data_issue]data_mode_off|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 64
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 149
-  }
- },
- "[mobile_data_issue]bad_network_preference|data_mode_off|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 81
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 231
-  }
- },
- "[mobile_data_issue]bad_vpn|data_mode_off|user_abroad_roaming_enabled_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 162
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 142
-  }
- },
- "[mobile_data_issue]data_mode_off|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
    "wall": 97
   },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1923
+  },
   "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 241
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_saver_mode_on[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 127
+  },
+  "llm_agent": {
    "status": "ok",
    "reward": 1.0,
    "wall": 124
-  }
- },
- "[mobile_data_issue]bad_network_preference|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 41
   },
-  "opencode": {
+  "goose": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 134
-  }
- },
- "[mobile_data_issue]bad_vpn|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 57
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 255
-  }
- },
- "[mobile_data_issue]data_saver_mode_on|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 110
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 137
-  }
- },
- "[mobile_data_issue]bad_network_preference|bad_vpn|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 43
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 185
-  }
- },
- "[mobile_data_issue]bad_network_preference|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 118
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 319
-  }
- },
- "[mobile_data_issue]bad_vpn|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 113
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 137
-  }
- },
- "[mobile_data_issue]data_mode_off|data_saver_mode_on|user_abroad_roaming_disabled_on[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 159
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 108
-  }
- },
- "[mobile_data_issue]bad_network_preference|data_mode_off|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 50
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 108
-  }
- },
- "[mobile_data_issue]bad_vpn|data_mode_off|user_abroad_roaming_disabled_on[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 64
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 162
-  }
- },
- "[mobile_data_issue]data_mode_off|data_usage_exceeded|user_abroad_roaming_disabled_on[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 46
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 77
-  }
- },
- "[mobile_data_issue]bad_network_preference|data_saver_mode_on|user_abroad_roaming_disabled_on[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 111
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 108
-  }
- },
- "[mobile_data_issue]bad_vpn|data_saver_mode_on|user_abroad_roaming_disabled_on[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 55
+   "wall": 731
   },
   "opencode": {
    "status": "ok",
@@ -1092,155 +791,21 @@
    "wall": 145
   }
  },
- "[mobile_data_issue]data_saver_mode_on|data_usage_exceeded|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
-  "llm_agent": {
+ "[mobile_data_issue]bad_vpn|data_saver_mode_on[PERSONA:None]": {
+  "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 77
+   "wall": 110
   },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 178
-  }
- },
- "[mobile_data_issue]bad_network_preference|bad_vpn|user_abroad_roaming_disabled_on[PERSONA:None]": {
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 38
+   "wall": 98
   },
-  "opencode": {
+  "goose": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 121
-  }
- },
- "[mobile_data_issue]bad_network_preference|data_usage_exceeded|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 321
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 119
-  }
- },
- "[mobile_data_issue]bad_vpn|data_usage_exceeded|user_abroad_roaming_disabled_on[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 139
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 916
-  }
- },
- "[mobile_data_issue]data_mode_off|data_saver_mode_on|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 161
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 182
-  }
- },
- "[mobile_data_issue]bad_network_preference|data_mode_off|user_abroad_roaming_disabled_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 50
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 127
-  }
- },
- "[mobile_data_issue]bad_vpn|data_mode_off|user_abroad_roaming_disabled_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 224
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 155
-  }
- },
- "[mobile_data_issue]data_mode_off|data_usage_exceeded|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 380
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 217
-  }
- },
- "[mobile_data_issue]bad_network_preference|data_saver_mode_on|user_abroad_roaming_disabled_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 71
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 239
-  }
- },
- "[mobile_data_issue]bad_vpn|data_saver_mode_on|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 0.0,
-   "wall": 256
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 154
-  }
- },
- "[mobile_data_issue]data_saver_mode_on|data_usage_exceeded|user_abroad_roaming_disabled_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 76
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 143
-  }
- },
- "[mobile_data_issue]bad_network_preference|bad_vpn|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 94
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 138
-  }
- },
- "[mobile_data_issue]bad_network_preference|data_usage_exceeded|user_abroad_roaming_disabled_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 50
+   "wall": 191
   },
   "opencode": {
    "status": "ok",
@@ -1248,232 +813,1698 @@
    "wall": 110
   }
  },
- "[mobile_data_issue]bad_vpn|data_usage_exceeded|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
+ "[mobile_data_issue]data_saver_mode_on|data_usage_exceeded[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 145
+  },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 76
+   "wall": 142
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2691
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 228
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|bad_vpn[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 130
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 97
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 895
   },
   "opencode": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 220
+   "wall": 86
   }
  },
- "[mobile_data_issue]bad_network_preference|data_mode_off|data_saver_mode_on[PERSONA:Easy]": {
+ "[mobile_data_issue]bad_network_preference|data_usage_exceeded[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 123
+  },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 48
+   "wall": 94
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2728
   },
   "opencode": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 167
+   "reward": 0.0,
+   "wall": 206
   }
  },
- "[mobile_data_issue]bad_vpn|data_mode_off|data_saver_mode_on[PERSONA:Hard]": {
+ "[mobile_data_issue]bad_vpn|data_usage_exceeded[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 173
+  },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 74
+   "wall": 115
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2048
   },
   "opencode": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 301
+   "reward": 0.0,
+   "wall": 149
   }
  },
- "[mobile_data_issue]data_mode_off|data_saver_mode_on|data_usage_exceeded[PERSONA:None]": {
-  "llm_agent": {
+ "[mobile_data_issue]airplane_mode_on|data_mode_off|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
+  "mingbird": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 137
+   "wall": 123
   },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 184
-  }
- },
- "[mobile_data_issue]bad_network_preference|bad_vpn|data_mode_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 71
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 138
-  }
- },
- "[mobile_data_issue]bad_network_preference|data_mode_off|data_usage_exceeded[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 143
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 156
-  }
- },
- "[mobile_data_issue]bad_vpn|data_mode_off|data_usage_exceeded[PERSONA:Hard]": {
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
    "wall": 89
   },
-  "opencode": {
+  "goose": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 181
-  }
- },
- "[mobile_data_issue]bad_network_preference|bad_vpn|data_saver_mode_on[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 92
+   "wall": 1310
   },
   "opencode": {
    "status": "ok",
    "reward": 1.0,
-   "wall": 156
+   "wall": 149
   }
  },
- "[mobile_data_issue]bad_network_preference|data_saver_mode_on|data_usage_exceeded[PERSONA:Hard]": {
+ "[mobile_data_issue]airplane_mode_on|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 145
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 138
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 887
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 84
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_network_preference|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 118
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 108
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 716
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 117
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_vpn|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 152
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 118
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1720
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 124
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 144
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 135
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2394
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 259
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_mode_off|user_abroad_roaming_disabled_on[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 103
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 84
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3660
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 328
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_saver_mode_on|user_abroad_roaming_disabled_on[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 171
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 88
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 317
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 80
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_network_preference|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 146
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 86
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1909
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 246
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_vpn|user_abroad_roaming_disabled_on[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 151
+  },
   "llm_agent": {
    "status": "ok",
    "reward": 1.0,
    "wall": 129
   },
-  "opencode": {
+  "goose": {
    "status": "ok",
-   "reward": 1.0,
-   "wall": 211
-  }
- },
- "[mobile_data_issue]bad_vpn|data_saver_mode_on|data_usage_exceeded[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 83
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 144
-  }
- },
- "[mobile_data_issue]bad_network_preference|bad_vpn|data_usage_exceeded[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 52
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 150
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_mode_off|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 134
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 215
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_network_preference|data_mode_off|user_abroad_roaming_enabled_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 136
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 188
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_vpn|data_mode_off|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 66
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 159
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_mode_off|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 74
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 614
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_network_preference|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 80
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 126
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_vpn|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 228
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 218
-  }
- },
- "[mobile_data_issue]airplane_mode_on|data_saver_mode_on|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:None]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 67
-  },
-  "opencode": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 125
-  }
- },
- "[mobile_data_issue]airplane_mode_on|bad_network_preference|bad_vpn|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
-  "llm_agent": {
-   "status": "ok",
-   "reward": 1.0,
-   "wall": 62
+   "reward": 0.0,
+   "wall": 3030
   },
   "opencode": {
    "status": "ok",
    "reward": 0.0,
-   "wall": 1340
+   "wall": 463
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_usage_exceeded|user_abroad_roaming_disabled_on[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 120
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 220
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3000
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 263
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_mode_off|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 113
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 89
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 341
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 458
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_saver_mode_on|user_abroad_roaming_disabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 108
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 91
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 98
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 281
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_network_preference|user_abroad_roaming_disabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 146
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 112
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3676
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 224
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_vpn|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 155
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 123
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1495
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 117
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_usage_exceeded|user_abroad_roaming_disabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 177
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 126
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2495
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 220
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_mode_off|data_saver_mode_on[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 112
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 114
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1241
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 166
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_network_preference|data_mode_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 179
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 70
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 108
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 91
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_vpn|data_mode_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 123
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 87
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1618
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 102
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_mode_off|data_usage_exceeded[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 135
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 116
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2434
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 149
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_network_preference|data_saver_mode_on[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 129
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 144
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 601
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 98
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_vpn|data_saver_mode_on[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 143
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 132
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 568
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 111
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_saver_mode_on|data_usage_exceeded[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 141
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 179
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3749
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 320
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_network_preference|bad_vpn[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 128
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 124
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1848
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 123
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_network_preference|data_usage_exceeded[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 149
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 115
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3357
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 215
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_vpn|data_usage_exceeded[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 182
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 122
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2992
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 286
+  }
+ },
+ "[mobile_data_issue]data_mode_off|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 101
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 85
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1304
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 104
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_mode_off|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 140
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 126
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 969
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 180
+  }
+ },
+ "[mobile_data_issue]bad_vpn|data_mode_off|user_abroad_roaming_enabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 117
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 97
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 777
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 93
+  }
+ },
+ "[mobile_data_issue]data_mode_off|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 133
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 161
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2315
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 244
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 131
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 86
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 635
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 87
+  }
+ },
+ "[mobile_data_issue]bad_vpn|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 112
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 112
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 2188
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 89
+  }
+ },
+ "[mobile_data_issue]data_saver_mode_on|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 139
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 139
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2171
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 81
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|bad_vpn|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 129
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 98
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 593
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 87
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 228
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 159
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2967
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 84
+  }
+ },
+ "[mobile_data_issue]bad_vpn|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 216
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 146
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2794
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 223
+  }
+ },
+ "[mobile_data_issue]data_mode_off|data_saver_mode_on|user_abroad_roaming_disabled_on[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 109
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 118
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3888
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 259
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_mode_off|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 119
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 150
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2399
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 246
+  }
+ },
+ "[mobile_data_issue]bad_vpn|data_mode_off|user_abroad_roaming_disabled_on[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 151
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 100
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1933
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 362
+  }
+ },
+ "[mobile_data_issue]data_mode_off|data_usage_exceeded|user_abroad_roaming_disabled_on[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 138
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 123
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 265
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 255
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_saver_mode_on|user_abroad_roaming_disabled_on[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 132
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 114
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2029
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 92
+  }
+ },
+ "[mobile_data_issue]bad_vpn|data_saver_mode_on|user_abroad_roaming_disabled_on[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 140
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 123
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1409
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 312
+  }
+ },
+ "[mobile_data_issue]data_saver_mode_on|data_usage_exceeded|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 156
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 120
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2236
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 295
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|bad_vpn|user_abroad_roaming_disabled_on[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 118
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 100
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2123
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 317
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_usage_exceeded|user_abroad_roaming_disabled_on[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 148
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 124
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1926
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 258
+  }
+ },
+ "[mobile_data_issue]bad_vpn|data_usage_exceeded|user_abroad_roaming_disabled_on[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 154
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 157
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3270
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 69
+  }
+ },
+ "[mobile_data_issue]data_mode_off|data_saver_mode_on|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 150
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 111
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1870
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 419
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_mode_off|user_abroad_roaming_disabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 169
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 151
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2734
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 363
+  }
+ },
+ "[mobile_data_issue]bad_vpn|data_mode_off|user_abroad_roaming_disabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 155
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 131
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1734
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 236
+  }
+ },
+ "[mobile_data_issue]data_mode_off|data_usage_exceeded|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 192
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 194
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2499
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 305
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_saver_mode_on|user_abroad_roaming_disabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 140
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 87
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3111
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 107
+  }
+ },
+ "[mobile_data_issue]bad_vpn|data_saver_mode_on|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 168
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 120
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3452
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 112
+  }
+ },
+ "[mobile_data_issue]data_saver_mode_on|data_usage_exceeded|user_abroad_roaming_disabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 178
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 109
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 111
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 182
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|bad_vpn|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 174
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 106
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2881
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 106
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_usage_exceeded|user_abroad_roaming_disabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 144
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 116
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2718
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 190
+  }
+ },
+ "[mobile_data_issue]bad_vpn|data_usage_exceeded|user_abroad_roaming_disabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 190
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 99
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2291
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 321
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_mode_off|data_saver_mode_on[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 117
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 93
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1947
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 98
+  }
+ },
+ "[mobile_data_issue]bad_vpn|data_mode_off|data_saver_mode_on[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 109
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 109
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1176
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 158
+  }
+ },
+ "[mobile_data_issue]data_mode_off|data_saver_mode_on|data_usage_exceeded[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 125
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 109
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3827
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 147
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|bad_vpn|data_mode_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 116
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 101
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1486
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 195
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_mode_off|data_usage_exceeded[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 147
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 101
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1654
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 221
+  }
+ },
+ "[mobile_data_issue]bad_vpn|data_mode_off|data_usage_exceeded[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 171
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 128
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 3158
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 269
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|bad_vpn|data_saver_mode_on[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 153
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 95
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 2407
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 62
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|data_saver_mode_on|data_usage_exceeded[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 153
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 135
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2323
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 253
+  }
+ },
+ "[mobile_data_issue]bad_vpn|data_saver_mode_on|data_usage_exceeded[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 169
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 132
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 2335
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 59
+  }
+ },
+ "[mobile_data_issue]bad_network_preference|bad_vpn|data_usage_exceeded[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 169
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 148
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 4882
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 63
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_mode_off|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 240
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 191
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 2790
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 200
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_network_preference|data_mode_off|user_abroad_roaming_enabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 129
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 104
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1803
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 33
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_vpn|data_mode_off|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 135
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 94
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1233
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 106
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_mode_off|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 158
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 208
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1836
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 340
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_network_preference|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:Easy]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 61
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 97
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 878
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 63
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_vpn|data_saver_mode_on|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 99
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 125
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1819
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 178
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|data_saver_mode_on|data_usage_exceeded|user_abroad_roaming_enabled_off[PERSONA:None]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 71
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 164
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 1856
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 0.0,
+   "wall": 267
+  }
+ },
+ "[mobile_data_issue]airplane_mode_on|bad_network_preference|bad_vpn|user_abroad_roaming_enabled_off[PERSONA:Hard]": {
+  "mingbird": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 395
+  },
+  "llm_agent": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 137
+  },
+  "goose": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 1380
+  },
+  "opencode": {
+   "status": "ok",
+   "reward": 1.0,
+   "wall": 251
   }
  }
 }
