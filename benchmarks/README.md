@@ -23,6 +23,8 @@ Everything here is reproducible on your machine; nothing requires trusting us.
 
 On the 3 long-horizon tasks Mingbird leads as well (0.827 vs agent-mini 0.484, goose 0.394, opencode 0.354).
 
+**Quick check**: [reproduce_one.md](reproduce_one.md) — one cell end-to-end in ~30 minutes.
+
 **Raw data**: [`lrab_scores.csv`](lrab_scores.csv) — all 288 cells (harness, task, model, score, wall time, attempt directory). Every number above is the mean of 18 rows of this file.
 
 **Campaigns & notes** (audited post-publication):
