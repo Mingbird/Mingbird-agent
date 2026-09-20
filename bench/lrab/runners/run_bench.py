@@ -317,7 +317,7 @@ def main():
     # kill-resume 协议: 任务 JSON 声明 kill_at_pct, 或 CLI 强制覆盖(冒烟用)
     kill_at_pct = a.kill_at_pct if a.kill_at_pct is not None else task.get("kill_at_pct")
     # 隔离: run-id 强制含时间戳; workdir 在 run 目录内(每 run 完全独立, 互不污染)
-    run_id = a.run_id or f"{a.agent}_{task['id'].replace('-', '')}_{model.split(':')[0].replace('-','')}_{time.strftime('%m%d_%H%M%S')}"
+    run_id = a.run_id or f"{a.agent}_{task['id'].replace('-', '')}_{a.model.split(':')[0].replace('-','')}_{time.strftime('%m%d_%H%M%S')}"
     out_dir = os.path.join(a.results, run_id)
     os.makedirs(out_dir, exist_ok=True)
     workdir = os.path.join(out_dir, "workdir")

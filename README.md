@@ -82,11 +82,13 @@ Sierra Research's [τ²-bench](https://github.com/sierra-research/tau2-bench), a
 
 ![tau2](docs/assets/tau2_headline.png)
 
-| Harness | retail (114) | airline (50) | telecom (114) |
-|---|---|---|---|
-| **Mingbird** | **0.763** | **0.740** | **1.000** |
-| τ² native agent | 0.675 | 0.740 | 0.930 |
-| opencode | 0.588 | 0.500 | 0.991 |
+| Harness | retail (114) | airline (50) | telecom (114) | total (278) † |
+|---|---|---|---|---|
+| **Mingbird** | **0.763** | **0.740** | **1.000** | **0.856** |
+| τ² native agent | 0.675 | 0.740 | 0.930 | 0.791 |
+| opencode | 0.588 | 0.500 | 0.991 | 0.737 |
+
+† derived: per-task mean over all 278 tasks, recomputable from the per-trial data.
 
 The completed arms finished with zero errored trials. The thinking configuration moves these numbers a lot (opencode's telecom is 0.298 thinking-on vs 0.991 thinking-off) — itself a harness-level effect. goose is deferred: under the same protocol it needs 40–113 min per task on this benchmark (token audit: ~4.85M input tokens per task, driven by nested sub-agent loops), so its unified-protocol re-run is deferred; the column will be added on arrival.
 
@@ -120,10 +122,10 @@ Measured on real machines, not estimated:
 
 | Tier | Hardware | Models | Experience |
 |---|---|---|---|
-| Entry | AMD 680M iGPU · 16 GB RAM | 2–4B | streaming, near raw-Ollama speed |
-| Base | Intel Arc B390 iGPU · 32 GB RAM | 2–35B | 35B long tasks run end-to-end |
+| Entry | any iGPU · 16 GB RAM | 2–4B | streaming, near raw-Ollama speed |
+| Base | iGPU or entry-level dGPU · 32 GB RAM | 2–35B | 35B long tasks run end-to-end |
 
-An integrated GPU or an entry-level discrete GPU is enough; higher-end cards work too. The only thing Mingbird adds to the model is its own static text: 797 tokens.
+If it runs Ollama, it runs Mingbird. The only thing Mingbird adds to the model is its own static text: 797 tokens.
 
 ## Getting started
 
