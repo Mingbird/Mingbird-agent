@@ -17,6 +17,9 @@ DEFAULTS = {
     "ollama_exe": "",                          # ollama.exe 路径(留空=自动检测)
     "ollama_env": {},                          # 启动 ollama 时的额外环境变量(如 GPU 加速设置)
     "models": {},                              # 模型显示名→tag 映射(可选,便于给模型起友好名)
+    "offline_mode": False,                     # v1.8.0 一键断网:仅本地模型+禁联网工具
+    "cloud": {},                               # v1.8.0 云端 provider(OpenAI 兼容):
+                                               # {"base_url","api_key","model","enabled"}
 }
 
 _cache = None
@@ -52,6 +55,26 @@ def save_config(cfg):
 def ollama_host():
     """Ollama API 地址:环境变量 OLLAMA_HOST > config.json > 默认。"""
     return os.environ.get("OLLAMA_HOST") or load_config().get("ollama_host") or DEFAULTS["ollama_host"]
+
+def offline_mode():
+    """v1.8.0 一键断网(offline mode):环境变量 AGENT_OFFLINE > config.json。
+    开启时:仅本地 Ollama 模型;联网工具(web_search/web_fetch/web_search_multi/
+    batch_tools)不装配进 prefill;url 型(HTTP)MCP 服务器整体跳过(stdio 本地
+    进程保留);云端 provider 强制禁用。承诺可被 netstat 验证:零出站。"""
+    env = os.environ.get("AGENT_OFFLINE", "").strip().lower()
+    if env:
+        return env in ("1", "true", "yes", "on")
+    return bool(load_config().get("offline_mode", False))
+
+def cloud_provider():
+    """v1.8.0 云端 provider 配置(OpenAI 兼容端点)。返回 dict 或 {}。
+    offline_mode 下视为未启用(本地优先红线)。api_key 只存本机 config.json。"""
+    if offline_mode():
+        return {}
+    cfg = load_config().get("cloud") or {}
+    if not (cfg.get("enabled") and cfg.get("base_url") and cfg.get("model")):
+        return {}
+    return cfg
 
 def ollama_exe():
     """ollama 可执行文件:环境变量 OLLAMA_BIN > config.json > 自动检测。"""

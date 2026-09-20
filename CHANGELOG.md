@@ -1,5 +1,21 @@
 # 变更日志 (CHANGELOG)
 
+## v1.8.0 (2026-09)
+
+### 🔒 一键断网/联网(offline mode)——把隐私做成架构承诺
+- **工具栏一键切换**(🌐 联网 / 🔒 断网):断网=仅本地 Ollama 模型;
+  联网内置工具(web_search / web_fetch / web_search_multi / batch_tools)
+  **不装配进 prefill**(模型看不到=不会调用,静态 prefill 同步变小);
+  url 型(HTTP)MCP 服务器整体跳过(stdio 本地进程保留);云端 provider 强制禁用。
+  承诺可用 `netstat -ano | findstr <pid>` 验证:断网模式任务全程零出站。
+- CLI/环境口径:`AGENT_OFFLINE=1` 覆盖;config.json `offline_mode` 持久化。
+- 测试:tests/test_offline_mode.py(8 项,装配过滤/云禁用/消息映射,零网络请求)。
+
+### ☁️ 云端 provider(OpenAI 兼容端点,可选)
+- config.json `cloud` 段(`base_url` / `api_key` / `model` / `enabled`):
+  启用且非断网时,推理走 OpenAI 兼容 `/chat/completions`(本地优先不变,
+  断网一键回退);api_key 只存本机配置。工具调用 ollama↔OpenAI 双向映射
+  (tool_call_id 按序 FIFO 配对,四 harness 实测同款逻辑)。
 ## v1.7.0 (2026-09)
 
 ### 🎛️ 采样三态:移除隐藏默认,回归 ollama 默认

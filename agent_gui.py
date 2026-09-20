@@ -185,6 +185,15 @@ def _t(s):
     if _LANG == "zh":
         return s
     return _T.get(s, s)
+# v1.8.0 一键断网/联网(offline mode):断网=仅本地模型+禁联网工具+禁 url 型 MCP,
+# 零出站(netstat 可验证);联网=本地+搜索+已配置的 MCP/云端 provider。
+_T["🌐 联网"] = "🌐 Online"
+_T["🔒 断网"] = "🔒 Offline"
+_T["[断网模式:仅本地模型,联网工具与云端已禁用 — 零出站]"] = \
+    "[Offline mode: local model only; web tools & cloud disabled — zero outbound]"
+_T["[联网模式:搜索/已配置的 MCP/云端可用]"] = \
+    "[Online mode: search / configured MCP / cloud available]"
+_T["[断网开关写入配置失败]"] = "[Failed to save the offline toggle]"
 DEFAULT_TASKS = os.path.join(os.path.expanduser("~"), "agent_tasks")
 # 全局异常日志:任何未捕获异常写入文件,便于定位打包后报错
 _ERR_LOG = os.path.join(os.path.expanduser("~/.ollama_agent"), "gui_error.log")
@@ -585,8 +594,29 @@ class AgentGUI:
                                     state="readonly", width=5, bootstyle="secondary")
         self.think_cb.pack(side="left", padx=3)
         self.think_cb.bind("<<ComboboxSelected>>", self._on_think_selected)
+        # v1.8.0 一键断网/联网:一键承诺"零出站"(仅本地模型+禁联网工具+禁 url MCP)。
+        self.offline_btn = tb.Button(
+            bar, text=(_t("🔒 断网") if appconfig.offline_mode() else _t("🌐 联网")),
+            bootstyle=("danger" if appconfig.offline_mode() else "secondary"),
+            width=10, command=self._toggle_offline)
+        self.offline_btn.pack(side="left", padx=(8, 0))
         self.sess_lbl = tb.Label(bar, text=_t("会话:无"), bootstyle="secondary")
         self.sess_lbl.pack(side="right")
+
+    def _toggle_offline(self):
+        """一键断网/联网:翻转 offline_mode 写入 config.json(appconfig 缓存随
+        save_config 失效),GUI 按钮即时变色;下一次任务的装配层即刻生效。"""
+        cfg = appconfig.load_config()
+        cfg["offline_mode"] = not appconfig.offline_mode()
+        if appconfig.save_config(cfg):
+            off = appconfig.offline_mode()
+            self.offline_btn.configure(
+                text=_t("🔒 断网") if off else _t("🌐 联网"),
+                bootstyle="danger" if off else "secondary")
+            self.log_note(_t("[断网模式:仅本地模型,联网工具与云端已禁用 — 零出站]") if off
+                          else _t("[联网模式:搜索/已配置的 MCP/云端可用]"))
+        else:
+            self.log_note(_t("[断网开关写入配置失败]"))
 
         bar2 = tb.Frame(page, padding=(12, 0, 12, 4)); bar2.pack(fill="x")
         tb.Label(bar2, text=_t("目录:")).pack(side="left")

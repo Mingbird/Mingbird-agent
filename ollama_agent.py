@@ -309,8 +309,20 @@ CHAT_SYSTEM = """你是鸣鸟(Mingbird),本地 AI 助手,正在和用户对话�
 # 问答模式可用工具:只读,绝不包含写文件/跑命令(防加戏)
 def _chat_tool_defs():
     avail = {t["function"]["name"]: t for t in CORE_TOOLS + ADVANCED_TOOLS}
-    return [avail[n] for n in ("read_file", "list_dir", "web_search", "web_fetch")
-            if n in avail]
+    names = ("read_file", "list_dir", "web_search", "web_fetch")
+    return [avail[n] for n in names
+            if n in avail and not (appconfig.offline_mode() and n in _ONLINE_TOOLS)]
+
+# ============ v1.8.0 一键断网:联网工具装配过滤 ============
+# offline mode 下这些工具不进 prefill(模型看不到=不会调用),url 型 MCP 整体跳过,
+# 云端 provider 强制本地(v1.5.0 红线:断网承诺是"零出站",可被 netstat 验证)。
+_ONLINE_TOOLS = {"web_search", "web_fetch", "web_search_multi", "batch_tools"}
+
+def _filter_offline_tools(defs):
+    """offline mode:剔除联网内置工具(装配层过滤,静态 prefill 同步变小)。"""
+    if not appconfig.offline_mode():
+        return defs
+    return [t for t in defs if t["function"]["name"] not in _ONLINE_TOOLS]
 
 # ============ 扁平 prefill:按类别按需加载工具(任务域分层) ============
 # 基础工具(任何任务都需要):计划/读文件/技能/启用/收尾
@@ -362,7 +374,7 @@ def tools_for_categories(cats, active=None, extra=None):
             active.append(avail[n])
     result = [t for t in active if t["function"]["name"] in names]
     result += mcp_tool_defs(cats, extra=extra)   # 扁平并入该类别下的 MCP 工具(真实工具,模型直接调用)
-    return result
+    return _filter_offline_tools(result)
 
 # ---------------- 记忆 ----------------
 def _atomic_write_json(path, obj):
@@ -807,7 +819,13 @@ def mcp_tool_defs(cats, extra=None):
     manifest = mcp_manifest()
     extra = extra or set()
     defs = []
+    _servers = load_mcp_servers() if appconfig.offline_mode() else None
     for server, info in manifest.items():
+        # v1.8.0 offline mode:url 型(HTTP)MCP 服务器整体跳过——进程可能出网,
+        # 断网承诺"零出站"不给模糊地带;stdio 本地进程保留。
+        if _servers is not None and isinstance(_servers.get(server), dict) \
+                and _servers[server].get("url"):
+            continue
         for t in info["tools"]:
             full = f"{server}.{t['name']}"
             # 类别不匹配且未显式请求 → 跳过
@@ -1658,10 +1676,98 @@ def _model_can_think(model):
             _THINK_CAP_CACHE[model] = None
     return _THINK_CAP_CACHE[model]
 
+# ---------------- v1.8.0 云端 provider(OpenAI 兼容端点) ----------------
+def _cloud_to_openai_messages(messages):
+    """ollama 形态 messages → OpenAI 形态。tool 角色按相邻 assistant.tool_calls
+    顺序配对 tool_call_id(2026-09-20 探针代理同款逻辑,已实测四 harness 通)。"""
+    out, last_ids, pending_ids = [], [], []
+    for m in messages:
+        role = m.get("role")
+        if role == "system":
+            out.append({"role": "system", "content": m.get("content", "")})
+        elif role == "user":
+            c = m.get("content", "")
+            out.append({"role": "user", "content": c if isinstance(c, str)
+                        else json.dumps(c, ensure_ascii=False)})
+        elif role == "assistant":
+            tcs = m.get("tool_calls") or []
+            om = {"role": "assistant", "content": m.get("content") or None}
+            ids = []
+            if tcs:
+                otcs = []
+                for i, tc in enumerate(tcs):
+                    fn = tc.get("function", {})
+                    args = fn.get("arguments")
+                    if not isinstance(args, str):
+                        args = json.dumps(args or {}, ensure_ascii=False)
+                    cid = tc.get("id") or (last_ids[i] if i < len(last_ids) else f"call_{len(out)}_{i}")
+                    ids.append(cid)
+                    otcs.append({"id": cid, "type": "function",
+                                 "function": {"name": fn.get("name"), "arguments": args}})
+                om["tool_calls"] = otcs
+            out.append(om)
+            last_ids = ids
+            pending_ids.extend(ids)          # tool 消息按序消耗(FIFO)
+        elif role == "tool":
+            cid = m.get("tool_call_id")
+            if not cid and pending_ids:
+                cid = pending_ids.pop(0)
+            out.append({"role": "tool", "tool_call_id": cid or "call_0",
+                        "content": str(m.get("content", ""))})
+    return out
+
+def _call_cloud(cloud, model, messages, tools, stream, on_token, on_think):
+    """云端 OpenAI 兼容端点调用;返回结构与 call_chat 本地路径一致。
+    offline_mode 已在 appconfig.cloud_provider() 层拦截(断网=本地)。"""
+    req = {"model": cloud["model"],
+           "messages": _cloud_to_openai_messages(messages),
+           "max_tokens": NUM_PREDICT, "stream": False,
+           "enable_thinking": False}          # 云端默认关思考(与本地统一协议一致)
+    if TEMP is not None:
+        req["temperature"] = TEMP
+    if tools:
+        req["tools"] = tools
+        req["tool_choice"] = "auto"
+    r = urllib.request.Request(
+        cloud["base_url"].rstrip("/") + "/chat/completions",
+        data=json.dumps(req).encode(),
+        headers={"Content-Type": "application/json",
+                 "Authorization": "Bearer " + cloud.get("api_key", "")})
+    with urllib.request.urlopen(r, timeout=900) as resp:
+        d = json.loads(resp.read())
+    msg = d["choices"][0]["message"]
+    om = {"role": "assistant", "content": msg.get("content") or ""}
+    if msg.get("reasoning_content"):
+        om["reasoning_content"] = msg["reasoning_content"]
+    if msg.get("tool_calls"):
+        om["tool_calls"] = [{"id": tc.get("id"), "type": "function",
+                             "function": {"name": tc["function"]["name"],
+                                          "arguments": json.loads(tc["function"]["arguments"] or "{}")}}
+                            for tc in msg["tool_calls"]]
+    usage = d.get("usage") or {}
+    res = {"model": cloud["model"], "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+           "message": om, "done": True,
+           "done_reason": "tool_calls" if om.get("tool_calls") else "stop",
+           "prompt_eval_count": usage.get("prompt_tokens"),
+           "eval_count": usage.get("completion_tokens")}
+    # 流式口径:与本地流式分支同构(返回组装后的 dict);回调在此触发。
+    if stream:
+        c = om.get("content") or ""
+        if c and on_token:
+            on_token(c)
+        rc = om.get("reasoning_content")
+        if rc and on_think:
+            on_think(rc)
+    return res
+
 def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None, on_think=None):
     """调用 ollama /api/chat。stream=True 时逐 token 回调(on_token=回答, on_think=思考),
-    返回结构与非流式一致(message.content / tool_calls / prompt_eval_count / eval_count)。"""
+    返回结构与非流式一致(message.content / tool_calls / prompt_eval_count / eval_count)。
+    v1.8.0: 配置了云端 provider 且非 offline 时,走 OpenAI 兼容端点。"""
     ctx = ctx or CTX_BUDGET
+    _cloud = appconfig.cloud_provider()
+    if _cloud:
+        return _call_cloud(_cloud, model, messages, tools, stream, on_token, on_think)
     # 三态温度:未设置 → options 完全不带 temperature 字段(ollama 用模型 manifest
     # 烤入值/默认);显式设置(含 0)→ 按设置下发。
     _opts = {"num_ctx":ctx,"num_predict":NUM_PREDICT}
