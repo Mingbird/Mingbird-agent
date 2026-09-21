@@ -122,6 +122,13 @@ class TestCompactHistory:
 
 # ---------------- category routing ----------------
 class TestRouting:
+    @pytest.fixture(autouse=True)
+    def _online(self, monkeypatch):
+        # 本类测"联网态"的工具装配:显式用 env 钉死在线,不受本机真实
+        # config.json 的 offline_mode 影响(2026-09-21 真机配置被断网开关
+        # 写成 True 后该测试误红,暴露了缺隔离)。
+        monkeypatch.setenv("AGENT_OFFLINE", "0")
+
     def test_code_keywords(self):
         cats = A.route_categories("帮我写一个 python 脚本")
         assert "代码" in cats

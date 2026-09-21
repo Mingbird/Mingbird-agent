@@ -8,7 +8,7 @@
 >
 > You've been told local models need a big discrete GPU. On an ordinary laptop — integrated graphics, 16–32 GB of RAM — the same 2–9B models that stall in cloud-style frameworks deliver finished artifacts here, because the failures you have seen are harness defects, not model defects. Measured end to end; all 288 cells public.
 
-Current release **v1.8.1** · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 459 tests
+Current release **v1.8.2** · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 459 tests
 
 ![Mingbird screenshot](docs/assets/screenshot-app.png)
 
@@ -129,6 +129,31 @@ offline mode the agent runs the local model only; web tools and URL-based
 MCP servers are not even assembled into the prompt (the model cannot call
 what it cannot see), and the optional cloud provider is disabled. Zero
 outbound by construction — not by policy.
+
+### Cloud model (optional)
+
+**v1.8.2: cloud model picker.** Next to the 🔒 toggle there is a cloud-model
+box (with a `?` for guidance). It is only selectable when you are online
+**and** a cloud model is configured; picking it clears the local-model box
+(and vice versa — one model per conversation). In offline mode the box is
+disabled and the cloud path is architecturally dead, not just hidden.
+
+Configuration is deliberately minimal — edit `config.json` (default
+`~/.ollama_agent/`; portable/isolated installs use the `MINGBIRD_HOME`
+directory) and add a `cloud` section for any OpenAI-compatible endpoint:
+
+```json
+"cloud": {
+  "enabled": true,
+  "base_url": "https://api.example.com/v1",
+  "api_key": "your-key",
+  "model": "model-name"
+}
+```
+
+The `api_key` lives only in the local `config.json` — never in the repo,
+logs, or telemetry (there is no telemetry). Restart the GUI and pick the
+model in the cloud box to use it.
 
 **Check it yourself.** Run a purely local task and watch the connections:
 

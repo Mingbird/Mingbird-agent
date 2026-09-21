@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.8.2 (2026-09-21)
+
+### 🔒 Conversation isolation (hardening after a real incident)
+- "Clear chat" only wiped the display while the next message silently continued the previous session's full history. Removed; replaced by a prominent **＋ New Chat** button that resets session, context, working directory (back to the default) and the todo panel — a new conversation can no longer inherit an old one's context or folders.
+- The first message of a new conversation force-clears stale `.agent_state.json`/`todo.json` in the working directory; follow-ups honor the "resume" checkbox (previously the checkbox was ignored).
+- Offline-mode visibility: asking for web search while offline now produces an explicit transcript note at task start, instead of the model silently scavenging local files.
+
+### 🖱️ UI fixes
+- Streaming rewrite: thinking/answer tokens are buffered and rendered in 150 ms batches. Thinking-heavy replies no longer freeze the UI (each token previously triggered a state toggle + forced reflow; thousands of thinking tokens saturated the Tk event loop).
+- The transcript is now mouse-selectable and copyable (Ctrl+C); read-only is enforced by blocking edit keys instead of disabling the widget.
+
+### ☁️ Cloud model picker
+- A cloud-model box next to the 🔒 toggle: selectable only when online **and** configured; mutually exclusive with the local-model box (picking one clears the other — one model per conversation). Offline disables the box; the cloud path stays architecturally dead (`cloud_provider()` returns `{}`). A `?` button shows setup guidance; configuration is a `cloud` section in `config.json` (example in README).
+- Tests: routing tests are now isolated from the host's real offline-mode config (459 green).
+
+
 ## v1.8.1 (2026-09-21)
 
 ### 🚑 Hotfix: GUI failed to launch in v1.8.0

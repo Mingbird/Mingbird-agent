@@ -76,6 +76,11 @@ _T = {
     "温度输入无效,已保留原设置": "Invalid temperature; previous setting kept",
     "⚙ 设置": "⚙ Settings", "🌓 主题": "🌓 Theme",
     "＋ 新对话": "＋ New Chat", "添加附件": "Attachments", "清空": "Clear",
+    "[新对话已开启:上下文与工作目录已重置]":
+        "[New chat started: context and working directory reset]",
+    "[断网模式已开启:本任务无联网工具与云端 — 联网搜索类请求无法满足,请先点 🔒 切回联网]":
+        "[Offline mode is ON: no web tools or cloud for this task — web-search "
+        "requests cannot be fulfilled; toggle 🔒 back online first]",
     "会话": "Sessions", "计划": "Plan", "💬 对话": "💬 Chat", "🖥 日志": "🖥 Logs",
     "发送": "Send", "🎤 语音": "🎤 Voice", "🎤 无音频": "🎤 No Audio", "■ 停止录音": "■ Stop",
     "允许一次": "Allow once", "允许全部(本轮)": "Allow all (this task)",
@@ -189,6 +194,15 @@ def _t(s):
 # 零出站(netstat 可验证);联网=本地+搜索+已配置的 MCP/云端 provider。
 _T["🌐 联网"] = "🌐 Online"
 _T["🔒 断网"] = "🔒 Offline"
+_T["(本地)"] = "(local)"
+_T["☁ 未配置"] = "☁ not configured"
+_T["[请先在左侧选择本地模型,或在右侧选择云端模型]"] = \
+    "[Pick a local model on the left, or a cloud model on the right, first]"
+_T["[已切回本地模型]"] = "[Switched back to the local model]"
+_T["[已切回本地模型:云端开关关闭]"] = "[Switched back to the local model: cloud toggle off]"
+_T["[云端已启用:后续任务改经 {m} 推理,api_key 只存本机;随时可切回]"] = \
+    "[Cloud enabled: subsequent tasks run via {m}; api_key stays on this machine; switch back anytime]"
+_T["云端模型配置(可选)"] = "Cloud model setup (optional)"
 _T["[断网模式:仅本地模型,联网工具与云端已禁用 — 零出站]"] = \
     "[Offline mode: local model only; web tools & cloud disabled — zero outbound]"
 _T["[联网模式:搜索/已配置的 MCP/云端可用]"] = \
@@ -378,6 +392,12 @@ class AgentGUI:
         self._think_live = False     # 思考正在流式显示
         self._think_open = False     # 思考已展开(还是折叠成标记行)
         self._streaming_asst = False # 当前助手内容是否已流式上屏(避免重复渲染)
+        # v1.8.2 流式渲染节流:token 只进缓冲,由 150ms 周期渲染器批量上屏。
+        # 旧实现每 token 一次 state 切换+insert+see("end") 强制同步重排,
+        # 思考模型几千 token 会把 Tk 事件循环榨干,表现为"折叠/思考时卡死很久"。
+        self._think_shown = 0        # 已上屏的思考字符数
+        self._asst_shown = 0         # 已上屏的回答字符数
+        self._selecting = False      # 用户正在鼠标选中(渲染器此时不锁回只读态)
 
         root.title(f"{_t('鸣鸟 · 本地 AI 助手')} — {self.app_version()}")
         # 窗口图标(鸣鸟图形资产暂沿用,发布前重绘)
@@ -429,6 +449,7 @@ class AgentGUI:
         self.refresh_sessions()
         self.refresh_voice_state()
         self.root.after(100, self.poll)
+        self.root.after(150, self._stream_render_tick)
         self.root.after(500, self.poll_todo)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -580,7 +601,7 @@ class AgentGUI:
                                     values=_vals,
                                     state="readonly", width=min(_mw, 40),
                                     bootstyle="primary")
-        self.model_cb.bind("<<ComboboxSelected>>", lambda e: self.refresh_voice_state())
+        self.model_cb.bind("<<ComboboxSelected>>", lambda e: self._on_model_selected())
         self.model_cb.pack(side="left", padx=3)
         # 思考三态(v1.7.0):默认=请求不带 think 字段(ollama 出厂默认,thinking 模型
         # 默认开);开/关=显式下发顶层 think 字段。旧版"关闭思考"勾选框与 env 语义相反
@@ -600,6 +621,28 @@ class AgentGUI:
             bootstyle=("danger" if appconfig.offline_mode() else "secondary"),
             width=10, command=self._toggle_offline)
         self.offline_btn.pack(side="left", padx=(8, 0))
+        # v1.8.2 云端模型选择:仅"联网且 config.json cloud 段已配置"时可选。
+        # 与左侧本地模型框互斥(一次只和一个模型对话):选本地→此框清空;
+        # 选云端→本地框清空。断网=禁用+清空(runner 层架构级隔离)。
+        # 配置不走复杂入口,点 ? 看指引,直接改源码端 config.json。
+        _cloud_cfg = appconfig.load_config().get("cloud") or {}
+        _cloud_model = _cloud_cfg.get("model") or ""
+        self.cloud_var = tk.StringVar(
+            value=(_cloud_model if (_cloud_cfg.get("enabled") and _cloud_model
+                                    and not appconfig.offline_mode())
+                   else ("" if _cloud_model else _t("☁ 未配置"))))
+        self.cloud_cb = tb.Combobox(
+            bar, textvariable=self.cloud_var,
+            values=(["", _cloud_model] if _cloud_model else [_t("☁ 未配置")]),
+            state="readonly", bootstyle="info",
+            width=min(28, max(10, self._disp_units(_cloud_model or _t("☁ 未配置")) + 2)))
+        self.cloud_cb.pack(side="left", padx=(6, 0))
+        self.cloud_cb.bind("<<ComboboxSelected>>", self._on_cloud_selected)
+        tb.Button(bar, text="?", bootstyle="secondary", width=2,
+                  command=self._cloud_help).pack(side="left", padx=(2, 0))
+        self._sync_cloud_box()
+        if self.cloud_var.get():        # 云端在用:本地框同步清空(互斥门)
+            self.model_var.set("")
         self.sess_lbl = tb.Label(bar, text=_t("会话:无"), bootstyle="secondary")
         self.sess_lbl.pack(side="right")
 
@@ -624,6 +667,12 @@ class AgentGUI:
                                   state="disabled", wrap="word", relief="flat",
                                   padx=14, pady=10, bd=0)
         self.transcript.pack(fill="both", expand=True)
+        # v1.8.2 只读区支持鼠标选中复制:禁用态 Tk Text 不响应选中拖拽,
+        # 按下时临时解锁、松开锁回;期间流式渲染器不抢锁(见 _selecting)。
+        self.transcript.bind("<Button-1>", self._sel_press)
+        self.transcript.bind("<ButtonRelease-1>", self._sel_release)
+        self.transcript.bind("<Control-c>", self._copy_selection)
+        self.transcript.bind("<Key>", lambda e: "break")   # 选中期间不给了打字口子
         self.input = tk.Text(left, height=3, font=("Microsoft YaHei UI", 10),
                              wrap="word", relief="solid", bd=1)
         self.input.pack(fill="x", padx=(0, 6), pady=(6, 4))
@@ -649,8 +698,10 @@ class AgentGUI:
         self.stop_btn.pack(side="left", padx=6)
         self.resume_var = tk.BooleanVar(value=True)
         tb.Checkbutton(crow, text=_t("续跑"), variable=self.resume_var).pack(side="left")
-        tb.Button(crow, text=_t("清空对话"), bootstyle="secondary-outline",
-                  command=self.clear_transcript).pack(side="right")
+        # v1.8.2:按钮语义改为"整场重开"(旧"清空对话"只清屏幕、会话与上下文仍在,
+        # 下一条消息会带着旧对话全部历史继续——跨对话记忆泄漏的事故根源,已废除)。
+        tb.Button(crow, text=_t("＋ 新对话"), bootstyle="danger-outline",
+                  command=self.new_chat).pack(side="right")
 
         right = tb.Frame(pw); pw.add(right, weight=0)
         # 固定像素宽在高 DPI 下等于逻辑减半,附件/计划内容会被挤出面板 → 随缩放
@@ -698,6 +749,81 @@ class AgentGUI:
                           else _t("[联网模式:搜索/已配置的 MCP/云端可用]"))
         else:
             self.log_note(_t("[断网开关写入配置失败]"))
+        self._sync_cloud_box()
+
+    # ================= 云端模型选择(v1.8.2) =================
+    def _on_model_selected(self):
+        """互斥门:左侧选了本地模型 = 右侧云端框清空、云端开关关闭。"""
+        self.refresh_voice_state()
+        if not self.model_var.get():
+            return
+        cfg = appconfig.load_config()
+        cloud = cfg.get("cloud") or {}
+        changed = False
+        if cloud.get("enabled"):
+            cloud["enabled"] = False
+            cfg["cloud"] = cloud
+            appconfig.save_config(cfg)
+            changed = True
+        self.cloud_var.set("")
+        if changed:
+            self.log_note(_t("[已切回本地模型:云端开关关闭]"))
+
+    def _sync_cloud_box(self):
+        """云端框状态:联网+已配置→可选(空=不用云端);未配置或断网→禁用。
+        每次都从 config 重读(与 runner 的 cloud_provider 同源)。"""
+        if not hasattr(self, "cloud_cb"):
+            return
+        _m = (appconfig.load_config().get("cloud") or {}).get("model") or ""
+        off = appconfig.offline_mode()
+        if not _m:
+            self.cloud_cb.configure(values=[_t("☁ 未配置")], state="disabled")
+            self.cloud_var.set(_t("☁ 未配置"))
+        elif off:
+            self.cloud_cb.configure(state="disabled")
+            self.cloud_var.set("")
+        else:
+            self.cloud_cb.configure(values=["", _m], state="readonly")
+            if self.cloud_var.get() not in ("", _m):
+                self.cloud_var.set("")
+
+    def _on_cloud_selected(self, _e=None):
+        """互斥门:右侧选了云端模型 = 左侧本地框清空、cloud.enabled=true;
+        选回空 = 回本地(本地框不清,由用户另选)。"""
+        sel = self.cloud_var.get()
+        cfg = appconfig.load_config()
+        cloud = cfg.get("cloud") or {}
+        m = cloud.get("model") or ""
+        if m and sel == m:
+            cloud["enabled"] = True
+            cfg["cloud"] = cloud
+            if appconfig.save_config(cfg):
+                self.model_var.set("")
+                self.log_note(_t("[云端已启用:后续任务改经 {m} 推理,api_key 只存本机;随时可切回]").format(m=m))
+        else:
+            if cloud.get("enabled"):
+                cloud["enabled"] = False
+                cfg["cloud"] = cloud
+                appconfig.save_config(cfg)
+            self.log_note(_t("[已切回本地模型]"))
+
+    def _cloud_help(self):
+        from tkinter import messagebox
+        messagebox.showinfo(_t("云端模型配置(可选)"), _t(
+            "云端模型是可选功能,不走复杂设置界面,直接配置一次即可:\n\n"
+            "1. 打开 config.json(默认在 ~/.ollama_agent/;便携/隔离安装为 MINGBIRD_HOME 指定的目录)\n"
+            "2. 加入 cloud 段(任意 OpenAI 兼容端点):\n"
+            '   "cloud": {\n'
+            '     "enabled": true,\n'
+            '     "base_url": "https://api.example.com/v1",\n'
+            '     "api_key": "你的密钥",\n'
+            '     "model": "模型名"\n'
+            "   }\n"
+            "3. 重启 GUI,联网状态下在左侧框选中该模型即启用。\n\n"
+            "说明:\n"
+            "- api_key 只存本机 config.json,不进仓库、不进日志\n"
+            "- 断网模式下云端被架构级禁用(推理与工具装配都不出网)\n"
+            "- 详细说明见仓库 README 的 \"Cloud model (optional)/云端模型(可选)\" 一节"))
 
     def _build_history_page(self):
         page = self.pages["history"]
@@ -1043,9 +1169,33 @@ class AgentGUI:
     def _scroll_transcript(self):
         self.transcript.see("end")
 
+    def _sel_press(self, _e=None):
+        self._selecting = True
+        self.transcript.config(state="normal")
+        return None   # 不拦默认:光标定位/拖选仍由 Tk 类绑定处理
+
+    def _sel_release(self, _e=None):
+        self._selecting = False
+        self.transcript.config(state="disabled")
+        return None
+
+    def _copy_selection(self, _e=None):
+        try:
+            txt = self.transcript.get("sel.first", "sel.last")
+            if txt:
+                self.root.clipboard_clear()
+                self.root.clipboard_append(txt)
+        except Exception:
+            pass
+        return "break"
+
     def clear_transcript(self):
         self._set_text(self.transcript)
         self._rendered_session = None
+        # 流式缓冲一并复位:否则切换会话后旧缓冲继续往新屏上写
+        self._think_text = ""; self._think_live = False; self._think_open = False
+        self._think_shown = 0
+        self._asst_buf = ""; self._asst_shown = 0; self._streaming_asst = False
     def clear_log(self):
         self._set_text(self.console)
     def _set_text(self, w):
@@ -1363,10 +1513,15 @@ class AgentGUI:
         self.input.delete("1.0", "end")
         self._flush_asst()
         self.add_user_bubble(msg)
-        if not self.session:
+        # v1.8.2 会话隔离:新对话的第一条消息强制清掉工作目录里上一任务遗留的
+        # .agent_state.json/todo.json(错误记忆的第三条通道);同一对话内的追问
+        # 才按"续跑"勾选决定是否续接进度。
+        fresh = not self.session
+        if fresh:
             self.session = "chat_" + time.strftime("%m%d_%H%M%S")
             self.sess_lbl.configure(text=_t("会话:") + self.session)
-        self.launch(msg, use_session=True, resume_ok=True)
+        self.launch(msg, use_session=True,
+                    resume_ok=(self.resume_var.get() and not fresh))
 
     # ================= 语音输入 =================
     def refresh_voice_state(self):
@@ -1464,14 +1619,21 @@ class AgentGUI:
         self.refresh_voice_state()
 
     def new_chat(self):
+        """整场重开(v1.8.2):会话、上下文、工作目录、计划面板全部复位。
+        旧实现不重置工作目录——上一个对话若用过别的目录(如个人文档文件夹),
+        新对话会静默继承,task_input.txt 都写进去;这是跨对话记忆/隐私事故的
+        第二条泄漏通道,已封死。"""
         self.session = None
         self.sess_lbl.configure(text=_t("会话:无"))
         self.clear_transcript()
+        self.wd_var.set(os.path.join(DEFAULT_TASKS, "work"))
+        self._render_plan([], force=True)   # 旧任务的 todo 面板一并清掉
         self._welcome()
         self.att_lb.delete(0, "end"); self.attachments = []
         self.status_var.set(_t(" 上下文: - / - ( - % )"))
         self.ctx_bar["value"] = 0
         self.input.delete("1.0", "end")
+        self.log_note(_t("[新对话已开启:上下文与工作目录已重置]"))
 
     def launch(self, task, use_session, resume_ok):
         if not self._model_map:
@@ -1479,6 +1641,13 @@ class AgentGUI:
             return
         # 查不到时用原选择本身,绝不静默回退到"第一个模型"(选 A 跑 B)
         model = self._model_map.get(self.model_var.get(), self.model_var.get())
+        if not model:
+            # 互斥门清空本地框后与云端对话:argv 仍带模型名(仅日志/能力探测用,
+            # 云端路由下 runner 不会真正调本地 ollama)
+            model = (appconfig.load_config().get("cloud") or {}).get("model") or ""
+        if not model:
+            self.log_note(_t("[请先在左侧选择本地模型,或在右侧选择云端模型]"))
+            return
         workdir = self.wd_var.get() if hasattr(self, "wd_var") else os.path.join(DEFAULT_TASKS, "work")
         task = task + self.attach_note()
         os.makedirs(workdir, exist_ok=True)
@@ -1522,6 +1691,10 @@ class AgentGUI:
         if use_session or self.session: args += ["--session", self.session]
         if use_session: args += ["--append"]
         self._apply_time_budget(env, task)
+        # 断网模式可见性(v1.8.2):用户要求联网搜索而工具未装配时,模型只能
+        # 就地扑腾(2026-09-21 事故成因之一)——起跑前把状态说进会话里。
+        if appconfig.offline_mode():
+            self.log_note(_t("[断网模式已开启:本任务无联网工具与云端 — 联网搜索类请求无法满足,请先点 🔒 切回联网]"))
         self.log(f"====== {_t('开始: ')}{model}" + (f" | {_t('会话:')}{self.session}" if self.session else "") + " ======")
         self.log(_t("工作目录: ") + workdir + "\n")
         self.proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -1637,41 +1810,71 @@ class AgentGUI:
                                 "Ollama is online. This agent runs fully offline — data never leaves your machine.")
         # 状态立即刷新交由已有的 5s 自续链处理,这里不再叠加一条永久链
 
+    def _flush_stream_pending(self):
+        """把缓冲里未上屏的流式内容一次性补进控件(折叠/收尾/切换前必须先调,
+        保证顺序:标记行的字数、_flush_asst 的'已在屏'假设都依赖尾部已上屏)。"""
+        try:
+            if self._think_live and self._think_shown < len(self._think_text):
+                self.transcript.config(state="normal")
+                self.transcript.insert("end", self._think_text[self._think_shown:], "think_region")
+                if not self._selecting:
+                    self.transcript.config(state="disabled")
+                self._think_shown = len(self._think_text)
+            if self._streaming_asst and self._asst_shown < len(self._asst_buf):
+                self.transcript.config(state="normal")
+                self.transcript.insert("end", self._asst_buf[self._asst_shown:], "asst")
+                if not self._selecting:
+                    self.transcript.config(state="disabled")
+                self._asst_shown = len(self._asst_buf)
+        except Exception:
+            pass
+
+    def _stream_render_tick(self):
+        """150ms 批量渲染:几千思考 token 也只是字符串追加,UI 不再卡死。"""
+        self._flush_stream_pending()
+        if (self._think_shown < len(self._think_text)
+                or self._asst_shown < len(self._asst_buf)):
+            try:
+                self._scroll_transcript()
+            except Exception:
+                pass
+        self.root.after(150, self._stream_render_tick)
+
     def _stream_tok(self, tok):
-        """流式回答 token:实时追加到当前助手气泡(跳过 markdown 渲染,保持打字机效果)。"""
+        """流式回答 token:只进缓冲,由 _stream_render_tick 批量上屏。"""
         try:
             if self._think_live or self._think_open:
                 self._collapse_think()   # 回答开始前先收掉思考
-            self.transcript.config(state="normal")
             if not self._asst_buf:
+                self.transcript.config(state="normal")
                 self.transcript.insert("end", "\n", "spacer")
+                self.transcript.config(state="disabled")
             self._asst_buf += tok
             self._streaming_asst = True
-            self.transcript.insert("end", tok, "asst")
-            self.transcript.config(state="disabled")
-            self._scroll_transcript()
         except Exception:
             pass
 
     def _stream_think(self, tok):
-        """流式思考 token:显示在灰色思考区(tag=think_region)。"""
+        """流式思考 token:只进缓冲;块头缺失时补建(用户中途手动折叠后再流,
+        标记行上方保留旧块,下方起新块,不吞内容)。"""
         try:
-            self.transcript.config(state="normal")
             if not self._think_live:
                 self._collapse_think()
-                self.transcript.insert("end", _t("🤔 思考中…") + "\n", "think_region")
-                self._think_live = True
                 self._think_text = ""
+                self._think_shown = 0
+                self._think_live = True
+            if not self.transcript.tag_ranges("think_region"):
+                self.transcript.config(state="normal")
+                self.transcript.insert("end", _t("🤔 思考中…") + "\n", "think_region")
+                self.transcript.config(state="disabled")
             self._think_text += tok
-            self.transcript.insert("end", tok, "think_region")
-            self.transcript.config(state="disabled")
-            self._scroll_transcript()
         except Exception:
             pass
 
     def _collapse_think(self):
         """把思考区域(think_region)折叠成一行可点击标记;只动思考区,不碰正文。"""
         try:
+            self._flush_stream_pending()   # 先补齐尾部:标记行字数与删除范围才准确
             self.transcript.config(state="normal")
             r = self.transcript.tag_ranges("think_region")
             if r:
@@ -1714,6 +1917,7 @@ class AgentGUI:
                 n = len(self._think_text)
                 self.transcript.insert(start, _t("🤔 思考过程 ({n} 字) — 点击展开/折叠").format(n=n) + "\n", "think_marker")
                 self._think_open = False
+                self._think_live = False   # 用户手动收起活动思考:后续 token 起新块,不续写折叠区
             else:
                 m = self.transcript.tag_ranges("think_marker")
                 if m:
@@ -1837,12 +2041,14 @@ class AgentGUI:
         self.log_note(line.strip("= "))
 
     def _flush_asst(self):
+        self._flush_stream_pending()   # 流式尾部先上屏,再按"已在屏"语义收尾
         if self._asst_buf:
             if not self._streaming_asst:
                 # 非流式:整段 markdown 渲染成气泡
                 self._insert_md(self._asst_buf)
                 self._scroll_transcript()
             self._asst_buf = ""
+            self._asst_shown = 0
             self._streaming_asst = False
 
     def poll_todo(self):
