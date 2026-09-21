@@ -603,21 +603,6 @@ class AgentGUI:
         self.sess_lbl = tb.Label(bar, text=_t("会话:无"), bootstyle="secondary")
         self.sess_lbl.pack(side="right")
 
-    def _toggle_offline(self):
-        """一键断网/联网:翻转 offline_mode 写入 config.json(appconfig 缓存随
-        save_config 失效),GUI 按钮即时变色;下一次任务的装配层即刻生效。"""
-        cfg = appconfig.load_config()
-        cfg["offline_mode"] = not appconfig.offline_mode()
-        if appconfig.save_config(cfg):
-            off = appconfig.offline_mode()
-            self.offline_btn.configure(
-                text=_t("🔒 断网") if off else _t("🌐 联网"),
-                bootstyle="danger" if off else "secondary")
-            self.log_note(_t("[断网模式:仅本地模型,联网工具与云端已禁用 — 零出站]") if off
-                          else _t("[联网模式:搜索/已配置的 MCP/云端可用]"))
-        else:
-            self.log_note(_t("[断网开关写入配置失败]"))
-
         bar2 = tb.Frame(page, padding=(12, 0, 12, 4)); bar2.pack(fill="x")
         tb.Label(bar2, text=_t("目录:")).pack(side="left")
         self.wd_var = tk.StringVar(value=os.path.join(DEFAULT_TASKS, "work"))
@@ -698,6 +683,21 @@ class AgentGUI:
         self.plan_sb.pack(side="right", fill="y")
         # 暗色主题刷新链:裸 Tk 控件必须注册,apply_theme 才会刷色(否则暗色下白底穿帮)
         self._themable += [(self.att_lb, "list"), (self.plan_txt, "list")]
+
+    def _toggle_offline(self):
+        """一键断网/联网:翻转 offline_mode 写入 config.json(appconfig 缓存随
+        save_config 失效),GUI 按钮即时变色;下一次任务的装配层即刻生效。"""
+        cfg = appconfig.load_config()
+        cfg["offline_mode"] = not appconfig.offline_mode()
+        if appconfig.save_config(cfg):
+            off = appconfig.offline_mode()
+            self.offline_btn.configure(
+                text=_t("🔒 断网") if off else _t("🌐 联网"),
+                bootstyle="danger" if off else "secondary")
+            self.log_note(_t("[断网模式:仅本地模型,联网工具与云端已禁用 — 零出站]") if off
+                          else _t("[联网模式:搜索/已配置的 MCP/云端可用]"))
+        else:
+            self.log_note(_t("[断网开关写入配置失败]"))
 
     def _build_history_page(self):
         page = self.pages["history"]

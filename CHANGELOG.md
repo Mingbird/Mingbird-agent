@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.8.1 (2026-09-21)
+
+### 🚑 Hotfix: GUI failed to launch in v1.8.0
+- The v1.8.0 offline-toggle edit accidentally inserted the new `_toggle_offline` method **inside** `_build_chat_page`, so the chat page's input box / transcript / directory bar were never constructed — the desktop GUI crashed immediately on launch (`AttributeError: no attribute 'input'`). All v1.8.0 packages (Windows installers and the Linux/macOS tarballs) were built from the affected source and can crash at GUI startup — upgrade to v1.8.1.
+- Fix: the method now sits after `_build_chat_page` completes. Verified by actually launching the packaged executable (10 s alive, zero exceptions in the global error log) and by the full suite: 459 tests green.
+- Process fix recorded: a release now requires launching the frozen build before upload — unit tests do not cover GUI construction order.
+
+
 ## v1.8.0 (2026-09)
 
 ### 🔒 One-click offline/online (offline mode) — privacy as an architectural commitment
