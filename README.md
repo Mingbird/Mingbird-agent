@@ -27,7 +27,7 @@ Every mechanism comes from "small models can't do X, so the harness does it for 
 | …stay on target in long tasks | delivery self-check gate: before claiming done, it re-reads the original task and verifies its work |
 | …resist destructive impulses | a five-ring safety net catches them (see [Safety](#safety)) |
 
-Nothing is hardcoded: the Ollama address, executable, GPU environment variables, and model aliases are detected at runtime or configured in `~/.ollama_agent/config.json` (see [AGENTS.md](AGENTS.md)). The quality floor is held up by a 451-test regression suite, the prefill zero-growth assertion included.
+Nothing is hardcoded: the Ollama address, executable, GPU environment variables, and model aliases are detected at runtime or configured in `~/.ollama_agent/config.json` (see [AGENTS.md](AGENTS.md)). The quality floor is held up by a 459-test regression suite, the prefill zero-growth assertion included.
 
 ## The problem we set out to solve
 
@@ -57,7 +57,7 @@ Four harnesses × four open models (2B–35B) × 18 real tasks = 288 cells, one 
 | Benchmark | Run by | Result in one line |
 |---|---|---|
 | LRAB-288 | us (self-built) | overall 0.886 vs goose 0.631 / opencode 0.479 / agent-mini 0.405 |
-| τ²-bench, 3 domains | Sierra Research (external) | retail 0.763 / airline 0.740 / telecom 1.000 — first or tied-first in every domain |
+| τ²-bench, 3 domains | benchmark by Sierra Research; run by the authors | retail 0.763 / airline 0.740 / telecom 1.000 — first or tied-first in every domain |
 | Frontier-model probe | us | same hosted model in all four harnesses: 0.997 vs 0.989 / 0.925 / 0.478 |
 | Ablations (v1.5.0 code) | us | removing `finish_gate` costs the most: −0.098 |
 

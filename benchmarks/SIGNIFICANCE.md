@@ -75,3 +75,22 @@ written: SIGNIFICANCE.md
 ## Task-family cluster robustness (2026-09-20)
 
 The 18 tasks are generated in four families (tier1 2 / tier2 4 / tier3 9 / tier4 3), so task-level pairing overstates independence. `cluster_significance.py` re-runs the analysis with the family as the unit: cluster bootstrap over the four families (10k resamples, tier members drawn whole) plus a family-stratified sign permutation test (10k, Holm-corrected within model). Headline: **at 2B all three comparisons remain significant (adjusted permutation p = 0.0003 each; cluster-bootstrap CIs exclude zero)** — the 2B advantage is present in all four families. 12B vs goose survives marginally (CI lower bound +0.029, adjusted p = 0.036; effect concentrated in two families). No nonsignificant comparison becomes significant; 4B vs agent-mini's edge finding disappears (CI now crosses zero, consistent with its adjusted p).
+
+
+## Correction (2026-09-22, review round 2)
+
+The 2026-09-20 summary above overstates family-level robustness; corrected reading
+(now in the paper's family-clustering paragraph):
+
+1. The stratified sign permutation flips TASK-level signs within tiers (it is a
+   task-level test, not a family-level one); a family-level flip would have only
+   2^4 = 16 sign patterns (min two-sided p = 0.125), so with four families NO
+   family-level significance claim is available for any comparison.
+2. A cluster-bootstrap CI cannot cross zero when all four family means share a
+   sign; at 2B all three comparisons, at 4B-vs-goose, and at 12B-vs-goose
+   (tier-1 mean exactly 0.000) fall in this uninformative-by-construction class.
+3. The strongest family-level statement available at 2B is descriptive: all four
+   family means strictly positive (e.g. +1.000/+0.428/+0.413/+0.823 vs goose).
+
+Per-tier diagnostics: RESULTS.md (cluster_significance.py, seeded).
+tau2 McNemar-based significance: TAU2_SIGNIFICANCE.md (tau2_significance.py).

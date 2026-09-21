@@ -1,0 +1,30 @@
+# models.lock — weight pinning for the LRAB-288 / tau2 / probe campaigns
+# Generated 2026-09-22 from the local Ollama store (Ollama 0.33.2, Windows).
+# manifest_sha256 = SHA-256 of the model's Ollama manifest file (the full form
+# of the 12-hex ID shown by `ollama list`). model_layer = the
+# application/vnd.ollama.image.model blob digest and size.
+# Reproduce: python diagnosis/get_digests-style hash of
+#   ~/.ollama/models/manifests/registry.ollama.ai/library/<repo>/<tag>
+
+ollama_version: 0.33.2
+
+[model.gemma4:e2b]
+manifest_sha256: 7fbdbf8f5e45a75bb122155ed546e765b4d9c53a1285f62fd9f506baa1c5a47e
+model_layer: sha256:4e30e2665218745ef463f722c0bf86be0cab6ee676320f1cfadf91e989107448
+model_layer_bytes: 7162394016
+
+[model.qwen3.5:4b]
+manifest_sha256: 2a654d98e6fba55d452b7043684e9b57a947e393bbffa62485a7aac05ee4eefd
+model_layer: sha256:81fb60c7daa80fc1123380b98970b320ae233409f0f71a72ed7b9b0d62f40490
+model_layer_bytes: 3389971840
+
+[model.gemma4:12b]
+manifest_sha256: 4eb23ef187e2c5462566d6a1d3bbbc2f1346d0b4327cbb66d58fffbcc9b2b05c
+model_layer: sha256:1278394b693672ac2799eadc9a83fd98259a6a88a40acfb1dcaa6c6fc895a606
+model_layer_bytes: 7381382048
+projector_layer: sha256:675ad6e68101ca9413ec406855c452362f0213f2dfc5800996b086fdb8119842
+
+[model.ornith-1.5:35b]
+manifest_sha256: 9f3b89b2521908dd2e6f7a11fa368e62c8f89e1075f22604e4d1a76dd1240fcc
+model_layer: sha256:aaeb640f98a892980ef54876024293cc8d6987a86523aa1b947ffa9274ef800a
+model_layer_bytes: 21713462848

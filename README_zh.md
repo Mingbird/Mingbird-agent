@@ -27,7 +27,7 @@
 | …长任务不跑偏 | 交付自查门禁：宣称完成前回读任务原文核对 |
 | …抵住破坏性冲动 | 五环安全网兜住（见[安全](#安全)） |
 
-没有任何东西是写死的：Ollama 地址、可执行文件、GPU 环境变量、模型别名，全部运行时识别或在 `~/.ollama_agent/config.json` 配置（见 [AGENTS.md](AGENTS.md)）。质量底线由 451 项回归测试守住，prefill 零增长断言也在其中。
+没有任何东西是写死的：Ollama 地址、可执行文件、GPU 环境变量、模型别名，全部运行时识别或在 `~/.ollama_agent/config.json` 配置（见 [AGENTS.md](AGENTS.md)）。质量底线由 459 项回归测试守住，prefill 零增长断言也在其中。
 
 ## 我们要解决的问题
 
@@ -57,7 +57,7 @@
 | 基准 | 出品方 | 一句话结果 |
 |---|---|---|
 | LRAB-288 | 我们（自建） | 总分 0.886 vs goose 0.631 / opencode 0.479 / agent-mini 0.405 |
-| τ²-bench 三域 | Sierra Research（外部） | retail 0.763 / airline 0.740 / telecom 1.000——三域第一或并列第一 |
+| τ²-bench 三域 | 基准由 Sierra Research 出品；我方自行执行 | retail 0.763 / airline 0.740 / telecom 1.000——三域第一或并列第一 |
 | 前沿模型探针 | 我们 | 同一云端模型跑四家 harness：0.997 vs 0.989 / 0.925 / 0.478 |
 | 消融（v1.5.0 代码） | 我们 | 去掉 finish_gate 代价最大：−0.098 |
 

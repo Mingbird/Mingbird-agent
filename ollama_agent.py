@@ -233,8 +233,12 @@ _REQ_ARGS = {"create_file":["path","content"],"read_file":["path"],"edit_file":[
              "delete_file":["path"],"todo":["action"],"skills":["action"],"finish":["summary"]}
 
 # ---- 消融开关(仅消融实验用;默认全开=原行为) ----
-# AGENT_ABLATION=逗号分隔的关闭清单: finish_gate, anti_loop, flat_prefill, verify_feedback
+# AGENT_ABLATION=逗号分隔的关闭清单: finish_gate, finish_gate_text_only, anti_loop,
+# flat_prefill, verify_feedback。finish_gate_text_only=关闭四个可执行守护(同 finish_gate)
+# 并再关 todo 同步门,只保留"回注任务原文一次"的交付自查——用于分离"重读文本"与
+# "执行验收检查"两种机制(论文审稿 M1 消融臂)。
 _ABLATION = set(x.strip() for x in os.environ.get("AGENT_ABLATION", "").split(",") if x.strip())
+_FG_OFF = ('finish_gate' in _ABLATION) or ('finish_gate_text_only' in _ABLATION)
 # read_file 爬行守卫 v2(字节预算制;主 agent_loop 与 batch_tools 经 crawl_state 共用计数)。
 # v1(次数阈值硬拒)在 72 格重跑实证致伤:4b 不会写聚合脚本,硬拒只是死墙——LH01/4b 撞墙
 # 62 次得 0.333(fp-0902 慢爬可得 0.714)、WF08/4b 12 次拒绝双超时计 0;且 v1 的 hint 只回
@@ -3184,7 +3188,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                 print(f"[{i}|+{int(time.time()-_t0)}s] ⚙ {name} {json.dumps(args,ensure_ascii=False)[:60]} -> {res[:90]}", flush=True)
                 if name=="finish":
                     # 假完成守护:没做任何实际工作就 finish → 拒绝并强制继续
-                    if not _ABLATION.__contains__('finish_gate') and not productive_used and fake_finish_warns < 2:
+                    if not _FG_OFF and not productive_used and fake_finish_warns < 2:
                         fake_finish_warns += 1
                         print(f"[{i}] ⚠️ 拒绝假 finish:未使用任何产出型工具(create_file/edit_file/run_bash)", flush=True)
                         # 拒绝消息必须给下一步可执行动作(LH-01 教训):只说"为什么拒"不给
@@ -3201,7 +3205,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         messages.append({"role":"tool","content":res})
                         continue
                     # 测试验证守护:目录有 test_*.py 时,harness 亲自跑 pytest,不过则拒绝 finish
-                    if not _ABLATION.__contains__('finish_gate') and glob.glob(os.path.join(workdir, "test_*.py")) and test_guard_warns < 3:
+                    if not _FG_OFF and glob.glob(os.path.join(workdir, "test_*.py")) and test_guard_warns < 3:
                         test_guard_warns += 1
                         try:
                             pr = subprocess.run("python -m pytest -q", shell=True,
@@ -3230,7 +3234,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                             continue
                     # 产物核对门禁:finish summary 声称的产物逐一对照 workdir,缺失则拒绝。
                     # (裸 finish 曾让模型谎报"已写入/已生成"直接收货——谎报是低分直接死因)
-                    if not qa and 'finish_gate' not in _ABLATION and finish_claim_warns < 2:
+                    if not qa and not _FG_OFF and finish_claim_warns < 2:
                         _missing = _claimed_missing_files(str(args.get("summary","")), workdir)
                         if _missing:
                             finish_claim_warns += 1
@@ -3246,7 +3250,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     # 真实存在。实证(WF-02 e2b):todo.json 里躺着没写的 change_log.md,
                     # summary 不提它就直接穿过了只对 summary 核对的旧门禁。按文件存在性
                     # 核对而非勾选状态——all=true 一键勾选曾被用作绕行通道。
-                    if not qa and _child_sandbox is None and 'finish_gate' not in _ABLATION and plan_gate_warns < 2:
+                    if not qa and _child_sandbox is None and not _FG_OFF and plan_gate_warns < 2:
                         _p_missing = _plan_named_missing(workdir)
                         if _p_missing:
                             plan_gate_warns += 1
@@ -3266,7 +3270,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     # 子 agent 豁免:单条机械任务,不维护 todo 计划(它的退出契约是
                     # 产物文件 + finish/FAILED,由派发层核对;被门禁卡住只会白白烧完
                     # 自己的预算,然后被派发层当成 timeout 回退主模型)。
-                    if not qa and _child_sandbox is None and todo_gate_warns < 2:
+                    if not qa and _child_sandbox is None and 'finish_gate_text_only' not in _ABLATION and todo_gate_warns < 2:
                         _t_done, _t_all = todo_progress(load_todo(workdir))
                         if _t_all and _t_done < _t_all:
                             todo_gate_warns += 1
