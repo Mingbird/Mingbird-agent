@@ -1,0 +1,5 @@
+harness,cells,tool_calls_mean,tool_calls_median,min,max
+Mingbird,72,46.6,33.5,15,200
+agent-mini,72,11.5,7.0,1,41
+goose,72,28.6,15.0,0,242
+opencode,72,23.0,5.0,0,230

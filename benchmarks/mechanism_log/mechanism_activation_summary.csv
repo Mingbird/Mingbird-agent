@@ -1,0 +1,169 @@
+harness(arm),model,family,marker,marker_zh,total_triggers
+Mingbird,gemma4_12b,format_rescue,alias_mapping,别名映射:,1
+Mingbird,gemma4_12b,finish_gate,artifact_missing_reject,产物核对:summary 声称但缺失,4
+Mingbird,gemma4_12b,anti_loop,break_500_loop_inject,"500 错误,已注入继续提示",0
+Mingbird,gemma4_12b,budget_nudge,budget_nudge_inject,预算提示已注入,0
+Mingbird,gemma4_12b,anti_loop,disabled_tool_hard_reset,被禁用后仍被调用,0
+Mingbird,gemma4_12b,anti_loop,dup_call_intercept,重复调用拦截,8
+Mingbird,gemma4_12b,anti_loop,empty_graceful_exit,个空轮且 3 次复位无效,0
+Mingbird,gemma4_12b,anti_loop,empty_turns_hard_reset,连续空轮×,0
+Mingbird,gemma4_12b,finish_gate,fake_finish_reject,拒绝假 finish,0
+Mingbird,gemma4_12b,anti_loop,force_finish_loop_guard,"本轮已足够,强制结束",0
+Mingbird,gemma4_12b,anti_loop,len_trunc_signature,done_reason=length 且无正文无调用,0
+Mingbird,gemma4_12b,finish_gate,plan_missing_reject,计划核对:计划点名但缺失,0
+Mingbird,gemma4_12b,plan_nudge,plan_stall_nudge,计划停滞提醒,21
+Mingbird,gemma4_12b,finish_gate,plan_unsynced_reject,计划未同步,4
+Mingbird,gemma4_12b,anti_loop,qa_guard_intercept,问答守护:拦截,0
+Mingbird,gemma4_12b,format_rescue,repair_conversation,修复对话结构,0
+Mingbird,gemma4_12b,anti_loop,repeat_output_detected,检测到重复输出,0
+Mingbird,gemma4_12b,format_rescue,salvage_text_toolcall,抢救到文本工具调用,0
+Mingbird,gemma4_12b,finish_gate,selfcheck_reinject,交付自查:回注任务原文,18
+Mingbird,gemma4_12b,edit_guard,shotgun_edit_warn,霰弹枪编辑提示,3
+Mingbird,gemma4_12b,finish_gate,tests_failed_reject,测试未通过,2
+Mingbird,gemma4_e2b,format_rescue,alias_mapping,别名映射:,1
+Mingbird,gemma4_e2b,finish_gate,artifact_missing_reject,产物核对:summary 声称但缺失,6
+Mingbird,gemma4_e2b,anti_loop,break_500_loop_inject,"500 错误,已注入继续提示",0
+Mingbird,gemma4_e2b,budget_nudge,budget_nudge_inject,预算提示已注入,0
+Mingbird,gemma4_e2b,anti_loop,disabled_tool_hard_reset,被禁用后仍被调用,0
+Mingbird,gemma4_e2b,anti_loop,dup_call_intercept,重复调用拦截,13
+Mingbird,gemma4_e2b,anti_loop,empty_graceful_exit,个空轮且 3 次复位无效,0
+Mingbird,gemma4_e2b,anti_loop,empty_turns_hard_reset,连续空轮×,3
+Mingbird,gemma4_e2b,finish_gate,fake_finish_reject,拒绝假 finish,0
+Mingbird,gemma4_e2b,anti_loop,force_finish_loop_guard,"本轮已足够,强制结束",6
+Mingbird,gemma4_e2b,anti_loop,len_trunc_signature,done_reason=length 且无正文无调用,0
+Mingbird,gemma4_e2b,finish_gate,plan_missing_reject,计划核对:计划点名但缺失,8
+Mingbird,gemma4_e2b,plan_nudge,plan_stall_nudge,计划停滞提醒,29
+Mingbird,gemma4_e2b,finish_gate,plan_unsynced_reject,计划未同步,19
+Mingbird,gemma4_e2b,anti_loop,qa_guard_intercept,问答守护:拦截,0
+Mingbird,gemma4_e2b,format_rescue,repair_conversation,修复对话结构,0
+Mingbird,gemma4_e2b,anti_loop,repeat_output_detected,检测到重复输出,12
+Mingbird,gemma4_e2b,format_rescue,salvage_text_toolcall,抢救到文本工具调用,1
+Mingbird,gemma4_e2b,finish_gate,selfcheck_reinject,交付自查:回注任务原文,15
+Mingbird,gemma4_e2b,edit_guard,shotgun_edit_warn,霰弹枪编辑提示,0
+Mingbird,gemma4_e2b,finish_gate,tests_failed_reject,测试未通过,7
+Mingbird,ornith1.5_35b,format_rescue,alias_mapping,别名映射:,0
+Mingbird,ornith1.5_35b,finish_gate,artifact_missing_reject,产物核对:summary 声称但缺失,7
+Mingbird,ornith1.5_35b,anti_loop,break_500_loop_inject,"500 错误,已注入继续提示",0
+Mingbird,ornith1.5_35b,budget_nudge,budget_nudge_inject,预算提示已注入,0
+Mingbird,ornith1.5_35b,anti_loop,disabled_tool_hard_reset,被禁用后仍被调用,0
+Mingbird,ornith1.5_35b,anti_loop,dup_call_intercept,重复调用拦截,6
+Mingbird,ornith1.5_35b,anti_loop,empty_graceful_exit,个空轮且 3 次复位无效,0
+Mingbird,ornith1.5_35b,anti_loop,empty_turns_hard_reset,连续空轮×,0
+Mingbird,ornith1.5_35b,finish_gate,fake_finish_reject,拒绝假 finish,0
+Mingbird,ornith1.5_35b,anti_loop,force_finish_loop_guard,"本轮已足够,强制结束",0
+Mingbird,ornith1.5_35b,anti_loop,len_trunc_signature,done_reason=length 且无正文无调用,0
+Mingbird,ornith1.5_35b,finish_gate,plan_missing_reject,计划核对:计划点名但缺失,2
+Mingbird,ornith1.5_35b,plan_nudge,plan_stall_nudge,计划停滞提醒,30
+Mingbird,ornith1.5_35b,finish_gate,plan_unsynced_reject,计划未同步,5
+Mingbird,ornith1.5_35b,anti_loop,qa_guard_intercept,问答守护:拦截,0
+Mingbird,ornith1.5_35b,format_rescue,repair_conversation,修复对话结构,0
+Mingbird,ornith1.5_35b,anti_loop,repeat_output_detected,检测到重复输出,0
+Mingbird,ornith1.5_35b,format_rescue,salvage_text_toolcall,抢救到文本工具调用,0
+Mingbird,ornith1.5_35b,finish_gate,selfcheck_reinject,交付自查:回注任务原文,17
+Mingbird,ornith1.5_35b,edit_guard,shotgun_edit_warn,霰弹枪编辑提示,6
+Mingbird,ornith1.5_35b,finish_gate,tests_failed_reject,测试未通过,1
+Mingbird,qwen3.5_4b,format_rescue,alias_mapping,别名映射:,1
+Mingbird,qwen3.5_4b,finish_gate,artifact_missing_reject,产物核对:summary 声称但缺失,6
+Mingbird,qwen3.5_4b,anti_loop,break_500_loop_inject,"500 错误,已注入继续提示",0
+Mingbird,qwen3.5_4b,budget_nudge,budget_nudge_inject,预算提示已注入,0
+Mingbird,qwen3.5_4b,anti_loop,disabled_tool_hard_reset,被禁用后仍被调用,10
+Mingbird,qwen3.5_4b,anti_loop,dup_call_intercept,重复调用拦截,36
+Mingbird,qwen3.5_4b,anti_loop,empty_graceful_exit,个空轮且 3 次复位无效,0
+Mingbird,qwen3.5_4b,anti_loop,empty_turns_hard_reset,连续空轮×,0
+Mingbird,qwen3.5_4b,finish_gate,fake_finish_reject,拒绝假 finish,0
+Mingbird,qwen3.5_4b,anti_loop,force_finish_loop_guard,"本轮已足够,强制结束",0
+Mingbird,qwen3.5_4b,anti_loop,len_trunc_signature,done_reason=length 且无正文无调用,0
+Mingbird,qwen3.5_4b,finish_gate,plan_missing_reject,计划核对:计划点名但缺失,1
+Mingbird,qwen3.5_4b,plan_nudge,plan_stall_nudge,计划停滞提醒,19
+Mingbird,qwen3.5_4b,finish_gate,plan_unsynced_reject,计划未同步,15
+Mingbird,qwen3.5_4b,anti_loop,qa_guard_intercept,问答守护:拦截,0
+Mingbird,qwen3.5_4b,format_rescue,repair_conversation,修复对话结构,0
+Mingbird,qwen3.5_4b,anti_loop,repeat_output_detected,检测到重复输出,1
+Mingbird,qwen3.5_4b,format_rescue,salvage_text_toolcall,抢救到文本工具调用,0
+Mingbird,qwen3.5_4b,finish_gate,selfcheck_reinject,交付自查:回注任务原文,15
+Mingbird,qwen3.5_4b,edit_guard,shotgun_edit_warn,霰弹枪编辑提示,0
+Mingbird,qwen3.5_4b,finish_gate,tests_failed_reject,测试未通过,3
+ablation:anti_loop,gemma4_e2b,format_rescue,alias_mapping,别名映射:,1
+ablation:anti_loop,gemma4_e2b,finish_gate,artifact_missing_reject,产物核对:summary 声称但缺失,3
+ablation:anti_loop,gemma4_e2b,anti_loop,break_500_loop_inject,"500 错误,已注入继续提示",0
+ablation:anti_loop,gemma4_e2b,budget_nudge,budget_nudge_inject,预算提示已注入,0
+ablation:anti_loop,gemma4_e2b,anti_loop,disabled_tool_hard_reset,被禁用后仍被调用,0
+ablation:anti_loop,gemma4_e2b,anti_loop,dup_call_intercept,重复调用拦截,20
+ablation:anti_loop,gemma4_e2b,anti_loop,empty_graceful_exit,个空轮且 3 次复位无效,0
+ablation:anti_loop,gemma4_e2b,anti_loop,empty_turns_hard_reset,连续空轮×,3
+ablation:anti_loop,gemma4_e2b,finish_gate,fake_finish_reject,拒绝假 finish,0
+ablation:anti_loop,gemma4_e2b,anti_loop,force_finish_loop_guard,"本轮已足够,强制结束",8
+ablation:anti_loop,gemma4_e2b,anti_loop,len_trunc_signature,done_reason=length 且无正文无调用,0
+ablation:anti_loop,gemma4_e2b,finish_gate,plan_missing_reject,计划核对:计划点名但缺失,11
+ablation:anti_loop,gemma4_e2b,plan_nudge,plan_stall_nudge,计划停滞提醒,27
+ablation:anti_loop,gemma4_e2b,finish_gate,plan_unsynced_reject,计划未同步,21
+ablation:anti_loop,gemma4_e2b,anti_loop,qa_guard_intercept,问答守护:拦截,0
+ablation:anti_loop,gemma4_e2b,format_rescue,repair_conversation,修复对话结构,0
+ablation:anti_loop,gemma4_e2b,anti_loop,repeat_output_detected,检测到重复输出,17
+ablation:anti_loop,gemma4_e2b,format_rescue,salvage_text_toolcall,抢救到文本工具调用,6
+ablation:anti_loop,gemma4_e2b,finish_gate,selfcheck_reinject,交付自查:回注任务原文,14
+ablation:anti_loop,gemma4_e2b,edit_guard,shotgun_edit_warn,霰弹枪编辑提示,0
+ablation:anti_loop,gemma4_e2b,finish_gate,tests_failed_reject,测试未通过,7
+ablation:finish_gate,gemma4_e2b,format_rescue,alias_mapping,别名映射:,2
+ablation:finish_gate,gemma4_e2b,finish_gate,artifact_missing_reject,产物核对:summary 声称但缺失,0
+ablation:finish_gate,gemma4_e2b,anti_loop,break_500_loop_inject,"500 错误,已注入继续提示",0
+ablation:finish_gate,gemma4_e2b,budget_nudge,budget_nudge_inject,预算提示已注入,0
+ablation:finish_gate,gemma4_e2b,anti_loop,disabled_tool_hard_reset,被禁用后仍被调用,0
+ablation:finish_gate,gemma4_e2b,anti_loop,dup_call_intercept,重复调用拦截,11
+ablation:finish_gate,gemma4_e2b,anti_loop,empty_graceful_exit,个空轮且 3 次复位无效,0
+ablation:finish_gate,gemma4_e2b,anti_loop,empty_turns_hard_reset,连续空轮×,0
+ablation:finish_gate,gemma4_e2b,finish_gate,fake_finish_reject,拒绝假 finish,0
+ablation:finish_gate,gemma4_e2b,anti_loop,force_finish_loop_guard,"本轮已足够,强制结束",6
+ablation:finish_gate,gemma4_e2b,anti_loop,len_trunc_signature,done_reason=length 且无正文无调用,0
+ablation:finish_gate,gemma4_e2b,finish_gate,plan_missing_reject,计划核对:计划点名但缺失,0
+ablation:finish_gate,gemma4_e2b,plan_nudge,plan_stall_nudge,计划停滞提醒,22
+ablation:finish_gate,gemma4_e2b,finish_gate,plan_unsynced_reject,计划未同步,15
+ablation:finish_gate,gemma4_e2b,anti_loop,qa_guard_intercept,问答守护:拦截,0
+ablation:finish_gate,gemma4_e2b,format_rescue,repair_conversation,修复对话结构,0
+ablation:finish_gate,gemma4_e2b,anti_loop,repeat_output_detected,检测到重复输出,12
+ablation:finish_gate,gemma4_e2b,format_rescue,salvage_text_toolcall,抢救到文本工具调用,3
+ablation:finish_gate,gemma4_e2b,finish_gate,selfcheck_reinject,交付自查:回注任务原文,17
+ablation:finish_gate,gemma4_e2b,edit_guard,shotgun_edit_warn,霰弹枪编辑提示,0
+ablation:finish_gate,gemma4_e2b,finish_gate,tests_failed_reject,测试未通过,0
+ablation:flat_prefill,gemma4_e2b,format_rescue,alias_mapping,别名映射:,0
+ablation:flat_prefill,gemma4_e2b,finish_gate,artifact_missing_reject,产物核对:summary 声称但缺失,7
+ablation:flat_prefill,gemma4_e2b,anti_loop,break_500_loop_inject,"500 错误,已注入继续提示",0
+ablation:flat_prefill,gemma4_e2b,budget_nudge,budget_nudge_inject,预算提示已注入,0
+ablation:flat_prefill,gemma4_e2b,anti_loop,disabled_tool_hard_reset,被禁用后仍被调用,1
+ablation:flat_prefill,gemma4_e2b,anti_loop,dup_call_intercept,重复调用拦截,13
+ablation:flat_prefill,gemma4_e2b,anti_loop,empty_graceful_exit,个空轮且 3 次复位无效,0
+ablation:flat_prefill,gemma4_e2b,anti_loop,empty_turns_hard_reset,连续空轮×,2
+ablation:flat_prefill,gemma4_e2b,finish_gate,fake_finish_reject,拒绝假 finish,2
+ablation:flat_prefill,gemma4_e2b,anti_loop,force_finish_loop_guard,"本轮已足够,强制结束",11
+ablation:flat_prefill,gemma4_e2b,anti_loop,len_trunc_signature,done_reason=length 且无正文无调用,0
+ablation:flat_prefill,gemma4_e2b,finish_gate,plan_missing_reject,计划核对:计划点名但缺失,15
+ablation:flat_prefill,gemma4_e2b,plan_nudge,plan_stall_nudge,计划停滞提醒,27
+ablation:flat_prefill,gemma4_e2b,finish_gate,plan_unsynced_reject,计划未同步,20
+ablation:flat_prefill,gemma4_e2b,anti_loop,qa_guard_intercept,问答守护:拦截,0
+ablation:flat_prefill,gemma4_e2b,format_rescue,repair_conversation,修复对话结构,0
+ablation:flat_prefill,gemma4_e2b,anti_loop,repeat_output_detected,检测到重复输出,22
+ablation:flat_prefill,gemma4_e2b,format_rescue,salvage_text_toolcall,抢救到文本工具调用,3
+ablation:flat_prefill,gemma4_e2b,finish_gate,selfcheck_reinject,交付自查:回注任务原文,16
+ablation:flat_prefill,gemma4_e2b,edit_guard,shotgun_edit_warn,霰弹枪编辑提示,0
+ablation:flat_prefill,gemma4_e2b,finish_gate,tests_failed_reject,测试未通过,9
+ablation:verify_feedback,gemma4_e2b,format_rescue,alias_mapping,别名映射:,1
+ablation:verify_feedback,gemma4_e2b,finish_gate,artifact_missing_reject,产物核对:summary 声称但缺失,6
+ablation:verify_feedback,gemma4_e2b,anti_loop,break_500_loop_inject,"500 错误,已注入继续提示",0
+ablation:verify_feedback,gemma4_e2b,budget_nudge,budget_nudge_inject,预算提示已注入,0
+ablation:verify_feedback,gemma4_e2b,anti_loop,disabled_tool_hard_reset,被禁用后仍被调用,0
+ablation:verify_feedback,gemma4_e2b,anti_loop,dup_call_intercept,重复调用拦截,13
+ablation:verify_feedback,gemma4_e2b,anti_loop,empty_graceful_exit,个空轮且 3 次复位无效,0
+ablation:verify_feedback,gemma4_e2b,anti_loop,empty_turns_hard_reset,连续空轮×,2
+ablation:verify_feedback,gemma4_e2b,finish_gate,fake_finish_reject,拒绝假 finish,2
+ablation:verify_feedback,gemma4_e2b,anti_loop,force_finish_loop_guard,"本轮已足够,强制结束",9
+ablation:verify_feedback,gemma4_e2b,anti_loop,len_trunc_signature,done_reason=length 且无正文无调用,0
+ablation:verify_feedback,gemma4_e2b,finish_gate,plan_missing_reject,计划核对:计划点名但缺失,4
+ablation:verify_feedback,gemma4_e2b,plan_nudge,plan_stall_nudge,计划停滞提醒,27
+ablation:verify_feedback,gemma4_e2b,finish_gate,plan_unsynced_reject,计划未同步,17
+ablation:verify_feedback,gemma4_e2b,anti_loop,qa_guard_intercept,问答守护:拦截,0
+ablation:verify_feedback,gemma4_e2b,format_rescue,repair_conversation,修复对话结构,0
+ablation:verify_feedback,gemma4_e2b,anti_loop,repeat_output_detected,检测到重复输出,18
+ablation:verify_feedback,gemma4_e2b,format_rescue,salvage_text_toolcall,抢救到文本工具调用,5
+ablation:verify_feedback,gemma4_e2b,finish_gate,selfcheck_reinject,交付自查:回注任务原文,17
+ablation:verify_feedback,gemma4_e2b,edit_guard,shotgun_edit_warn,霰弹枪编辑提示,0
+ablation:verify_feedback,gemma4_e2b,finish_gate,tests_failed_reject,测试未通过,9

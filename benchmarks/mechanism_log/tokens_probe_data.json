@@ -1,0 +1,634 @@
+{
+ "quirks": [
+  "AMBIGUOUS goose/qwen3.5_4b/WF08: 4 dirs ['goose_WF08_qwen3.5_4b_m0_0918_141216', 'goose_WF08_qwen3.5_4b_m1_0918_154423', 'goose_WF08_qwen3.5_4b_m0_0918_164743', 'goose_WF08_qwen3.5_4b_m1_0918_181950']",
+  "RESOLVED goose/qwen3.5_4b/WF08 -> goose_WF08_qwen3.5_4b_m0_0918_164743 (最新无 transcript 时回退到最新含 transcript 的目录)",
+  "EMPTY TRANSCRIPT goose/qwen3.5_4b/WF08 -> goose_WF08_qwen3.5_4b_m0_0918_164743 (0 bytes)"
+ ],
+ "ctx_stats": [
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "LH01",
+   "ctx_lines": 41,
+   "ctx_peak": 14564,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "LH02",
+   "ctx_lines": 33,
+   "ctx_peak": 13081,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "LH03",
+   "ctx_lines": 106,
+   "ctx_peak": 20013,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF01",
+   "ctx_lines": 21,
+   "ctx_peak": 10376,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF02",
+   "ctx_lines": 18,
+   "ctx_peak": 7533,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF03",
+   "ctx_lines": 25,
+   "ctx_peak": 8917,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF04",
+   "ctx_lines": 22,
+   "ctx_peak": 7024,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF05",
+   "ctx_lines": 29,
+   "ctx_peak": 9679,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF06",
+   "ctx_lines": 23,
+   "ctx_peak": 7693,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF07",
+   "ctx_lines": 27,
+   "ctx_peak": 9658,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF08",
+   "ctx_lines": 20,
+   "ctx_peak": 8638,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF09",
+   "ctx_lines": 44,
+   "ctx_peak": 13020,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF10",
+   "ctx_lines": 25,
+   "ctx_peak": 8135,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF11",
+   "ctx_lines": 19,
+   "ctx_peak": 7417,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF12",
+   "ctx_lines": 20,
+   "ctx_peak": 7452,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF13",
+   "ctx_lines": 26,
+   "ctx_peak": 9637,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF14",
+   "ctx_lines": 21,
+   "ctx_peak": 7473,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_12b",
+   "task": "WF15",
+   "ctx_lines": 38,
+   "ctx_peak": 18985,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "LH01",
+   "ctx_lines": 34,
+   "ctx_peak": 19782,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "LH02",
+   "ctx_lines": 47,
+   "ctx_peak": 7011,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "LH03",
+   "ctx_lines": 95,
+   "ctx_peak": 25062,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF01",
+   "ctx_lines": 44,
+   "ctx_peak": 9971,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF02",
+   "ctx_lines": 18,
+   "ctx_peak": 6726,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF03",
+   "ctx_lines": 40,
+   "ctx_peak": 19743,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF04",
+   "ctx_lines": 36,
+   "ctx_peak": 15805,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF05",
+   "ctx_lines": 19,
+   "ctx_peak": 8494,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF06",
+   "ctx_lines": 17,
+   "ctx_peak": 6618,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF07",
+   "ctx_lines": 57,
+   "ctx_peak": 7827,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF08",
+   "ctx_lines": 43,
+   "ctx_peak": 19724,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF09",
+   "ctx_lines": 49,
+   "ctx_peak": 32767,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF10",
+   "ctx_lines": 26,
+   "ctx_peak": 9383,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF11",
+   "ctx_lines": 16,
+   "ctx_peak": 6062,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF12",
+   "ctx_lines": 24,
+   "ctx_peak": 6841,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF13",
+   "ctx_lines": 29,
+   "ctx_peak": 7626,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF14",
+   "ctx_lines": 22,
+   "ctx_peak": 6336,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "gemma4_e2b",
+   "task": "WF15",
+   "ctx_lines": 47,
+   "ctx_peak": 26557,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "LH01",
+   "ctx_lines": 56,
+   "ctx_peak": 20097,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "LH02",
+   "ctx_lines": 38,
+   "ctx_peak": 14684,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "LH03",
+   "ctx_lines": 70,
+   "ctx_peak": 26026,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF01",
+   "ctx_lines": 29,
+   "ctx_peak": 20703,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF02",
+   "ctx_lines": 21,
+   "ctx_peak": 13185,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF03",
+   "ctx_lines": 37,
+   "ctx_peak": 21646,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF04",
+   "ctx_lines": 25,
+   "ctx_peak": 10184,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF05",
+   "ctx_lines": 47,
+   "ctx_peak": 20543,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF06",
+   "ctx_lines": 34,
+   "ctx_peak": 13397,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF07",
+   "ctx_lines": 40,
+   "ctx_peak": 23188,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF08",
+   "ctx_lines": 49,
+   "ctx_peak": 14773,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF09",
+   "ctx_lines": 106,
+   "ctx_peak": 24849,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF10",
+   "ctx_lines": 47,
+   "ctx_peak": 19626,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF11",
+   "ctx_lines": 18,
+   "ctx_peak": 11460,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF12",
+   "ctx_lines": 24,
+   "ctx_peak": 20356,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF13",
+   "ctx_lines": 37,
+   "ctx_peak": 20128,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF14",
+   "ctx_lines": 32,
+   "ctx_peak": 16383,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "ornith1.5_35b",
+   "task": "WF15",
+   "ctx_lines": 63,
+   "ctx_peak": 24661,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "LH01",
+   "ctx_lines": 200,
+   "ctx_peak": 24579,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "LH02",
+   "ctx_lines": 68,
+   "ctx_peak": 17499,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "LH03",
+   "ctx_lines": 139,
+   "ctx_peak": 25022,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF01",
+   "ctx_lines": 65,
+   "ctx_peak": 14266,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF02",
+   "ctx_lines": 25,
+   "ctx_peak": 11725,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF03",
+   "ctx_lines": 48,
+   "ctx_peak": 19757,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF04",
+   "ctx_lines": 26,
+   "ctx_peak": 9473,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF05",
+   "ctx_lines": 45,
+   "ctx_peak": 19837,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF06",
+   "ctx_lines": 29,
+   "ctx_peak": 11724,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF07",
+   "ctx_lines": 63,
+   "ctx_peak": 20443,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF08",
+   "ctx_lines": 77,
+   "ctx_peak": 19665,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF09",
+   "ctx_lines": 95,
+   "ctx_peak": 18392,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF10",
+   "ctx_lines": 76,
+   "ctx_peak": 16104,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF11",
+   "ctx_lines": 200,
+   "ctx_peak": 30027,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF12",
+   "ctx_lines": 17,
+   "ctx_peak": 18660,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF13",
+   "ctx_lines": 22,
+   "ctx_peak": 11607,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF14",
+   "ctx_lines": 40,
+   "ctx_peak": 19869,
+   "ctx_budget": 32768
+  },
+  {
+   "harness": "Mingbird",
+   "model": "qwen3.5_4b",
+   "task": "WF15",
+   "ctx_lines": 98,
+   "ctx_peak": 20246,
+   "ctx_budget": 32768
+  }
+ ],
+ "token_coverage_by_arm": {
+  "Mingbird": {
+   "files": 72,
+   "with_ctx": 72,
+   "with_eval_count_str": 0,
+   "with_token_word": 6
+  },
+  "agent-mini": {
+   "files": 72,
+   "with_ctx": 0,
+   "with_eval_count_str": 0,
+   "with_token_word": 1
+  },
+  "goose": {
+   "files": 72,
+   "with_ctx": 0,
+   "with_eval_count_str": 0,
+   "with_token_word": 28
+  },
+  "opencode": {
+   "files": 72,
+   "with_ctx": 0,
+   "with_eval_count_str": 0,
+   "with_token_word": 9
+  },
+  "ablation": {
+   "files": 72,
+   "with_ctx": 72,
+   "with_eval_count_str": 0,
+   "with_token_word": 3
+  }
+ },
+ "score_json_keys": [
+  "agent",
+  "domain",
+  "exit_code",
+  "failure_mode",
+  "final_details",
+  "final_score",
+  "milestone_details",
+  "milestone_score",
+  "model",
+  "resume",
+  "run_id",
+  "task_id",
+  "total",
+  "wall_seconds"
+ ],
+ "score_json_with_token_fields": 0
+}

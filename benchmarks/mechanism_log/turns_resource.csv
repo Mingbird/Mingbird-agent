@@ -1,0 +1,289 @@
+harness,model,task,tool_calls,attempt_dir,method,note,ctx_lines,ctx_peak_tokens
+Mingbird,gemma4_12b,LH01,41,mingbird_LH01_gemma4_12b_m0_0914_014928,[\d|\+s] ⚙ 行,ctx预算=32768,41,14564
+Mingbird,gemma4_12b,LH02,32,mingbird_LH02_gemma4_12b_m0_0914_020019,[\d|\+s] ⚙ 行,ctx预算=32768,33,13081
+Mingbird,gemma4_12b,LH03,102,mingbird_LH03_gemma4_12b_m0_0914_021248,[\d|\+s] ⚙ 行,ctx预算=32768,106,20013
+Mingbird,gemma4_12b,WF01,20,mingbird_WF01_gemma4_12b_m0_0914_023727,[\d|\+s] ⚙ 行,ctx预算=32768,21,10376
+Mingbird,gemma4_12b,WF02,18,mingbird_WF02_gemma4_12b_m0_0914_024533,[\d|\+s] ⚙ 行,ctx预算=32768,18,7533
+Mingbird,gemma4_12b,WF03,23,mingbird_WF03_gemma4_12b_m0_0914_025134,[\d|\+s] ⚙ 行,ctx预算=32768,25,8917
+Mingbird,gemma4_12b,WF04,22,mingbird_WF04_gemma4_12b_m0_0914_030025,[\d|\+s] ⚙ 行,ctx预算=32768,22,7024
+Mingbird,gemma4_12b,WF05,26,mingbird_WF05_gemma4_12b_m0_0914_030552,[\d|\+s] ⚙ 行,ctx预算=32768,29,9679
+Mingbird,gemma4_12b,WF06,22,mingbird_WF06_gemma4_12b_m0_0914_031330,[\d|\+s] ⚙ 行,ctx预算=32768,23,7693
+Mingbird,gemma4_12b,WF07,27,mingbird_WF07_gemma4_12b_m0_0914_031950,[\d|\+s] ⚙ 行,ctx预算=32768,27,9658
+Mingbird,gemma4_12b,WF08,20,mingbird_WF08_gemma4_12b_m0_0914_032712,[\d|\+s] ⚙ 行,ctx预算=32768,20,8638
+Mingbird,gemma4_12b,WF09,43,mingbird_WF09_gemma4_12b_m0_0914_033709,[\d|\+s] ⚙ 行,ctx预算=32768,44,13020
+Mingbird,gemma4_12b,WF10,22,mingbird_WF10_gemma4_12b_m0_0914_035200,[\d|\+s] ⚙ 行,ctx预算=32768,25,8135
+Mingbird,gemma4_12b,WF11,19,mingbird_WF11_gemma4_12b_m0_0914_035821,[\d|\+s] ⚙ 行,ctx预算=32768,19,7417
+Mingbird,gemma4_12b,WF12,19,mingbird_WF12_gemma4_12b_m0_0914_040440,[\d|\+s] ⚙ 行,ctx预算=32768,20,7452
+Mingbird,gemma4_12b,WF13,24,mingbird_WF13_gemma4_12b_m0_0914_041142,[\d|\+s] ⚙ 行,ctx预算=32768,26,9637
+Mingbird,gemma4_12b,WF14,21,mingbird_WF14_gemma4_12b_m0_0914_042354,[\d|\+s] ⚙ 行,ctx预算=32768,21,7473
+Mingbird,gemma4_12b,WF15,38,mingbird_WF15_gemma4_12b_m0_0914_043003,[\d|\+s] ⚙ 行,ctx预算=32768,38,18985
+Mingbird,gemma4_e2b,LH01,33,mingbird_LH01_gemma4_e2b_m0_0913_234546,[\d|\+s] ⚙ 行,ctx预算=32768,34,19782
+Mingbird,gemma4_e2b,LH02,41,mingbird_LH02_gemma4_e2b_m0_0913_234919,[\d|\+s] ⚙ 行,ctx预算=32768,47,7011
+Mingbird,gemma4_e2b,LH03,91,mingbird_LH03_gemma4_e2b_m0_0913_235228,[\d|\+s] ⚙ 行,ctx预算=32768,95,25062
+Mingbird,gemma4_e2b,WF01,35,mingbird_WF01_gemma4_e2b_m0_0914_000146,[\d|\+s] ⚙ 行,ctx预算=32768,44,9971
+Mingbird,gemma4_e2b,WF02,15,mingbird_WF02_gemma4_e2b_m0_0914_000442,[\d|\+s] ⚙ 行,ctx预算=32768,18,6726
+Mingbird,gemma4_e2b,WF03,36,mingbird_WF03_gemma4_e2b_m0_0914_000606,[\d|\+s] ⚙ 行,ctx预算=32768,40,19743
+Mingbird,gemma4_e2b,WF04,34,mingbird_WF04_gemma4_e2b_m0_0914_002004,[\d|\+s] ⚙ 行,ctx预算=32768,36,15805
+Mingbird,gemma4_e2b,WF05,18,mingbird_WF05_gemma4_e2b_m0_0914_002250,[\d|\+s] ⚙ 行,ctx预算=32768,19,8494
+Mingbird,gemma4_e2b,WF06,17,mingbird_WF06_gemma4_e2b_m0_0914_002426,[\d|\+s] ⚙ 行,ctx预算=32768,17,6618
+Mingbird,gemma4_e2b,WF07,50,mingbird_WF07_gemma4_e2b_m0_0914_002554,[\d|\+s] ⚙ 行,ctx预算=32768,57,7827
+Mingbird,gemma4_e2b,WF08,33,mingbird_WF08_gemma4_e2b_m0_0914_002836,[\d|\+s] ⚙ 行,ctx预算=32768,43,19724
+Mingbird,gemma4_e2b,WF09,39,mingbird_WF09_gemma4_e2b_m0_0914_003438,[\d|\+s] ⚙ 行,ctx预算=32768,49,32767
+Mingbird,gemma4_e2b,WF10,25,mingbird_WF10_gemma4_e2b_m0_0914_011928,[\d|\+s] ⚙ 行,ctx预算=32768,26,9383
+Mingbird,gemma4_e2b,WF11,16,mingbird_WF11_gemma4_e2b_m0_0914_012144,[\d|\+s] ⚙ 行,ctx预算=32768,16,6062
+Mingbird,gemma4_e2b,WF12,20,mingbird_WF12_gemma4_e2b_m0_0914_012304,[\d|\+s] ⚙ 行,ctx预算=32768,24,6841
+Mingbird,gemma4_e2b,WF13,26,mingbird_WF13_gemma4_e2b_m0_0914_012442,[\d|\+s] ⚙ 行,ctx预算=32768,29,7626
+Mingbird,gemma4_e2b,WF14,21,mingbird_WF14_gemma4_e2b_m0_0914_012626,[\d|\+s] ⚙ 行,ctx预算=32768,22,6336
+Mingbird,gemma4_e2b,WF15,43,mingbird_WF15_gemma4_e2b_m0_0914_012751,[\d|\+s] ⚙ 行,ctx预算=32768,47,26557
+Mingbird,ornith1.5_35b,LH01,56,mingbird_LH01_ornith1.5_35b_m0_0914_045649,[\d|\+s] ⚙ 行,ctx预算=32768,56,20097
+Mingbird,ornith1.5_35b,LH02,38,mingbird_LH02_ornith1.5_35b_m0_0914_050623,[\d|\+s] ⚙ 行,ctx预算=32768,38,14684
+Mingbird,ornith1.5_35b,LH03,94,mingbird_LH03_ornith1.5_35b_m0_0914_051205,[\d|\+s] ⚙ 行,ctx预算=32768,70,26026
+Mingbird,ornith1.5_35b,WF01,29,mingbird_WF01_ornith1.5_35b_m0_0914_052635,[\d|\+s] ⚙ 行,ctx预算=32768,29,20703
+Mingbird,ornith1.5_35b,WF02,21,mingbird_WF02_ornith1.5_35b_m0_0914_053425,[\d|\+s] ⚙ 行,ctx预算=32768,21,13185
+Mingbird,ornith1.5_35b,WF03,44,mingbird_WF03_ornith1.5_35b_m0_0914_053937,[\d|\+s] ⚙ 行,ctx预算=32768,37,21646
+Mingbird,ornith1.5_35b,WF04,28,mingbird_WF04_ornith1.5_35b_m0_0914_054756,[\d|\+s] ⚙ 行,ctx预算=32768,25,10184
+Mingbird,ornith1.5_35b,WF05,47,mingbird_WF05_ornith1.5_35b_m0_0914_055120,[\d|\+s] ⚙ 行,ctx预算=32768,47,20543
+Mingbird,ornith1.5_35b,WF06,33,mingbird_WF06_ornith1.5_35b_m0_0914_055939,[\d|\+s] ⚙ 行,ctx预算=32768,34,13397
+Mingbird,ornith1.5_35b,WF07,84,mingbird_WF07_ornith1.5_35b_m0_0914_060515,[\d|\+s] ⚙ 行,ctx预算=32768,40,23188
+Mingbird,ornith1.5_35b,WF08,59,mingbird_WF08_ornith1.5_35b_m0_0914_062257,[\d|\+s] ⚙ 行,ctx预算=32768,49,14773
+Mingbird,ornith1.5_35b,WF09,113,mingbird_WF09_ornith1.5_35b_m0_0914_062820,[\d|\+s] ⚙ 行,ctx预算=32768,106,24849
+Mingbird,ornith1.5_35b,WF10,50,mingbird_WF10_ornith1.5_35b_m0_0914_065224,[\d|\+s] ⚙ 行,ctx预算=32768,47,19626
+Mingbird,ornith1.5_35b,WF11,30,mingbird_WF11_ornith1.5_35b_m0_0914_070009,[\d|\+s] ⚙ 行,ctx预算=32768,18,11460
+Mingbird,ornith1.5_35b,WF12,33,mingbird_WF12_ornith1.5_35b_m0_0914_070431,[\d|\+s] ⚙ 行,ctx预算=32768,24,20356
+Mingbird,ornith1.5_35b,WF13,37,mingbird_WF13_ornith1.5_35b_m0_0914_071442,[\d|\+s] ⚙ 行,ctx预算=32768,37,20128
+Mingbird,ornith1.5_35b,WF14,32,mingbird_WF14_ornith1.5_35b_m0_0914_072505,[\d|\+s] ⚙ 行,ctx预算=32768,32,16383
+Mingbird,ornith1.5_35b,WF15,75,mingbird_WF15_ornith1.5_35b_m0_0914_073201,[\d|\+s] ⚙ 行,ctx预算=32768,63,24661
+Mingbird,qwen3.5_4b,LH01,198,mingbird_LH01_qwen3.5_4b_m0_0913_155735,[\d|\+s] ⚙ 行,ctx预算=32768,200,24579
+Mingbird,qwen3.5_4b,LH02,64,mingbird_LH02_qwen3.5_4b_m0_0913_161914,[\d|\+s] ⚙ 行,ctx预算=32768,68,17499
+Mingbird,qwen3.5_4b,LH03,136,mingbird_LH03_qwen3.5_4b_m0_0913_163034,[\d|\+s] ⚙ 行,ctx预算=32768,139,25022
+Mingbird,qwen3.5_4b,WF01,59,mingbird_WF01_qwen3.5_4b_m0_0913_164640,[\d|\+s] ⚙ 行,ctx预算=32768,65,14266
+Mingbird,qwen3.5_4b,WF02,23,mingbird_WF02_qwen3.5_4b_m0_0913_165927,[\d|\+s] ⚙ 行,ctx预算=32768,25,11725
+Mingbird,qwen3.5_4b,WF03,47,mingbird_WF03_qwen3.5_4b_m0_0913_170410,[\d|\+s] ⚙ 行,ctx预算=32768,48,19757
+Mingbird,qwen3.5_4b,WF04,27,mingbird_WF04_qwen3.5_4b_m0_0913_171508,[\d|\+s] ⚙ 行,ctx预算=32768,26,9473
+Mingbird,qwen3.5_4b,WF05,41,mingbird_WF05_qwen3.5_4b_m0_0913_171823,[\d|\+s] ⚙ 行,ctx预算=32768,45,19837
+Mingbird,qwen3.5_4b,WF06,24,mingbird_WF06_qwen3.5_4b_m0_0913_172647,[\d|\+s] ⚙ 行,ctx预算=32768,29,11724
+Mingbird,qwen3.5_4b,WF07,58,mingbird_WF07_qwen3.5_4b_m0_0913_173143,[\d|\+s] ⚙ 行,ctx预算=32768,63,20443
+Mingbird,qwen3.5_4b,WF08,95,mingbird_WF08_qwen3.5_4b_m0_0913_174240,[\d|\+s] ⚙ 行,ctx预算=32768,77,19665
+Mingbird,qwen3.5_4b,WF09,89,mingbird_WF09_qwen3.5_4b_m0_0913_210334,[\d|\+s] ⚙ 行,ctx预算=32768,95,18392
+Mingbird,qwen3.5_4b,WF10,73,mingbird_WF10_qwen3.5_4b_m0_0913_215419,[\d|\+s] ⚙ 行,ctx预算=32768,76,16104
+Mingbird,qwen3.5_4b,WF11,200,mingbird_WF11_qwen3.5_4b_m0_0913_220231,[\d|\+s] ⚙ 行,ctx预算=32768,200,30027
+Mingbird,qwen3.5_4b,WF12,27,mingbird_WF12_qwen3.5_4b_m0_0913_225843,[\d|\+s] ⚙ 行,ctx预算=32768,17,18660
+Mingbird,qwen3.5_4b,WF13,21,mingbird_WF13_qwen3.5_4b_m0_0913_231113,[\d|\+s] ⚙ 行,ctx预算=32768,22,11607
+Mingbird,qwen3.5_4b,WF14,38,mingbird_WF14_qwen3.5_4b_m0_0913_231724,[\d|\+s] ⚙ 行,ctx预算=32768,40,19869
+Mingbird,qwen3.5_4b,WF15,102,mingbird_WF15_qwen3.5_4b_m0_0913_232822,[\d|\+s] ⚙ 行,ctx预算=32768,98,20246
+agent-mini,gemma4_12b,LH01,40,agentmini_LH01_gemma4_12b_m0_0903_141904,⚡ 工具行,,0,
+agent-mini,gemma4_12b,LH02,16,agentmini_LH02_gemma4_12b_m0_0903_142751,⚡ 工具行,,0,
+agent-mini,gemma4_12b,LH03,40,agentmini_LH03_gemma4_12b_m0_0903_143253,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF01,8,agentmini_WF01_gemma4_12b_m0_0903_144201,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF02,14,agentmini_WF02_gemma4_12b_m0_0903_144915,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF03,8,agentmini_WF03_gemma4_12b_m0_0903_145645,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF04,2,agentmini_WF04_gemma4_12b_m0_0903_150312,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF05,40,agentmini_WF05_gemma4_12b_m0_0903_151939,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF06,7,agentmini_WF06_gemma4_12b_m0_0903_153044,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF07,11,agentmini_WF07_gemma4_12b_m0_0903_154847,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF08,4,agentmini_WF08_gemma4_12b_m0_0903_155945,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF09,1,agentmini_WF09_gemma4_12b_m0_0903_160533,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF10,9,agentmini_WF10_gemma4_12b_m0_0903_162131,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF11,3,agentmini_WF11_gemma4_12b_m0_0903_162517,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF12,11,agentmini_WF12_gemma4_12b_m0_0903_164204,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF13,14,agentmini_WF13_gemma4_12b_m0_0903_165511,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF14,1,agentmini_WF14_gemma4_12b_m0_0903_170342,⚡ 工具行,,0,
+agent-mini,gemma4_12b,WF15,7,agentmini_WF15_gemma4_12b_m0_0903_171939,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,LH01,5,agentmini_LH01_gemma4_e2b_m0_0902_164043,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,LH02,2,agentmini_LH02_gemma4_e2b_m0_0902_164232,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,LH03,8,agentmini_LH03_gemma4_e2b_m0_0902_164344,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF01,7,agentmini_WF01_gemma4_e2b_m0_0902_164513,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF02,4,agentmini_WF02_gemma4_e2b_m0_0902_164652,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF03,4,agentmini_WF03_gemma4_e2b_m0_0902_164818,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF04,4,agentmini_WF04_gemma4_e2b_m0_0902_165030,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF05,3,agentmini_WF05_gemma4_e2b_m0_0902_165144,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF06,7,agentmini_WF06_gemma4_e2b_m0_0902_165306,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF07,5,agentmini_WF07_gemma4_e2b_m0_0902_165447,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF08,5,agentmini_WF08_gemma4_e2b_m0_0902_165620,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF09,3,agentmini_WF09_gemma4_e2b_m0_0902_165739,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF10,2,agentmini_WF10_gemma4_e2b_m0_0902_165853,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF11,6,agentmini_WF11_gemma4_e2b_m0_0902_170007,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF12,3,agentmini_WF12_gemma4_e2b_m0_0902_170201,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF13,5,agentmini_WF13_gemma4_e2b_m0_0902_170317,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF14,6,agentmini_WF14_gemma4_e2b_m0_0902_170522,⚡ 工具行,,0,
+agent-mini,gemma4_e2b,WF15,8,agentmini_WF15_gemma4_e2b_m0_0902_170658,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,LH01,3,agentmini_LH01_ornith1.5_35b_m0_0904_150406,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,LH02,1,agentmini_LH02_ornith1.5_35b_m0_0904_150519,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,LH03,19,agentmini_LH03_ornith1.5_35b_m0_0904_150620,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF01,2,agentmini_WF01_ornith1.5_35b_m0_0904_150835,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF02,3,agentmini_WF02_ornith1.5_35b_m0_0904_150947,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF03,2,agentmini_WF03_ornith1.5_35b_m0_0904_151200,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF04,1,agentmini_WF04_ornith1.5_35b_m0_0904_151309,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF05,3,agentmini_WF05_ornith1.5_35b_m0_0904_151414,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF06,4,agentmini_WF06_ornith1.5_35b_m0_0904_151525,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF07,7,agentmini_WF07_ornith1.5_35b_m0_0904_151639,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF08,8,agentmini_WF08_ornith1.5_35b_m0_0904_151812,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF09,4,agentmini_WF09_ornith1.5_35b_m0_0904_151936,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF10,1,agentmini_WF10_ornith1.5_35b_m0_0904_152050,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF11,4,agentmini_WF11_ornith1.5_35b_m0_0904_152154,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF12,5,agentmini_WF12_ornith1.5_35b_m0_0904_152325,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF13,4,agentmini_WF13_ornith1.5_35b_m0_0904_152550,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF14,11,agentmini_WF14_ornith1.5_35b_m0_0904_152742,⚡ 工具行,,0,
+agent-mini,ornith1.5_35b,WF15,9,agentmini_WF15_ornith1.5_35b_m0_0904_153251,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,LH01,22,agentmini_LH01_qwen3.5_4b_m0_0903_034509,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,LH02,19,agentmini_LH02_qwen3.5_4b_m0_0903_035008,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,LH03,10,agentmini_LH03_qwen3.5_4b_m0_0903_035254,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF01,12,agentmini_WF01_qwen3.5_4b_m0_0903_035440,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF02,15,agentmini_WF02_qwen3.5_4b_m0_0903_035858,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF03,8,agentmini_WF03_qwen3.5_4b_m0_0903_040239,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF04,21,agentmini_WF04_qwen3.5_4b_m0_0903_040601,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF05,40,agentmini_WF05_qwen3.5_4b_m0_0903_040946,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF06,18,agentmini_WF06_qwen3.5_4b_m0_0903_041324,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF07,7,agentmini_WF07_qwen3.5_4b_m0_0903_041620,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF08,40,agentmini_WF08_qwen3.5_4b_m0_0903_041736,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF09,40,agentmini_WF09_qwen3.5_4b_m0_0903_042355,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF10,40,agentmini_WF10_qwen3.5_4b_m0_0903_042724,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF11,14,agentmini_WF11_qwen3.5_4b_m0_0903_043429,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF12,14,agentmini_WF12_qwen3.5_4b_m0_0903_043818,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF13,40,agentmini_WF13_qwen3.5_4b_m0_0903_044320,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF14,11,agentmini_WF14_qwen3.5_4b_m0_0903_044734,⚡ 工具行,,0,
+agent-mini,qwen3.5_4b,WF15,41,agentmini_WF15_qwen3.5_4b_m0_0903_045215,⚡ 工具行,,0,
+goose,gemma4_e2b,WF01,2,goose_WF01_gemma4_e2b_m0_0918_100327,▸ 工具行,,0,
+goose,gemma4_e2b,WF02,4,goose_WF02_gemma4_e2b_m0_0918_100441,▸ 工具行,,0,
+goose,gemma4_e2b,WF03,10,goose_WF03_gemma4_e2b_m0_0918_100557,▸ 工具行,,0,
+goose,gemma4_e2b,WF04,11,goose_WF04_gemma4_e2b_m0_0918_100828,▸ 工具行,,0,
+goose,gemma4_e2b,WF05,4,goose_WF05_gemma4_e2b_m0_0918_101017,▸ 工具行,,0,
+goose,gemma4_e2b,WF06,7,goose_WF06_gemma4_e2b_m0_0918_101147,▸ 工具行,,0,
+goose,gemma4_e2b,WF07,4,goose_WF07_gemma4_e2b_m0_0918_101313,▸ 工具行,,0,
+goose,gemma4_e2b,WF08,6,goose_WF08_gemma4_e2b_m0_0918_101429,▸ 工具行,,0,
+goose,gemma4_e2b,WF09,5,goose_WF09_gemma4_e2b_m0_0918_101624,▸ 工具行,,0,
+goose,gemma4_e2b,WF10,17,goose_WF10_gemma4_e2b_m0_0918_101757,▸ 工具行,,0,
+goose,gemma4_e2b,WF11,5,goose_WF11_gemma4_e2b_m0_0918_101940,▸ 工具行,,0,
+goose,gemma4_e2b,WF12,16,goose_WF12_gemma4_e2b_m0_0918_102105,▸ 工具行,,0,
+goose,gemma4_e2b,WF13,8,goose_WF13_gemma4_e2b_m0_0918_102327,▸ 工具行,,0,
+goose,gemma4_e2b,WF14,4,goose_WF14_gemma4_e2b_m0_0918_102516,▸ 工具行,,0,
+goose,gemma4_e2b,WF15,4,goose_WF15_gemma4_e2b_m0_0918_102635,▸ 工具行,,0,
+goose,gemma4_e2b,LH01,14,goose_LH01_gemma4_e2b_m0_0918_095824,▸ 工具行,,0,
+goose,gemma4_e2b,LH02,2,goose_LH02_gemma4_e2b_m0_0918_100032,▸ 工具行,,0,
+goose,gemma4_e2b,LH03,15,goose_LH03_gemma4_e2b_m0_0918_100145,▸ 工具行,,0,
+goose,qwen3.5_4b,WF01,11,goose_WF01_qwen3.5_4b_m0_0918_120702,▸ 工具行,,0,
+goose,qwen3.5_4b,WF02,90,goose_WF02_qwen3.5_4b_m0_0918_121429,▸ 工具行,,0,
+goose,qwen3.5_4b,WF03,26,goose_WF03_qwen3.5_4b_m0_0918_123422,▸ 工具行,,0,
+goose,qwen3.5_4b,WF04,24,goose_WF04_qwen3.5_4b_m0_0918_124942,▸ 工具行,,0,
+goose,qwen3.5_4b,WF05,36,goose_WF05_qwen3.5_4b_m0_0918_125400,▸ 工具行,,0,
+goose,qwen3.5_4b,WF06,62,goose_WF06_qwen3.5_4b_m0_0918_131110,▸ 工具行,,0,
+goose,qwen3.5_4b,WF07,180,goose_WF07_qwen3.5_4b_m0_0918_133131,▸ 工具行,,0,
+goose,qwen3.5_4b,WF08,0,goose_WF08_qwen3.5_4b_m0_0918_164743,▸ 工具行,"transcript 为 0 字节(超时被杀,无任何日志)",0,
+goose,qwen3.5_4b,WF09,27,goose_WF09_qwen3.5_4b_m0_0918_202323,▸ 工具行,,0,
+goose,qwen3.5_4b,WF10,242,goose_WF10_qwen3.5_4b_m0_0918_203544,▸ 工具行,,0,
+goose,qwen3.5_4b,WF11,15,goose_WF11_qwen3.5_4b_m0_0918_205601,▸ 工具行,,0,
+goose,qwen3.5_4b,WF12,26,goose_WF12_qwen3.5_4b_m0_0918_210047,▸ 工具行,,0,
+goose,qwen3.5_4b,WF13,28,goose_WF13_qwen3.5_4b_m0_0918_211410,▸ 工具行,,0,
+goose,qwen3.5_4b,WF14,14,goose_WF14_qwen3.5_4b_m0_0918_213436,▸ 工具行,,0,
+goose,qwen3.5_4b,WF15,46,goose_WF15_qwen3.5_4b_m0_0918_214154,▸ 工具行,,0,
+goose,qwen3.5_4b,LH01,46,goose_LH01_qwen3.5_4b_m0_0918_104819,▸ 工具行,,0,
+goose,qwen3.5_4b,LH02,121,goose_LH02_qwen3.5_4b_m0_0918_110730,▸ 工具行,,0,
+goose,qwen3.5_4b,LH03,54,goose_LH03_qwen3.5_4b_m0_0918_113850,▸ 工具行,,0,
+goose,gemma4_12b,WF01,12,goose_WF01_gemma4_12b_m0_0919_115041,▸ 工具行,,0,
+goose,gemma4_12b,WF02,9,goose_WF02_gemma4_12b_m0_0919_121412,▸ 工具行,,0,
+goose,gemma4_12b,WF03,42,goose_WF03_gemma4_12b_m0_0919_122548,▸ 工具行,,0,
+goose,gemma4_12b,WF04,7,goose_WF04_gemma4_12b_m0_0919_131446,▸ 工具行,,0,
+goose,gemma4_12b,WF05,12,goose_WF05_gemma4_12b_m0_0919_141320,▸ 工具行,,0,
+goose,gemma4_12b,WF06,12,goose_WF06_gemma4_12b_m0_0919_151658,▸ 工具行,,0,
+goose,gemma4_12b,WF07,13,goose_WF07_gemma4_12b_m0_0919_152718,▸ 工具行,,0,
+goose,gemma4_12b,WF08,12,goose_WF08_gemma4_12b_m0_0919_153934,▸ 工具行,,0,
+goose,gemma4_12b,WF09,17,goose_WF09_gemma4_12b_m0_0919_155704,▸ 工具行,,0,
+goose,gemma4_12b,WF10,11,goose_WF10_gemma4_12b_m0_0919_163903,▸ 工具行,,0,
+goose,gemma4_12b,WF11,8,goose_WF11_gemma4_12b_m0_0919_164659,▸ 工具行,,0,
+goose,gemma4_12b,WF12,14,goose_WF12_gemma4_12b_m0_0919_165600,▸ 工具行,,0,
+goose,gemma4_12b,WF13,15,goose_WF13_gemma4_12b_m0_0919_170926,▸ 工具行,,0,
+goose,gemma4_12b,WF14,9,goose_WF14_gemma4_12b_m0_0919_172314,▸ 工具行,,0,
+goose,gemma4_12b,WF15,17,goose_WF15_gemma4_12b_m0_0919_173603,▸ 工具行,,0,
+goose,gemma4_12b,LH01,39,goose_LH01_gemma4_12b_m0_0919_111304,▸ 工具行,,0,
+goose,gemma4_12b,LH02,10,goose_LH02_gemma4_12b_m0_0919_113155,▸ 工具行,,0,
+goose,gemma4_12b,LH03,1,goose_LH03_gemma4_12b_m0_0919_114102,▸ 工具行,,0,
+goose,ornith1.5_35b,WF01,27,goose_WF01_ornith1.5_35b_m0_0919_192215,▸ 工具行,,0,
+goose,ornith1.5_35b,WF02,22,goose_WF02_ornith1.5_35b_m0_0919_194054,▸ 工具行,,0,
+goose,ornith1.5_35b,WF03,28,goose_WF03_ornith1.5_35b_m0_0919_195750,▸ 工具行,,0,
+goose,ornith1.5_35b,WF04,21,goose_WF04_ornith1.5_35b_m0_0919_201228,▸ 工具行,,0,
+goose,ornith1.5_35b,WF05,41,goose_WF05_ornith1.5_35b_m0_0919_201833,▸ 工具行,,0,
+goose,ornith1.5_35b,WF06,40,goose_WF06_ornith1.5_35b_m0_0919_204348,▸ 工具行,,0,
+goose,ornith1.5_35b,WF07,72,goose_WF07_ornith1.5_35b_m0_0919_205616,▸ 工具行,,0,
+goose,ornith1.5_35b,WF08,11,goose_WF08_ornith1.5_35b_m0_0919_212218,▸ 工具行,,0,
+goose,ornith1.5_35b,WF09,63,goose_WF09_ornith1.5_35b_m0_0919_212832,▸ 工具行,,0,
+goose,ornith1.5_35b,WF10,63,goose_WF10_ornith1.5_35b_m0_0919_215508,▸ 工具行,,0,
+goose,ornith1.5_35b,WF11,33,goose_WF11_ornith1.5_35b_m0_0919_221307,▸ 工具行,,0,
+goose,ornith1.5_35b,WF12,22,goose_WF12_ornith1.5_35b_m0_0919_223157,▸ 工具行,,0,
+goose,ornith1.5_35b,WF13,17,goose_WF13_ornith1.5_35b_m0_0919_224415,▸ 工具行,,0,
+goose,ornith1.5_35b,WF14,16,goose_WF14_ornith1.5_35b_m0_0919_225253,▸ 工具行,,0,
+goose,ornith1.5_35b,WF15,36,goose_WF15_ornith1.5_35b_m0_0919_230428,▸ 工具行,,0,
+goose,ornith1.5_35b,LH01,11,goose_LH01_ornith1.5_35b_m0_0919_183519,▸ 工具行,,0,
+goose,ornith1.5_35b,LH02,13,goose_LH02_ornith1.5_35b_m0_0919_184122,▸ 工具行,,0,
+goose,ornith1.5_35b,LH03,76,goose_LH03_ornith1.5_35b_m0_0919_184508,▸ 工具行,,0,
+opencode,gemma4_e2b,WF01,0,opencode_WF01_gemma4_e2b_m0_0918_103101,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF02,0,opencode_WF02_gemma4_e2b_m0_0918_103210,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF03,0,opencode_WF03_gemma4_e2b_m0_0918_103320,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF04,0,opencode_WF04_gemma4_e2b_m0_0918_103428,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF05,0,opencode_WF05_gemma4_e2b_m0_0918_103539,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF06,0,opencode_WF06_gemma4_e2b_m0_0918_103646,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF07,0,opencode_WF07_gemma4_e2b_m0_0918_103746,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF08,0,opencode_WF08_gemma4_e2b_m0_0918_103856,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF09,0,opencode_WF09_gemma4_e2b_m0_0918_104004,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF10,0,opencode_WF10_gemma4_e2b_m0_0918_104115,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF11,0,opencode_WF11_gemma4_e2b_m0_0918_104224,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF12,0,opencode_WF12_gemma4_e2b_m0_0918_104337,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF13,0,opencode_WF13_gemma4_e2b_m0_0918_104447,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF14,0,opencode_WF14_gemma4_e2b_m0_0918_104558,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,WF15,0,opencode_WF15_gemma4_e2b_m0_0918_104708,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,LH01,0,opencode_LH01_gemma4_e2b_m0_0918_102751,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,LH02,0,opencode_LH02_gemma4_e2b_m0_0918_102854,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_e2b,LH03,0,opencode_LH03_gemma4_e2b_m0_0918_102956,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF01,4,opencode_WF01_qwen3.5_4b_m0_0918_231511,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF02,11,opencode_WF02_qwen3.5_4b_m0_0918_233337,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF03,162,opencode_WF03_qwen3.5_4b_m0_0918_234150,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF04,10,opencode_WF04_qwen3.5_4b_m0_0919_000741,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF05,197,opencode_WF05_qwen3.5_4b_m0_0919_001420,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF06,230,opencode_WF06_qwen3.5_4b_m0_0919_003646,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF07,127,opencode_WF07_qwen3.5_4b_m0_0919_010130,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF08,74,opencode_WF08_qwen3.5_4b_m0_0919_012357,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF09,109,opencode_WF09_qwen3.5_4b_m0_0919_014108,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF10,14,opencode_WF10_qwen3.5_4b_m0_0919_015854,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF11,6,opencode_WF11_qwen3.5_4b_m0_0919_020437,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF12,108,opencode_WF12_qwen3.5_4b_m0_0919_021219,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF13,8,opencode_WF13_qwen3.5_4b_m0_0919_023216,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF14,5,opencode_WF14_qwen3.5_4b_m0_0919_024350,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,WF15,69,opencode_WF15_qwen3.5_4b_m0_0919_025937,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,LH01,2,opencode_LH01_qwen3.5_4b_m0_0918_220125,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,LH02,15,opencode_LH02_qwen3.5_4b_m0_0918_220352,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,qwen3.5_4b,LH03,125,opencode_LH03_qwen3.5_4b_m0_0918_221134,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF01,2,opencode_WF01_gemma4_12b_m0_0919_032240,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF02,2,opencode_WF02_gemma4_12b_m0_0919_041230,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF03,8,opencode_WF03_gemma4_12b_m0_0919_042101,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF04,5,opencode_WF04_gemma4_12b_m0_0919_043943,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF05,4,opencode_WF05_gemma4_12b_m0_0919_054304,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF06,5,opencode_WF06_gemma4_12b_m0_0919_055132,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF07,1,opencode_WF07_gemma4_12b_m0_0919_055952,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF08,2,opencode_WF08_gemma4_12b_m0_0919_061055,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF09,115,opencode_WF09_gemma4_12b_m0_0919_062049,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF10,5,opencode_WF10_gemma4_12b_m0_0919_072019,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF11,2,opencode_WF11_gemma4_12b_m0_0919_073007,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF12,1,opencode_WF12_gemma4_12b_m0_0919_074259,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF13,4,opencode_WF13_gemma4_12b_m0_0919_075125,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF14,2,opencode_WF14_gemma4_12b_m0_0919_080407,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,WF15,2,opencode_WF15_gemma4_12b_m0_0919_081137,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,LH01,0,opencode_LH01_gemma4_12b_m0_0919_031646,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,LH02,0,opencode_LH02_gemma4_12b_m0_0919_031846,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,gemma4_12b,LH03,0,opencode_LH03_gemma4_12b_m0_0919_032045,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF01,10,opencode_WF01_ornith1.5_35b_m0_0919_083713,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF02,9,opencode_WF02_ornith1.5_35b_m0_0919_084717,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF03,11,opencode_WF03_ornith1.5_35b_m0_0919_085451,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF04,10,opencode_WF04_ornith1.5_35b_m0_0919_090043,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF05,12,opencode_WF05_ornith1.5_35b_m0_0919_090650,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF06,11,opencode_WF06_ornith1.5_35b_m0_0919_091339,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF07,5,opencode_WF07_ornith1.5_35b_m0_0919_092136,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF08,13,opencode_WF08_ornith1.5_35b_m0_0919_093313,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF09,21,opencode_WF09_ornith1.5_35b_m0_0919_095608,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF10,23,opencode_WF10_ornith1.5_35b_m0_0919_100608,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF11,10,opencode_WF11_ornith1.5_35b_m0_0919_101553,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF12,7,opencode_WF12_ornith1.5_35b_m0_0919_102437,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF13,8,opencode_WF13_ornith1.5_35b_m0_0919_103442,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF14,6,opencode_WF14_ornith1.5_35b_m0_0919_104415,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,WF15,18,opencode_WF15_ornith1.5_35b_m0_0919_105146,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,LH01,7,opencode_LH01_ornith1.5_35b_m0_0919_081559,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,LH02,13,opencode_LH02_ornith1.5_35b_m0_0919_082046,$ 命令行 + → 动作行(ANSI 剥离),,0,
+opencode,ornith1.5_35b,LH03,28,opencode_LH03_ornith1.5_35b_m0_0919_082719,$ 命令行 + → 动作行(ANSI 剥离),,0,
