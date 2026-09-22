@@ -1067,7 +1067,7 @@ _DANGER_CMD = ("rm -rf", "rm -fr", "format c:", "format c:\\", "del /s /q c:", "
 #   卸载/环境变异 → 有人值守询问,无人值守(run_bench)拒绝+指路;
 #   递归删除 → 仅允许工作目录内,目录外拒绝;
 #   覆盖自毁 → create_file 见下方 overwrite-guard。
-# AGENT_UNSAFE=1 关闭全部安全垫(高级用户);AGENT_ALLOW_ENV_MUTATION=1 允许无人值守卸载/环境变异。
+# AGENT_UNSAFE=1 仅旁路行为分级环(卸载/环境变异/越界递归删除的分级判定);硬拒环(不可逆命令/敏感路径/子代理沙箱/可回滚)不受影响。AGENT_ALLOW_ENV_MUTATION=1 允许无人值守卸载/环境变异。
 _UNINSTALL_RE = re.compile(
     r"\b(pip3?|python\s+-m\s+pip)\s+uninstall\b|\bnpm\s+uninstall\b|\byarn\s+remove\b|"
     r"\bwinget\s+uninstall\b|\bchoco\s+(uninstall|remove)\b|\bapt(-get)?\s+(remove|purge)\b|"
