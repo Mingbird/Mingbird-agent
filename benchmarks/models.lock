@@ -28,3 +28,8 @@ projector_layer: sha256:675ad6e68101ca9413ec406855c452362f0213f2dfc5800996b086fd
 manifest_sha256: 9f3b89b2521908dd2e6f7a11fa368e62c8f89e1075f22604e4d1a76dd1240fcc
 model_layer: sha256:aaeb640f98a892980ef54876024293cc8d6987a86523aa1b947ffa9274ef800a
 model_layer_bytes: 21713462848
+
+[model.minicpm5-2b]  # alias of openbmb/minicpm5-2b (same manifest 71a44e98400f)
+manifest_sha256: 71a44e98400fbd490d66332a0ebba31143479a714987c13f45c82e94025cbfa7
+note: created 2026-09-22 via 'ollama cp openbmb/minicpm5-2b minicpm5-2b' for slash-free
+      result naming; same weights as the upstream tag (ollama list ID 71a44e98400f)
