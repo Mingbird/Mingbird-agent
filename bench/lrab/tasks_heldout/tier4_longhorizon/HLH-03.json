@@ -1,0 +1,170 @@
+{
+  "id": "HLH-03",
+  "domain": "long-horizon-endurance-reverse",
+  "version": "1.0",
+  "fixtures": [
+    "fixtures/buggy_pipeline_pkg/m01.py",
+    "fixtures/buggy_pipeline_pkg/m02.py",
+    "fixtures/buggy_pipeline_pkg/m03.py",
+    "fixtures/buggy_pipeline_pkg/m04.py",
+    "fixtures/buggy_pipeline_pkg/m05.py",
+    "fixtures/buggy_pipeline_pkg/m06.py",
+    "fixtures/buggy_pipeline_pkg/m07.py",
+    "fixtures/buggy_pipeline_pkg/m08.py",
+    "fixtures/buggy_pipeline_pkg/m09.py",
+    "fixtures/buggy_pipeline_pkg/m10.py",
+    "fixtures/buggy_pipeline_pkg/test_suite.py"
+  ],
+  "milestones": [
+    {
+      "artifact": "baseline_failures.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "diag_m01.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "diag_m02.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "diag_m03.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "diag_m04.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "diag_m05.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "diag_m06.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "diag_m07.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "diag_m08.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "diag_m09.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "diag_m10.md",
+      "check": "exists"
+    }
+  ],
+  "required_plan_steps_min": 15,
+  "plan_steps": [
+    "Produce your plan (todo tool if available, otherwise plan.md).",
+    "Read test_suite.py first, then run python test_suite.py and capture the baseline output verbatim into baseline_failures.md.",
+    "Module m01 (calc_mean): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m01.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.",
+    "Module m02 (calc_median): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m02.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.",
+    "Module m03 (calc_variance): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m03.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.",
+    "Module m04 (calc_slope): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m04.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.",
+    "Module m05 (calc_interp): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m05.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.",
+    "Module m06 (calc_smooth): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m06.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.",
+    "Module m07 (calc_normalize): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m07.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.",
+    "Module m08 (calc_integrate): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m08.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.",
+    "Module m09 (calc_roots): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m09.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.",
+    "Module m10 (calc_fit): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m10.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.",
+    "Write fix_narrative.md (300+ words): every fix with its root cause, in the order you applied them.",
+    "Run the full suite one last time; record the output.",
+    "Write final_report.md with sections 'all tests' and 'regression'."
+  ],
+  "prompt": "You are an autonomous agent operating inside the current working directory. BEFORE anything else, write out a numbered plan that covers every step listed below. Use the planning/todo tool you have; if you have none, put the plan into plan.md. Then carry out the steps in order, writing every required file under the exact filename stated. This is a long task: push through ALL steps and do not stop early. Never fabricate content: every number you report must come from computation on the provided fixture files. When every artifact exists and has been verified, close with a brief summary.\n\nRepair the 10-module signal pipeline (m01.py..m10.py plus test_suite.py are in the current directory; each module holds exactly one bug). Capture the baseline FIRST, then fix modules strictly in REVERSE order (m10 down to m01).\n\nRequired steps (plan at least 15):\n1. Produce your plan (todo tool if available, otherwise plan.md).\n2. Read test_suite.py first, then run python test_suite.py and capture the baseline output verbatim into baseline_failures.md.\n3. Module m01 (calc_mean): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m01.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.\n4. Module m02 (calc_median): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m02.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.\n5. Module m03 (calc_variance): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m03.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.\n6. Module m04 (calc_slope): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m04.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.\n7. Module m05 (calc_interp): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m05.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.\n8. Module m06 (calc_smooth): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m06.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.\n9. Module m07 (calc_normalize): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m07.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.\n10. Module m08 (calc_integrate): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m08.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.\n11. Module m09 (calc_roots): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m09.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.\n12. Module m10 (calc_fit): starting from the CURRENT failure list entry, diagnose, fix, re-run the suite, write diag_m10.md (bug, root cause, fix). Work strictly in REVERSE order m10 -> m01.\n13. Write fix_narrative.md (300+ words): every fix with its root cause, in the order you applied them.\n14. Run the full suite one last time; record the output.\n15. Write final_report.md with sections 'all tests' and 'regression'.",
+  "max_wall_minutes": 90,
+  "resume_test": true,
+  "kill_at_pct": 50,
+  "final_artifacts": [
+    {
+      "artifact": "m01.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "m02.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "m03.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "m04.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "m05.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "m06.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "m07.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "m08.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "m09.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "m10.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "test_suite.py",
+      "check": "script_pass",
+      "params": {
+        "command": "python test_suite.py",
+        "expect_stdout": "10 passed, 0 failed",
+        "timeout_s": 120
+      }
+    },
+    {
+      "artifact": "fix_narrative.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 300
+      }
+    },
+    {
+      "artifact": "fix_narrative.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "mean",
+          "median",
+          "variance",
+          "slope",
+          "interp"
+        ]
+      }
+    },
+    {
+      "artifact": "final_report.md",
+      "check": "structure",
+      "params": {
+        "required_sections": [
+          "all tests",
+          "regression"
+        ]
+      }
+    }
+  ],
+  "judge_rubric": "../tasks_heldout/rubrics/HLH-03.md",
+  "notes": "",
+  "extra_judge_note": ""
+}

@@ -1,0 +1,68 @@
+{
+  "id": "HWF-05",
+  "domain": "quarantine-cleaning-pipeline",
+  "fixtures": [
+    "fixtures/messy_sensor_data.csv"
+  ],
+  "milestones": [
+    {
+      "artifact": "profile_notes.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "scrub.py",
+      "check": "python_compiles"
+    }
+  ],
+  "prompt": "You are working as an autonomous agent in this directory. Your first action is to produce a numbered plan spanning all of the steps below (minimum 8 steps); use a todo/planning tool when available, otherwise save it as plan.md. Afterwards work through the steps sequentially and create each required file with precisely the filename given. Do not fabricate anything: ground every claim in the fixture files provided here. When everything is written and verified, close with a short summary of what was produced.\n\nScrub the environmental log messy_sensor_data.csv in this directory — but unlike a silent drop, every removed row must be accounted for.\n\nKnown defect classes: an impossible sentinel temperature, one physically unreasonable value, a row with a missing field, status='error' rows, and an exact duplicate row.\n\nRequired sequence (plan at least 8 steps):\n1. Produce your plan.\n2. Write profile_notes.md: total rows, sensors present, and the count of each defect class you actually observe (inspect, do not guess).\n3. Write scrub.py implementing: drop exact duplicates; drop status != ok; treat temperature outside [-30, 60] as invalid; drop rows with any empty field. Every drop must append a line to rejected.csv carrying the original row plus a reason column.\n4. Run it: tidy_data.csv keeps the same header and only surviving rows; rejected.csv holds every dropped row with its reason.\n5. Produce sensor_rollup.csv (sensor_id, n_readings, mean_temp, min_temp, max_temp, all rounded to 2 decimals) computed from tidy_data.csv only.\n6. Write validation_ledger.md: rows in, dropped per rule, rows out — the arithmetic must balance; note the re-scan showing tidy_data.csv is free of every defect class.\n7. Verify all artifacts and finish.",
+  "final_artifacts": [
+    {
+      "artifact": "tidy_data.csv",
+      "check": "exists"
+    },
+    {
+      "artifact": "rejected.csv",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "9999",
+          "-40"
+        ]
+      }
+    },
+    {
+      "artifact": "sensor_rollup.csv",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "SN-01",
+          "SN-02",
+          "SN-03"
+        ]
+      }
+    },
+    {
+      "artifact": "validation_ledger.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 110
+      }
+    }
+  ],
+  "plan_steps": [
+    "Write the numbered plan",
+    "Inventory the raw file and count every defect class",
+    "Write scrub.py (clean + quarantine with reasons)",
+    "Produce tidy_data.csv (survivors only) and rejected.csv (one line per drop)",
+    "Write sensor_rollup.csv from the CLEAN rows only",
+    "Write validation_ledger.md with rows-in/dropped/out arithmetic",
+    "Re-scan tidy_data.csv for residual defects",
+    "Final verification"
+  ],
+  "version": "1.0",
+  "required_plan_steps_min": 8,
+  "judge_rubric": "../tasks_heldout/rubrics/HWF-05.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

@@ -1,0 +1,64 @@
+{
+  "id": "HWF-10",
+  "domain": "cli-cheatsheet-documentation",
+  "fixtures": [
+    "fixtures/app_source/timetrack.py"
+  ],
+  "milestones": [
+    {
+      "artifact": "cli_cheatsheet.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "start",
+          "stop",
+          "report"
+        ]
+      }
+    },
+    {
+      "artifact": "quickstart.md",
+      "check": "exists"
+    }
+  ],
+  "prompt": "You are working as an autonomous agent in this directory. Your first action is to produce a numbered plan spanning all of the steps below (minimum 8 steps); use a todo/planning tool when available, otherwise save it as plan.md. Afterwards work through the steps sequentially and create each required file with precisely the filename given. Do not fabricate anything: ground every claim in the fixture files provided here. When everything is written and verified, close with a short summary of what was produced.\n\nProduce operator documentation for the timetrack.py CLI in this directory: a cheat-sheet-first package built from the source AND from actually running it.\n\nRequired sequence (plan at least 8 steps):\n1. Produce your plan.\n2. Read timetrack.py fully; list every subcommand, argument and default.\n3. Really run: python timetrack.py start --note \"docs run\" docs-project; then stop; then report --since <today>. Keep the transcripts.\n4. Write cli_cheatsheet.md: one table per subcommand (syntax, options, effect), at least 240 words overall.\n5. Write quickstart.md: a 15-minute path from zero to first weekly report.\n6. Write usage_examples.md with at least 2 real captured transcripts in fenced blocks.\n7. Write failure_modes.md: every error path visible in the source (already-running timer, stopping with nothing running, empty report) with the exact message text and the recovery action.\n8. Re-run every documented command to confirm the docs match reality, then finish.",
+  "final_artifacts": [
+    {
+      "artifact": "usage_examples.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "failure_modes.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "already running",
+          "No running timer"
+        ]
+      }
+    },
+    {
+      "artifact": "cli_cheatsheet.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 230
+      }
+    }
+  ],
+  "plan_steps": [
+    "Write the numbered plan",
+    "Read timetrack.py and enumerate the command surface",
+    "Actually run each command; capture outputs",
+    "Write cli_cheatsheet.md (one table per subcommand)",
+    "Write quickstart.md (15-minute guide)",
+    "Write usage_examples.md with >=2 fenced real transcripts",
+    "Write failure_modes.md from the source's error paths",
+    "Verify every documented command runs as documented"
+  ],
+  "version": "1.0",
+  "required_plan_steps_min": 8,
+  "judge_rubric": "../tasks_heldout/rubrics/HWF-10.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

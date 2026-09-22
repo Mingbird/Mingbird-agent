@@ -1,0 +1,158 @@
+{
+  "id": "HLH-02",
+  "domain": "long-horizon-context-pressure-variant",
+  "version": "1.0",
+  "fixtures": [
+    "fixtures/process_corpus.txt"
+  ],
+  "milestones": [
+    {
+      "artifact": "wordlen_index.json",
+      "check": "contains_groups",
+      "params": {
+        "groups": [
+          [
+            "stress"
+          ],
+          [
+            "fraction"
+          ],
+          [
+            "structure"
+          ],
+          [
+            "energy"
+          ]
+        ],
+        "min_ratio": 1.0
+      }
+    }
+  ],
+  "required_plan_steps_min": 10,
+  "plan_steps": [
+    "Produce your plan (todo tool if available, otherwise plan.md).",
+    "Check process_corpus.txt size — it far exceeds any context window; plan to script it.",
+    "Write stream_stats.py that reads the file line by line (never whole into context).",
+    "Compute the frequency table restricted to words of length >= 6, plus per-topic line counts, plus the number of lines containing the word 'energy'.",
+    "Write wordlen_index.json: the top-8 length>=6 words with exact counts.",
+    "Detect exact duplicate lines and count them via the script.",
+    "Write topic_counts.md with a section per topic (at least 'diffusion' and 'creep') giving lines per topic.",
+    "Write energy_report.md stating how many lines contain 'energy' and how that compares to the theoretical even share.",
+    "Write distinct_report.md (120+ words): raw lines vs distinct lines, duplicate count, method, one worked example.",
+    "Re-run stream_stats.py and confirm every reported number reproduces."
+  ],
+  "prompt": "You are an autonomous agent operating inside the current working directory. BEFORE anything else, write out a numbered plan that covers every step listed below. Use the planning/todo tool you have; if you have none, put the plan into plan.md. Then carry out the steps in order, writing every required file under the exact filename stated. This is a long task: push through ALL steps and do not stop early. Never fabricate content: every number you report must come from computation on the provided fixture files. When every artifact exists and has been verified, close with a brief summary.\n\nProcess process_corpus.txt (far larger than your context window) with a long-word lens: index only words of at least 6 letters, count per-topic lines, and quantify the lines containing 'energy'.\n\nRequired steps (plan at least 10):\n1. Produce your plan (todo tool if available, otherwise plan.md).\n2. Check process_corpus.txt size — it far exceeds any context window; plan to script it.\n3. Write stream_stats.py that reads the file line by line (never whole into context).\n4. Compute the frequency table restricted to words of length >= 6, plus per-topic line counts, plus the number of lines containing the word 'energy'.\n5. Write wordlen_index.json: the top-8 length>=6 words with exact counts.\n6. Detect exact duplicate lines and count them via the script.\n7. Write topic_counts.md with a section per topic (at least 'diffusion' and 'creep') giving lines per topic.\n8. Write energy_report.md stating how many lines contain 'energy' and how that compares to the theoretical even share.\n9. Write distinct_report.md (120+ words): raw lines vs distinct lines, duplicate count, method, one worked example.\n10. Re-run stream_stats.py and confirm every reported number reproduces.",
+  "max_wall_minutes": 90,
+  "resume_test": false,
+  "final_artifacts": [
+    {
+      "artifact": "stream_stats.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "wordlen_index.json",
+      "check": "contains_groups",
+      "params": {
+        "groups": [
+          [
+            "stress"
+          ],
+          [
+            "fraction"
+          ],
+          [
+            "structure"
+          ],
+          [
+            "energy"
+          ],
+          [
+            "temperature"
+          ],
+          [
+            "process"
+          ],
+          [
+            "boundary"
+          ],
+          [
+            "sample"
+          ]
+        ],
+        "min_ratio": 1.0
+      }
+    },
+    {
+      "artifact": "wordlen_index.json",
+      "check": "contains_groups",
+      "params": {
+        "groups": [
+          [
+            "3726",
+            "3,726"
+          ],
+          [
+            "3609",
+            "3,609"
+          ],
+          [
+            "3609",
+            "3,609"
+          ],
+          [
+            "3594",
+            "3,594"
+          ],
+          [
+            "3588",
+            "3,588"
+          ],
+          [
+            "3569",
+            "3,569"
+          ],
+          [
+            "3530",
+            "3,530"
+          ],
+          [
+            "3517",
+            "3,517"
+          ]
+        ],
+        "min_ratio": 1.0
+      }
+    },
+    {
+      "artifact": "topic_counts.md",
+      "check": "structure",
+      "params": {
+        "required_sections": [
+          "diffusion",
+          "creep"
+        ]
+      }
+    },
+    {
+      "artifact": "energy_report.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "2714",
+          "2714.0",
+          "2714.00"
+        ]
+      }
+    },
+    {
+      "artifact": "distinct_report.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 120
+      }
+    }
+  ],
+  "judge_rubric": "../tasks_heldout/rubrics/HLH-02.md",
+  "notes": "",
+  "extra_judge_note": ""
+}

@@ -1,0 +1,51 @@
+{
+  "id": "HWF-04",
+  "domain": "characterization-first-debugging",
+  "fixtures": [
+    "fixtures/buggy_project/inventory.py",
+    "fixtures/buggy_project/test_inventory.py"
+  ],
+  "milestones": [
+    {
+      "artifact": "failure_analysis.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "repro_tests.py",
+      "check": "exists"
+    }
+  ],
+  "prompt": "You are an autonomous agent operating inside the current working directory. BEFORE anything else, write out a numbered plan that covers every step listed below (no fewer than 8 steps). Use the planning/todo tool you have; if you have none, put the plan into plan.md. Then carry out the steps in order, writing every required file under the exact filename stated. Never invent content: every statement must be traceable to the fixture files shipped in this directory. Once every artifact exists and has been checked, wrap up with a brief completion summary.\n\nThe two-file project in this directory (inventory.py, test_inventory.py) fails its tests. test_inventory.py is the immutable specification.\n\nWork order (plan at least 8 steps):\n1. Produce your plan.\n2. Copy inventory.py and test_inventory.py into the working directory if they are not already here; run python -m pytest test_inventory.py -q and paste the failing output into failure_analysis.md.\n3. In failure_analysis.md give one section per bug: failing test, root cause in the source, planned repair. Four distinct bugs are planted.\n4. BEFORE changing inventory.py, write repro_tests.py: small direct pytest cases (one per bug) that each demonstrate the faulty behaviour. Run it and attach the output to failure_analysis.md.\n5. Repair inventory.py. Public signatures must not change; test_inventory.py must not be edited.\n6. Re-run both suites until everything is green.\n7. Write regression_notes.md: per bug one line describing the actual code change, plus the tail of the final pytest run.\n8. Verify python -m py_compile inventory.py and finish.",
+  "final_artifacts": [
+    {
+      "artifact": "inventory.py",
+      "check": "spec_pytest",
+      "params": {
+        "seed_rel": "fixtures/buggy_project/test_inventory.py",
+        "command": "python -m pytest test_inventory.py -q",
+        "expect_stdout": "6 passed",
+        "timeout_s": 180
+      }
+    },
+    {
+      "artifact": "regression_notes.md",
+      "check": "exists"
+    }
+  ],
+  "plan_steps": [
+    "Write the numbered plan",
+    "Run the failing suite and capture the baseline",
+    "Analyse each failure in failure_analysis.md",
+    "Write repro_tests.py reproducing every symptom BEFORE fixing",
+    "Fix inventory.py without touching test_inventory.py",
+    "Re-run pytest until 6/6 green",
+    "Record the diff rationale in regression_notes.md",
+    "Final compile + suite verification"
+  ],
+  "version": "1.0",
+  "required_plan_steps_min": 8,
+  "judge_rubric": "../tasks_heldout/rubrics/HWF-04.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

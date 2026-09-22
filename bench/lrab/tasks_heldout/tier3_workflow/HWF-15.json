@@ -1,0 +1,64 @@
+{
+  "id": "HWF-15",
+  "domain": "alternate-method-reproducibility-audit",
+  "fixtures": [
+    "fixtures/experiment_description.md",
+    "fixtures/raw_measurements.csv"
+  ],
+  "milestones": [
+    {
+      "artifact": "method_note.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "threshold",
+          "offset",
+          "crossing"
+        ]
+      }
+    },
+    {
+      "artifact": "onsets2.csv",
+      "check": "exists"
+    }
+  ],
+  "prompt": "You are working as an autonomous agent in this directory. Your first action is to produce a numbered plan spanning all of the steps below (minimum 9 steps); use a todo/planning tool when available, otherwise save it as plan.md. Afterwards work through the steps sequentially and create each required file with precisely the filename given. Do not fabricate anything: ground every claim in the fixture files provided here. When everything is written and verified, close with a short summary of what was produced.\n\nRe-audit the aging-kinetics paper from experiment_description.md with a DIFFERENT onset extractor than the paper's tangent method: an offset-threshold rule. raw_measurements.csv holds the five resistivity series (500-580C).\n\nRequired sequence (plan at least 9 steps):\n1. Produce your plan.\n2. Read both fixtures; write data_notes.md: per series, time range, sampling step, and the time of the resistivity minimum.\n3. Write method_note.md defining your rule precisely: t0 = the first sampled time STRICTLY AFTER the series minimum at which resistivity has risen 1.0 uOhm*cm above that minimum. State why a fixed-offset threshold is more reproducible than tangent intersection between analysts.\n4. Implement threshold_onsets.py accordingly and emit onsets2.csv (temperature_C, t0_min) for all five series.\n5. Implement ea_recompute.py: least-squares fit of ln(1/t0) = ln A - Ea/R * (1/T); print Ea in kJ/mol and R^2; run it on onsets2.csv.\n6. Save the fitted plot with labelled axes as fig_offset.png.\n7. Write audit2_report.md (320+ words): recomputed Ea and R^2 versus the claimed 152 kJ/mol, answers to the four audit questions in the description, and a verdict (reproduced / partially / not) grounded in YOUR numbers.\n8. Verify every number in the report matches a script output, then finish.",
+  "final_artifacts": [
+    {
+      "artifact": "ea_recompute.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "fig_offset.png",
+      "check": "image_valid",
+      "params": {
+        "min_width": 200,
+        "min_height": 100
+      }
+    },
+    {
+      "artifact": "audit2_report.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 290
+      }
+    }
+  ],
+  "plan_steps": [
+    "Write the numbered plan",
+    "Read experiment_description.md and raw_measurements.csv",
+    "Specify the offset-threshold onset rule in method_note.md",
+    "Implement threshold_onsets.py; produce onsets2.csv for the five series",
+    "Implement ea_recompute.py (Arrhenius least squares on ln(1/t0) vs 1/T)",
+    "Plot the fit as fig_offset.png",
+    "Write audit2_report.md comparing with 152 kJ/mol",
+    "State a verdict with justification",
+    "Final verification"
+  ],
+  "version": "1.0",
+  "required_plan_steps_min": 9,
+  "judge_rubric": "../tasks_heldout/rubrics/HWF-15.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

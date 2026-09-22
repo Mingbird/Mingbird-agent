@@ -1,0 +1,58 @@
+{
+  "id": "HWF-09",
+  "domain": "benchmarked-refactor",
+  "fixtures": [
+    "fixtures/legacy_slow_code.py"
+  ],
+  "milestones": [
+    {
+      "artifact": "hotspot_notes.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "baseline_outputs.json",
+      "check": "exists"
+    }
+  ],
+  "prompt": "You are working as an autonomous agent in this directory. Your first action is to produce a numbered plan spanning all of the steps below (minimum 9 steps); use a todo/planning tool when available, otherwise save it as plan.md. Afterwards work through the steps sequentially and create each required file with precisely the filename given. Do not fabricate anything: ground every claim in the fixture files provided here. When everything is written and verified, close with a short summary of what was produced.\n\nSpeed up legacy_slow_code.py (in this directory) while preserving its behaviour exactly. Deliver a benchmarked, equivalence-proved replacement.\n\nRequired sequence (plan at least 9 steps):\n1. Produce your plan.\n2. Read the module and write hotspot_notes.md: for each of the four documented hot spots, what it does and why it is slow.\n3. Write make_workload.py: build a deterministic corpus (>=40 .txt files, >=150 lines each, seeded pseudo-random English-like text) under workload/.\n4. Copy the original to reference_impl.py, run it on a reduced corpus and store its top_terms and dedupe_lines outputs in baseline_outputs.json.\n5. cProfile the original on the reduced corpus; save the top-15 lines to profile_before.txt.\n6. Write fast_impl.py exposing the same functions with the same signatures; use sound data structures (one-pass counting, sets for dedup...).\n7. Write bench.py timing both implementations on the SAME corpus (perf_counter, best of 3) and writing bench_report.md: baseline s, optimized s, speedup x.\n8. Equivalence: compare fast_impl outputs on the reduced corpus against baseline_outputs.json, assert equality, record the assertion outcome in bench_report.md. Then finish.",
+  "final_artifacts": [
+    {
+      "artifact": "fast_impl.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "bench_report.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 140
+      }
+    },
+    {
+      "artifact": "bench_report.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "top_terms",
+          "term_frequency"
+        ]
+      }
+    }
+  ],
+  "plan_steps": [
+    "Write the numbered plan",
+    "Read legacy_slow_code.py and explain the four hot spots",
+    "Write make_workload.py generating a deterministic corpus",
+    "Capture reference outputs into baseline_outputs.json",
+    "Profile with cProfile; save the top functions to profile_before.txt",
+    "Write fast_impl.py with identical behaviour",
+    "Benchmark both with bench.py; record numbers in bench_report.md",
+    "Prove equivalence against baseline_outputs.json",
+    "Final verification"
+  ],
+  "version": "1.0",
+  "required_plan_steps_min": 9,
+  "judge_rubric": "../tasks_heldout/rubrics/HWF-09.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

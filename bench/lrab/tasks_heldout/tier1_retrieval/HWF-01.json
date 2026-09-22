@@ -1,0 +1,67 @@
+{
+  "id": "HWF-01",
+  "domain": "materials-recent-literature-map",
+  "fixtures": [
+    "fixtures/papers_db.jsonl"
+  ],
+  "milestones": [
+    {
+      "artifact": "screening_log.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "S009",
+          "S003",
+          "S018",
+          "S004"
+        ]
+      }
+    },
+    {
+      "artifact": "property_matrix.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "TC18",
+          "Ti-5553",
+          "Ti-6Al-4V",
+          "Ti-6Al-7Nb"
+        ]
+      }
+    }
+  ],
+  "prompt": "You are an autonomous agent operating inside the current working directory. BEFORE anything else, write out a numbered plan that covers every step listed below (no fewer than 8 steps). Use the planning/todo tool you have; if you have none, put the plan into plan.md. Then carry out the steps in order, writing every required file under the exact filename stated. Never invent content: every statement must be traceable to the fixture files shipped in this directory. Once every artifact exists and has been checked, wrap up with a brief completion summary.\n\nAct as a literature scout for a titanium-alloy group. The file papers_db.jsonl in this directory holds 18 records. Build a map of the RECENT literature only: every paper published in 2022 or later.\n\nDeliverables and required order (the plan must list at least 8 steps):\n1. Produce your plan first.\n2. Read papers_db.jsonl and select every record with year >= 2022; there are 11 of them and every one must appear in screening_log.md as: id, title, first author, year, DOI.\n3. Write property_matrix.md: one row per selected paper with the alloy studied and whatever quantitative properties the record carries (UTS, elongation, temperatures...). Cells must quote the fixture verbatim; use 'n/a' when a record carries no value.\n4. In gap_analysis.md, describe at least two points where the recent records disagree in trend or scope, quoting the record ids that clash.\n5. Write recent_review.md (target 460 words or more) with the sections Trends, Methods landscape, Gaps, References.\n6. Cite records inline as [Sxxx]; a marker may only be used if that id exists in papers_db.jsonl.\n7. Write citation_index.md mapping each marker used to its full citation line.\n8. Confirm all five files exist, then finish.",
+  "final_artifacts": [
+    {
+      "artifact": "recent_review.md",
+      "check": "structure",
+      "params": {
+        "required_sections": [
+          "Trends",
+          "References"
+        ],
+        "min_words": 340
+      }
+    },
+    {
+      "artifact": "citation_index.md",
+      "check": "exists"
+    }
+  ],
+  "plan_steps": [
+    "Write the numbered plan",
+    "Screen papers_db.jsonl for year >= 2022 (11 expected)",
+    "Record the screening decisions in screening_log.md",
+    "Build property_matrix.md from values actually present in the fixture",
+    "Hunt for contradicting trends between recent papers -> gap_analysis.md",
+    "Draft recent_review.md with inline [Sn] markers",
+    "Write citation_index.md resolving every marker",
+    "Final existence check of all five artifacts"
+  ],
+  "version": "1.0",
+  "required_plan_steps_min": 8,
+  "judge_rubric": "../tasks_heldout/rubrics/HWF-01.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

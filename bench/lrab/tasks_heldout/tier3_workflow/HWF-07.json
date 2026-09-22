@@ -1,0 +1,56 @@
+{
+  "id": "HWF-07",
+  "domain": "web-research-knowledge-base-selection",
+  "fixtures": [],
+  "milestones": [
+    {
+      "artifact": "needs.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "landscape.md",
+      "check": "min_urls",
+      "params": {
+        "min_urls": 5
+      }
+    }
+  ],
+  "prompt": "You are an autonomous agent operating inside the current working directory. BEFORE anything else, write out a numbered plan that covers every step listed below (no fewer than 9 steps). Use the planning/todo tool you have; if you have none, put the plan into plan.md. Then carry out the steps in order, writing every required file under the exact filename stated. Never invent content: every statement must be traceable to the fixture files shipped in this directory. Once every artifact exists and has been checked, wrap up with a brief completion summary.\n\nResearch task (use your web_search / web_fetch or MCP search tools): a three-person research group wants a self-hosted, offline-tolerant markdown knowledge base with full-text search that must run comfortably on a single 4 GB RAM ARM board. Recommend one.\n\nRequired sequence (plan at least 9 steps):\n1. Produce your plan.\n2. Write needs.md: at least 5 weighted criteria derived from the constraints above (resource ceiling, offline behaviour, search quality, packaging, backup/export), each with a justification line.\n3. Search the web and record at least 5 candidate projects in landscape.md, one line plus source URL each.\n4. Shortlist 3 in shortlist_notes.md with explicit keep/drop reasons.\n5. For each shortlisted candidate fetch its docs/GitHub page and extract: license, runtime, stated minimum RAM, search implementation, last release date.\n6. Write matrix.md: criteria rows, candidate columns, cells holding sourced facts.\n7. Write verdict.md (250+ words): the scored decision, what the losers do better, and what fact would flip the recommendation. Every factual claim carries a URL.\n8. List every consulted URL in links.md (>=5 unique). Verify all files, then finish.",
+  "final_artifacts": [
+    {
+      "artifact": "matrix.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "verdict.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 220
+      }
+    },
+    {
+      "artifact": "links.md",
+      "check": "min_urls",
+      "params": {
+        "min_urls": 5
+      }
+    }
+  ],
+  "plan_steps": [
+    "Write the numbered plan",
+    "Derive >=5 weighted criteria in needs.md",
+    "Web-search >=5 candidates into landscape.md (URL each)",
+    "Shortlist 3 with reasons",
+    "Fetch primary pages for the shortlist",
+    "Build matrix.md (criteria x candidates)",
+    "Write verdict.md with trade-offs",
+    "Collect all URLs in links.md",
+    "Final verification"
+  ],
+  "version": "1.0",
+  "required_plan_steps_min": 9,
+  "judge_rubric": "../tasks_heldout/rubrics/HWF-07.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

@@ -1,0 +1,55 @@
+{
+  "id": "HWF-12",
+  "domain": "research-software-course-design",
+  "fixtures": [],
+  "milestones": [
+    {
+      "artifact": "syllabus.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "module_map.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "Week 10",
+          "week 10"
+        ]
+      }
+    }
+  ],
+  "prompt": "You are an autonomous agent operating inside the current working directory. BEFORE anything else, write out a numbered plan that covers every step listed below (no fewer than 8 steps). Use the planning/todo tool you have; if you have none, put the plan into plan.md. Then carry out the steps in order, writing every required file under the exact filename stated. Never invent content: every statement must be traceable to the fixture files shipped in this directory. Once every artifact exists and has been checked, wrap up with a brief completion summary.\n\nDesign a 10-week seminar course: 'Reliable Research Software for Experimental Scientists' (2h session per week; audience: 3rd-year undergraduates in materials or chemistry who have completed one introductory Python course; no git, no testing background assumed).\n\nRequired sequence (plan at least 8 steps):\n1. Produce your plan.\n2. Write syllabus.md: audience, prerequisites, and 5 measurable course-level learning outcomes (action verbs).\n3. Write module_map.md: for each of the 10 weeks — topic, 3 content bullets, the activity, and which learning outcome it serves. Cover at minimum: version control, automated testing, data provenance, reproducible environments, and one lab-data case study.\n4. Write sessions/session01.md and sessions/session02.md: slide-level outlines (>=10 slides each) with timing.\n5. Write assignments/project_brief.md: a graded project where students take a messy raw CSV from their lab, version it, clean it with a tested script, and reproduce one figure; state deliverables and marking points.\n6. Write grading_scheme.md: table mapping each assessment component to learning outcomes and Bloom levels.\n7. Write readings.md: at least 5 real, linkable resources (>=5 URLs).\n8. Confirm outcome codes are used consistently across files, then finish.",
+  "final_artifacts": [
+    {
+      "artifact": "sessions/session01.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "assignments/project_brief.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "readings.md",
+      "check": "min_urls",
+      "params": {
+        "min_urls": 5
+      }
+    }
+  ],
+  "plan_steps": [
+    "Write the numbered plan",
+    "Fix audience, prerequisites and outcomes in syllabus.md",
+    "Map all 10 weeks in module_map.md",
+    "Detail sessions 1-2 in sessions/session01.md, session02.md",
+    "Design assignments/project_brief.md",
+    "Write grading_scheme.md",
+    "Write readings.md with >=5 real resources",
+    "Verify cross-references"
+  ],
+  "version": "1.0",
+  "required_plan_steps_min": 8,
+  "judge_rubric": "../tasks_heldout/rubrics/HWF-12.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

@@ -1,0 +1,47 @@
+{
+  "id": "HWF-11",
+  "domain": "tco-driven-product-selection",
+  "fixtures": [
+    "fixtures/product_briefs.md"
+  ],
+  "milestones": [
+    {
+      "artifact": "tco_model.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "fit_scores.md",
+      "check": "exists"
+    }
+  ],
+  "prompt": "You are an autonomous agent operating inside the current working directory. BEFORE anything else, write out a numbered plan that covers every step listed below (no fewer than 8 steps). Use the planning/todo tool you have; if you have none, put the plan into plan.md. Then carry out the steps in order, writing every required file under the exact filename stated. Never invent content: every statement must be traceable to the fixture files shipped in this directory. Once every artifact exists and has been checked, wrap up with a brief completion summary.\n\nA commercial contract-testing startup (6 users today, growing to 10) must pick a lab-information tool from product_briefs.md (in this directory). Non-negotiables: commercial licensing OK, data exportable to CSV at any time, working offline during client-site visits with poor connectivity.\n\nRequired sequence (plan at least 8 steps):\n1. Produce your plan.\n2. Read product_briefs.md and build tco_model.md: 3-year total cost of ownership per product for 6 then 10 users (licenses, hosting, onboarding/ops), with the assumptions stated per line.\n3. Write fit_scores.md: score each product 1-5 against each non-negotiable plus at least three criteria you derive yourself, one justification line per score.\n4. Write migration_risk.md: for the leading option, what it takes to move in and — critically — to move OUT later (data, formats, lock-in), with at least 3 risks.\n5. Write decision_memo.md (280+ words): the recommendation, the runner-up and why it lost, the TCO delta, and what change would force a re-decision.\n6. Verify every number in the memo traces to tco_model.md or the brief; note the check inside decision_memo.md, then finish.",
+  "final_artifacts": [
+    {
+      "artifact": "decision_memo.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 270
+      }
+    },
+    {
+      "artifact": "migration_risk.md",
+      "check": "exists"
+    }
+  ],
+  "plan_steps": [
+    "Write the numbered plan",
+    "Read product_briefs.md closely",
+    "Build a 3-year total-cost-of-ownership model in tco_model.md",
+    "Score fit per product in fit_scores.md",
+    "Assess switching/migration risk in migration_risk.md",
+    "Write decision_memo.md recommending one product",
+    "Verify arithmetic and constraints",
+    "Final verification"
+  ],
+  "version": "1.0",
+  "required_plan_steps_min": 8,
+  "judge_rubric": "../tasks_heldout/rubrics/HWF-11.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

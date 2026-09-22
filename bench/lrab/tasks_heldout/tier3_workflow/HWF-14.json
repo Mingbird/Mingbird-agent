@@ -1,0 +1,58 @@
+{
+  "id": "HWF-14",
+  "domain": "qa-and-rollout-planning",
+  "fixtures": [
+    "fixtures/requirements_doc.md"
+  ],
+  "milestones": [
+    {
+      "artifact": "qa_capacity.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "descope_ladder.md",
+      "check": "exists"
+    }
+  ],
+  "prompt": "You are working as an autonomous agent in this directory. Your first action is to produce a numbered plan spanning all of the steps below (minimum 8 steps); use a todo/planning tool when available, otherwise save it as plan.md. Afterwards work through the steps sequentially and create each required file with precisely the filename given. Do not fabricate anything: ground every claim in the fixture files provided here. When everything is written and verified, close with a short summary of what was produced.\n\nFrom requirements_doc.md (in this directory) produce the QUALITY & ROLLOUT plan for HummingNote v2.0 — not the dev schedule: the QA and release-track view. Constraints: 1 QA engineer, about 60 tester-hours per release candidate, public beta targeted at week 10, B-101 must ship.\n\nRequired sequence (plan at least 8 steps):\n1. Produce your plan.\n2. Read requirements_doc.md; write qa_capacity.md: for each must-have feature and carried bug (B-101/B-102/B-103), the test approach and an hour estimate per RC, totalling within the 60-hour envelope per RC. Show the arithmetic.\n3. Write descope_ladder.md: the ordered list of what gets cut first if effort overruns by 30%, with the reason per rung (B-101 and the E2EE threat model may never appear on it).\n4. Write risk_register.md: at least 5 risks with probability (H/M/L) x impact (H/M/L) and resulting priority.\n5. Write rollout_plan.md (350+ words): the week-10 public beta, the RC cadence afterwards, GA entry criteria (including the published threat model), rollback strategy, and the exit criteria if the beta slips two weeks.\n6. Verify every committed item and all three bug ids appear across the plan; note the verification in rollout_plan.md, then finish.",
+  "final_artifacts": [
+    {
+      "artifact": "rollout_plan.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 340
+      }
+    },
+    {
+      "artifact": "rollout_plan.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "B-101",
+          "B-102",
+          "B-103"
+        ]
+      }
+    },
+    {
+      "artifact": "risk_register.md",
+      "check": "exists"
+    }
+  ],
+  "plan_steps": [
+    "Write the numbered plan",
+    "Read requirements_doc.md; list every committed item",
+    "Write qa_capacity.md allocating tester-hours per RC per must-have",
+    "Write descope_ladder.md (ordered cut list under 30% overrun)",
+    "Write risk_register.md (>=5 risks, probability x impact)",
+    "Write rollout_plan.md (beta -> RC -> GA with entry/exit criteria)",
+    "Verify coverage of every must-have and every carried bug",
+    "Final verification"
+  ],
+  "version": "1.0",
+  "required_plan_steps_min": 8,
+  "judge_rubric": "../tasks_heldout/rubrics/HWF-14.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

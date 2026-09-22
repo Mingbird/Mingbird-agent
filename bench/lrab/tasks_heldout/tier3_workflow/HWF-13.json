@@ -1,0 +1,54 @@
+{
+  "id": "HWF-13",
+  "domain": "privacy-by-design-refactor",
+  "fixtures": [
+    "fixtures/privacy_audit_source.py"
+  ],
+  "milestones": [
+    {
+      "artifact": "data_flow_map.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "create_user",
+          "export_users",
+          "verify_card"
+        ]
+      }
+    },
+    {
+      "artifact": "dpia.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 380
+      }
+    }
+  ],
+  "prompt": "You are working as an autonomous agent in this directory. Your first action is to produce a numbered plan spanning all of the steps below (minimum 8 steps); use a todo/planning tool when available, otherwise save it as plan.md. Afterwards work through the steps sequentially and create each required file with precisely the filename given. Do not fabricate anything: ground every claim in the fixture files provided here. When everything is written and verified, close with a short summary of what was produced.\n\npayment module privacy_audit_source.py in this directory handles user records for a payment feature. Redesign it under data-protection-by-design.\n\nRequired sequence (plan at least 8 steps):\n1. Produce your plan.\n2. Read the file and write data_flow_map.md: for each function, what personal data enters, where it is stored, what is logged, and what leaves the process.\n3. Write dpia.md — a data protection impact assessment: per identified flow, the risk to data subjects, its severity (critical/high/medium), and the GDPR principle or PCI DSS requirement at stake. At least 6 findings are present in the source.\n4. Write payments_v2.py: a refactor that tokenizes card data (store only a salted hash + last four digits), never persists or logs CVV/SSN/card numbers, uses an HTTPS endpoint for external validation, gates export to whitelisted columns, and implements real deletion (no shadow backup copy).\n5. Write controls_checklist.md: finding -> control implemented -> where in payments_v2.py.\n6. Confirm python -m py_compile payments_v2.py passes and all files exist, then finish.",
+  "final_artifacts": [
+    {
+      "artifact": "payments_v2.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "controls_checklist.md",
+      "check": "exists"
+    }
+  ],
+  "plan_steps": [
+    "Write the numbered plan",
+    "Trace every PII path through the source",
+    "Write data_flow_map.md keyed to the actual functions",
+    "Write dpia.md (impact assessment, severity per flow)",
+    "Refactor into payments_v2.py applying data-minimization fixes",
+    "Write controls_checklist.md mapping each finding to its fix",
+    "Verify payments_v2.py compiles",
+    "Final verification"
+  ],
+  "version": "1.0",
+  "required_plan_steps_min": 8,
+  "judge_rubric": "../tasks_heldout/rubrics/HWF-13.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}

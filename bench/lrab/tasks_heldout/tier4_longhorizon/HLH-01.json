@@ -1,0 +1,226 @@
+{
+  "id": "HLH-01",
+  "domain": "long-horizon-mean-aggregation-chain",
+  "version": "1.0",
+  "fixtures": [
+    "fixtures/alloy_multibatch.csv"
+  ],
+  "milestones": [
+    {
+      "artifact": "batch_profile_B01.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "1057",
+          "1057.7",
+          "1057.71",
+          "1058"
+        ]
+      }
+    },
+    {
+      "artifact": "batch_profile_B02.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "1047",
+          "1047.2",
+          "1047.25"
+        ]
+      }
+    },
+    {
+      "artifact": "batch_profile_B03.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "1039",
+          "1039.9",
+          "1039.94",
+          "1040"
+        ]
+      }
+    },
+    {
+      "artifact": "batch_profile_B04.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "1000",
+          "999",
+          "999.6",
+          "999.66",
+          "999.7"
+        ]
+      }
+    },
+    {
+      "artifact": "batch_profile_B05.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "1045",
+          "1045.1",
+          "1045.16",
+          "1045.2"
+        ]
+      }
+    },
+    {
+      "artifact": "batch_profile_B06.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "988",
+          "988.3",
+          "988.37",
+          "988.4"
+        ]
+      }
+    },
+    {
+      "artifact": "batch_profile_B07.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "1052",
+          "1052.3",
+          "1052.31"
+        ]
+      }
+    },
+    {
+      "artifact": "batch_profile_B08.md",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "1072",
+          "1072.8",
+          "1072.84",
+          "1073"
+        ]
+      }
+    }
+  ],
+  "required_plan_steps_min": 15,
+  "plan_steps": [
+    "Produce your numbered plan.",
+    "Inspect alloy_multibatch.csv (5000 rows, batches B01, B02, B03, B04, B05, B06, B07, B08).",
+    "Write means_aggregate.py: per-batch count/mean of UTS and elongation, plus per-batch UTS spread (max-min).",
+    "Run it and write batch_profile_B01.md stating this batch's exact mean UTS (the value itself, not a rounded category).",
+    "Run it and write batch_profile_B02.md stating this batch's exact mean UTS (the value itself, not a rounded category).",
+    "Run it and write batch_profile_B03.md stating this batch's exact mean UTS (the value itself, not a rounded category).",
+    "Run it and write batch_profile_B04.md stating this batch's exact mean UTS (the value itself, not a rounded category).",
+    "Run it and write batch_profile_B05.md stating this batch's exact mean UTS (the value itself, not a rounded category).",
+    "Run it and write batch_profile_B06.md stating this batch's exact mean UTS (the value itself, not a rounded category).",
+    "Run it and write batch_profile_B07.md stating this batch's exact mean UTS (the value itself, not a rounded category).",
+    "Run it and write batch_profile_B08.md stating this batch's exact mean UTS (the value itself, not a rounded category).",
+    "Write means_check.json: per-batch mean UTS and the ranking of batches by mean UTS.",
+    "Identify the batch with the widest within-batch UTS spread and its spread value.",
+    "Write synthesis.md (400+ words): mean-based ranking, how it differs from a peak-based view, the spread analysis, and one processing recommendation.",
+    "Re-check synthesis.md against the profiles and write next_steps.md listing corrections or confirmations."
+  ],
+  "prompt": "You are an autonomous agent operating inside the current working directory. BEFORE anything else, write out a numbered plan that covers every step listed below. Use the planning/todo tool you have; if you have none, put the plan into plan.md. Then carry out the steps in order, writing every required file under the exact filename stated. This is a long task: push through ALL steps and do not stop early. Never fabricate content: every number you report must come from computation on the provided fixture files. When every artifact exists and has been verified, close with a brief summary.\n\nAnalyze alloy_multibatch.csv (8 batches, 625 rows each) from the AVERAGES side: rank batches by MEAN UTS and quantify within-batch spread.\n\nRequired steps (plan at least 15):\n1. Produce your numbered plan.\n2. Inspect alloy_multibatch.csv (5000 rows, batches B01, B02, B03, B04, B05, B06, B07, B08).\n3. Write means_aggregate.py: per-batch count/mean of UTS and elongation, plus per-batch UTS spread (max-min).\n4. Run it and write batch_profile_B01.md stating this batch's exact mean UTS (the value itself, not a rounded category).\n5. Run it and write batch_profile_B02.md stating this batch's exact mean UTS (the value itself, not a rounded category).\n6. Run it and write batch_profile_B03.md stating this batch's exact mean UTS (the value itself, not a rounded category).\n7. Run it and write batch_profile_B04.md stating this batch's exact mean UTS (the value itself, not a rounded category).\n8. Run it and write batch_profile_B05.md stating this batch's exact mean UTS (the value itself, not a rounded category).\n9. Run it and write batch_profile_B06.md stating this batch's exact mean UTS (the value itself, not a rounded category).\n10. Run it and write batch_profile_B07.md stating this batch's exact mean UTS (the value itself, not a rounded category).\n11. Run it and write batch_profile_B08.md stating this batch's exact mean UTS (the value itself, not a rounded category).\n12. Write means_check.json: per-batch mean UTS and the ranking of batches by mean UTS.\n13. Identify the batch with the widest within-batch UTS spread and its spread value.\n14. Write synthesis.md (400+ words): mean-based ranking, how it differs from a peak-based view, the spread analysis, and one processing recommendation.\n15. Re-check synthesis.md against the profiles and write next_steps.md listing corrections or confirmations.",
+  "max_wall_minutes": 90,
+  "resume_test": false,
+  "final_artifacts": [
+    {
+      "artifact": "means_aggregate.py",
+      "check": "python_compiles"
+    },
+    {
+      "artifact": "means_check.json",
+      "check": "contains_groups",
+      "params": {
+        "groups": [
+          [
+            "1057",
+            "1057.7",
+            "1057.71",
+            "1058"
+          ],
+          [
+            "1047",
+            "1047.2",
+            "1047.25"
+          ],
+          [
+            "1039",
+            "1039.9",
+            "1039.94",
+            "1040"
+          ],
+          [
+            "1000",
+            "999",
+            "999.6",
+            "999.66",
+            "999.7"
+          ],
+          [
+            "1045",
+            "1045.1",
+            "1045.16",
+            "1045.2"
+          ],
+          [
+            "988",
+            "988.3",
+            "988.37",
+            "988.4"
+          ],
+          [
+            "1052",
+            "1052.3",
+            "1052.31"
+          ],
+          [
+            "1072",
+            "1072.8",
+            "1072.84",
+            "1073"
+          ]
+        ],
+        "min_ratio": 1.0
+      }
+    },
+    {
+      "artifact": "synthesis.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 400
+      }
+    },
+    {
+      "artifact": "synthesis.md",
+      "check": "contains_groups",
+      "params": {
+        "groups": [
+          [
+            "B08"
+          ],
+          [
+            "436",
+            "436.0",
+            "436.00"
+          ]
+        ],
+        "min_ratio": 1.0
+      }
+    },
+    {
+      "artifact": "next_steps.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "next_steps.md",
+      "check": "min_words",
+      "params": {
+        "min_words": 20
+      }
+    }
+  ],
+  "judge_rubric": "../tasks_heldout/rubrics/HLH-01.md",
+  "notes": "",
+  "extra_judge_note": ""
+}

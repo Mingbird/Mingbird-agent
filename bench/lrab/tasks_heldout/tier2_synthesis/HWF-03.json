@@ -1,0 +1,50 @@
+{
+  "id": "HWF-03",
+  "domain": "cli-feature-per-day-report",
+  "fixtures": [
+    "fixtures/app_source/timetrack.py"
+  ],
+  "milestones": [
+    {
+      "artifact": "design_day.md",
+      "check": "exists"
+    },
+    {
+      "artifact": "test_day.py",
+      "check": "exists"
+    }
+  ],
+  "prompt": "You are working as an autonomous agent in this directory. Your first action is to produce a numbered plan spanning all of the steps below (minimum 8 steps); use a todo/planning tool when available, otherwise save it as plan.md. Afterwards work through the steps sequentially and create each required file with precisely the filename given. Do not fabricate anything: ground every claim in the fixture files provided here. When everything is written and verified, close with a short summary of what was produced.\n\nExtend the CLI program timetrack.py (found in this directory) with a per-day report.\n\nFeature: `timetrack day --date YYYY-MM-DD [--project NAME]` prints, for the given calendar day, the finished-entry hours grouped by project plus a grand total line; with --project it filters to one project. Days with no finished entries print 'no entries' and exit 0. The running timer is never counted.\n\nSteps (plan at least 8):\n1. Produce your plan.\n2. Read timetrack.py: note the entries.json format, the start/stop/report dispatch table, and how report skips running timers.\n3. Write design_day.md: output format, date filtering rule, empty-day behaviour, interaction with --project.\n4. Implement cmd_day in timetrack.py and register the subcommand.\n5. Write test_day.py with at least 4 pytest tests: multi-project day, --project filter, empty day, running timer excluded.\n6. Run python -m pytest test_day.py -q and fix until green; then run any other test files present to confirm no regression.\n7. Write usage_day.md showing one real command and its real output (capture an actual session; do not type expected output by hand).\n8. Verify python -m py_compile timetrack.py passes and all files exist, then finish.",
+  "final_artifacts": [
+    {
+      "artifact": "timetrack.py",
+      "check": "contains_any",
+      "params": {
+        "any_of": [
+          "cmd_day",
+          "day"
+        ]
+      }
+    },
+    {
+      "artifact": "usage_day.md",
+      "check": "exists"
+    }
+  ],
+  "plan_steps": [
+    "Write the numbered plan",
+    "Study timetrack.py storage and dispatch pattern",
+    "Specify the new day command in design_day.md",
+    "Implement cmd_day and register it",
+    "Write test_day.py (>=4 pytest cases)",
+    "Run the suite until green",
+    "Capture a real session in usage_day.md",
+    "Compile check and final verification"
+  ],
+  "version": "1.0",
+  "required_plan_steps_min": 8,
+  "judge_rubric": "../tasks_heldout/rubrics/HWF-03.md",
+  "max_wall_minutes": 60,
+  "notes": "",
+  "extra_judge_note": ""
+}
