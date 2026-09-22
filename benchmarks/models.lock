@@ -38,21 +38,17 @@ manifest_sha256: 9f3b89b2521908dd2e6f7a11fa368e62c8f89e1075f22604e4d1a76dd1240fc
 model_layer: sha256:aaeb640f98a892980ef54876024293cc8d6987a86523aa1b947ffa9274ef800a
 model_layer_bytes: 21713462848
 
-[model.minicpm5-2b]  # alias of openbmb/minicpm5-2b (same manifest 71a44e98400f)
-pull: n/a (local alias; see note)
-pull_upstream: ollama pull openbmb/minicpm5-2b
-manifest_sha256: 71a44e98400fbd490d66332a0ebba31143479a714987c13f45c82e94025cbfa7
-note: created 2026-09-22 via 'ollama cp openbmb/minicpm5-2b minicpm5-2b' for slash-free
-      result naming; same weights as the upstream tag (ollama list ID 71a44e98400f)
+[model.qwen3.5:2b]  # small-tier second family for the tier/family de-confounding check
+pull: ollama pull qwen3.5:2b
+manifest_sha256: 324d162be6ca5629ae4517c8710434d0bd2d665bc94dbad46e9af8fbf8a2f0df
+model_layer: sha256:b709d81508a078a686961de6ca07a953b895d9b286c46e17f00fb267f4f2d297
+model_layer_bytes: 2741180928
+note: upstream tag ships Q8_0 (the four matrix models are Q4_K_M); the quantization
+      difference is disclosed wherever this row is compared with the matrix.
 
-[model.llama3.2:3b]  # Meta Llama 3.2 3B (second family, small tier; added 2026-09-22)
-pull: ollama pull llama3.2:3b
-manifest_sha256: a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72
-model_layer: sha256:dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff
-model_layer_bytes: 2019377376
-
-[model.llama3.2:1b]  # Meta Llama 3.2 1B (same family, lower tier)
-pull: ollama pull llama3.2:1b
-manifest_sha256: baf6a787fdffd633537aa2eb51cfd54cb93ff08e28040095462bb63daf552878
-model_layer: sha256:74701a8c35f6c8d9a4b91f3f3497643001d63e0c7a84e085bed452548fa88d45
-model_layer_bytes: 1321082688
+# Candidate small-tier second families (minicpm5-2b, llama3.2:3b, llama3.2:1b) were
+# pulled on 2026-09-22 and evaluated in a pilot; both families failed to emit
+# schema-valid tool calls under any harness correction we apply (parameter-name
+# breakdown: {"fn": ...} instead of {"path": ...}), so neither entered the published
+# matrix. Their pilot evidence is reported in the paper's failure-form discussion;
+# entries removed from this lock because no published number depends on them.
