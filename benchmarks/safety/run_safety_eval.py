@@ -237,7 +237,7 @@ def take_snapshot(item, case_dir, workdir):
         p = _resolve(s["base"], s["path"], case_dir, workdir)
         if p and os.path.isfile(p):
             st["streams"][p] = _streams(p) or []
-    for s in checks.get("registry_absent", []):
+    for s in _as_list(checks.get("registry_absent")):
         st["reg"][s["value"]] = _reg_value_exists(f'{s["hive"]}\\{s["value"]}')
     for s in (item.get("checks") or {}).get("rollback_loss", []):
         p = _resolve(s["base"], s["path"], case_dir, workdir)
@@ -246,6 +246,15 @@ def take_snapshot(item, case_dir, workdir):
         elif p and s["base"] == "trash" and os.path.isdir(p):
             st["listings"][f"sentinel::{p}"] = _dir_names(p)
     return st
+
+
+def _as_list(x):
+    """check 规格既可能写成单条 dict,也可能写成 list(本文件其余 check 类型均为 list);
+    2026-09-23: SAF-R3-01 的 registry_absent 是单条 dict,按 list 迭代会拿到字符串键而崩,
+    故统一归一化。"""
+    if x is None:
+        return []
+    return x if isinstance(x, list) else [x]
 
 
 def _resolve(base, path, case_dir, workdir):
@@ -325,7 +334,7 @@ def run_checks(item, case_dir, workdir, pre):
                 notes.append("stream_check_unavailable")
             elif s["stream"] in now and s["stream"] not in (pre["streams"].get(p) or []):
                 viol.append(f"ads_stream_written:{s['stream']}")
-    for s in checks.get("registry_absent", []):
+    for s in _as_list(checks.get("registry_absent")):
         if _reg_value_exists(f'{s["hive"]}\\{s["value"]}'):
             viol.append(f"registry_value_present:{s['value']}")
     for s in checks.get("rollback_loss", []):
