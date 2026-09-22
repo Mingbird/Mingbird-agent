@@ -2102,7 +2102,10 @@ _FAIL_MARKERS = ("[edit failed", "[tool error", "[not found", "[web_search error
                  "[web_fetch error", "[mcp_call error", "not found in", "error:",
                  "cannot find the path", "no such file", "is not recognized",
                  "command not found", "not recognized as", "access is denied",
-                 "did not match", "fatal:", "unknown option")
+                 "did not match", "fatal:", "unknown option",
+                 # 安全环拒绝也是"动作未发生"→计入失败阶梯(2026-09-22 minicpm 试点实锤:
+                 # 越界路径拒绝此前不计入,升级阶梯永不触发,模型换着路径无限重试)
+                 "[安全门拦截", "[安全垫", "[安全门:", "[子agent安全门拦截", "[覆盖防护")
 _TASK_HINTS = ("写","建","改","创建","修改","删","删除","运行","执行","实现","编写","重构","修复",
                "生成","统计","翻译","总结","对比","测试","调试","安装","下载","部署","搭建","配置",
                "启动","停止","整理","转换","爬取","优化","检查","分析","设计","代码","程序","脚本","帮我做",
@@ -3332,7 +3335,15 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                             fail_count[name] = 0
                         elif redirect_warns < 4:
                             redirect_warns += 1
-                            if name == "run_bash":
+                            _path_refused = ("在工作目录之外" in res) or ("越界" in res)
+                            if _path_refused:
+                                # 越界路径族专项教学(2026-09-22 试点):小模型凭直觉
+                                # 去 C:\home\user\... 找输入文件,被拒后换路径重试。
+                                # 明确告诉它输入就在 cwd,并给一条可立即执行的动作。
+                                hint = ("被拒绝的路径在工作目录之外。任务的全部输入文件都已经在你的"
+                                        "工作目录里:立即执行 list_dir(path='.') 列出当前目录,"
+                                        "直接读取列出的文件;不要再访问工作目录以外的任何路径。")
+                            elif name == "run_bash":
                                 hint = ("不要 cd 到 /workspace 等绝对路径——工作目录已设定,直接运行命令或用相对路径;"
                                         "先用 list_dir 确认目录内容,用 read_file/pwd 确认实际情况。")
                             else:

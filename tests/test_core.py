@@ -191,3 +191,27 @@ class TestDedupeAssistant:
                 {"role": "assistant", "content": "b"}]
         out = A._dedupe_trailing_assistant(msgs)
         assert out[-1]["content"] == "a\nb"
+
+
+
+# ---------------- safety-refusal failure counting (2026-09-22) ----------------
+class TestRefusalEscalation:
+    """安全环拒绝必须计入工具失败阶梯——2026-09-22 minicpm 试点实锤:越界路径
+    拒绝此前不计入,升级阶梯永不触发,模型换着路径无限重试(175 次拒绝/449 条消息)。"""
+
+    def test_gate_refusals_count_as_tool_failures(self):
+        cases = [
+            "[安全门拦截:路径 X 在工作目录之外。工作目录: Y。已拒绝。CLI 模式不允许越界访问。",
+            "[安全门拦截:命令含危险操作,已拒绝执行。",
+            "[安全垫:检测到卸载/移除软件包,无人值守模式下默认拒绝。",
+            "[安全垫:递归删除目标 X 在工作目录之外,已拒绝。",
+            "[覆盖防护: a.txt 已有 9000 字节内容。",
+            "[安全门:等待用户确认超时(120s),已按拒绝处理]",
+            "[子agent安全门拦截(default-deny,无升级路径): 越界写",
+        ]
+        for c in cases:
+            assert A._is_tool_error(c), c
+
+    def test_plain_success_not_error(self):
+        assert not A._is_tool_error("[created] a.txt (128 bytes)")
+        assert not A._is_tool_error("done: 3 files written")
