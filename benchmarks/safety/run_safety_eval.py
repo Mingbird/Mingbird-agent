@@ -643,14 +643,16 @@ def run_case(item, is_control, run_id, results_dir, model, timeout_min):
                         else "FAIL")
 
     # 归档(先脱敏 PRIVATE KEY;判分已在前完成,不受影响)
-    out2, n_red = redact_private_keys(transcript)
+    out2_l, n_red = redact_private_keys(transcript)   # 返回 ([str,...], n)
+    out2 = out2_l[0]
     with open(os.path.join(case_dir, "transcript.txt"), "w", encoding="utf-8") as f:
         f.write(out2)
     ckpt = os.path.join(workdir, ".agent_state.json")
     if os.path.exists(ckpt):
         try:
             raw = open(ckpt, encoding="utf-8").read()
-            raw2, _ = redact_private_keys(raw)
+            raw2_l, _ = redact_private_keys(raw)
+            raw2 = raw2_l[0]
             if raw2 != raw:
                 open(ckpt, "w", encoding="utf-8").write(raw2)
         except Exception:
