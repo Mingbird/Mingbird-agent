@@ -8,7 +8,7 @@
 >
 > You've been told local models need a big discrete GPU. On an ordinary laptop — integrated graphics, 16–32 GB of RAM — the same 2–9B models that stall in cloud-style frameworks deliver finished artifacts here, because the failures you have seen are harness defects, not model defects. Measured end to end; all 288 cells public.
 
-Current release **v1.8.2** · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 459 tests
+Current release **v1.8.2** · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 461 tests
 
 ![Mingbird screenshot](docs/assets/screenshot-app.png)
 
@@ -27,7 +27,7 @@ Every mechanism comes from "small models can't do X, so the harness does it for 
 | …stay on target in long tasks | delivery self-check gate: before claiming done, it re-reads the original task and verifies its work |
 | …resist destructive impulses | a five-ring safety net catches them (see [Safety](#safety)) |
 
-Nothing is hardcoded: the Ollama address, executable, GPU environment variables, and model aliases are detected at runtime or configured in `~/.ollama_agent/config.json` (see [AGENTS.md](AGENTS.md)). The quality floor is held up by a 459-test regression suite, the prefill zero-growth assertion included.
+Nothing is hardcoded: the Ollama address, executable, GPU environment variables, and model aliases are detected at runtime or configured in `~/.ollama_agent/config.json` (see [AGENTS.md](AGENTS.md)). The quality floor is held up by a 461-test regression suite — 435 unit tests plus 26 integration tests, the prefill zero-growth assertion among them. The suite contains **no live-Ollama end-to-end test**: nothing in it needs a running backend or a network. The benchmark runners under `bench/` and `benchmarks/` are separate programs and are not part of the pytest suite.
 
 ## The problem we set out to solve
 
@@ -195,6 +195,43 @@ Escape hatch: `AGENT_UNSAFE=1` turns the whole net off — at your own risk.
 - Linux and macOS packages are experimental CI builds; Windows is the primary platform.
 - LRAB is a benchmark we designed ourselves — which is exactly why the tasks, the scoring code and the raw per-cell data are public: rerun it yourself instead of taking our word for it.
 
+## Version map & reproduction window
+
+The published numbers are reproducible only against the code base, backend, and
+collection windows that produced them. This is the map.
+
+| What | Pinned to |
+|---|---|
+| Code base for the published LRAB numbers | git tag `v1.5.0`, commit `1ee92d1` |
+| Data release commit | `61fc6aa` |
+| Commit where the numbers first appear | `7c99941` |
+| Backend | Ollama **0.33.2** — unchanged since 2026-08-28 (binary name, version, and SHA-256 are pinned in [`benchmarks/models.lock`](benchmarks/models.lock)) |
+| Collection windows | 09-01…04 · 09-13…14 · 09-18…20 · 09-22 |
+
+Some components were produced on later working trees than the `v1.5.0` code
+base. All of them are disclosed in the paper's appendix and repeated here:
+
+- **Frontier-model probe** — 2026-09-20, a post-`v1.7.0` tree:
+  [`benchmarks/frontier_probe/`](benchmarks/frontier_probe/).
+- **Static prefill cost curve** — 2026-09-20, the same post-`v1.7.0` tree:
+  [`benchmarks/failure_forms/`](benchmarks/failure_forms/) (`cost_curve_data_2609.csv`,
+  `make_fig9_costcurve.py`, `fig9_caption.md`).
+- **Mechanism ablation re-run** — 2026-09-22, a `v1.8.2`-era tree:
+  [`benchmarks/ablation/`](benchmarks/ablation/).
+
+**Reproduction window.** The competitor harnesses are live targets, not fixed
+artifacts — the versions behind the published numbers are goose **1.48.0**,
+opencode **1.18.23**, and agent-mini **0.3.1**. The numbers correspond to the
+frozen collection windows above. A later upstream release of any of those
+harnesses is a different experiment: reproducing these numbers requires the
+versions named here, on the protocol described in
+[benchmarks/README.md](benchmarks/README.md).
+
 ## License
 
 Apache-2.0 — free to use, modify, and distribute.
+
+Code is Apache-2.0 (see [`LICENSE`](LICENSE)); the benchmark data published in
+this repository is licensed separately under CC BY 4.0 (see
+[`LICENSE-DATA`](LICENSE-DATA)). Third-party components and benchmarks are
+listed in [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).

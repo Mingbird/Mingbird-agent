@@ -1,0 +1,70 @@
+Data license for Mingbird / 鸣鸟
+===============================
+
+Copyright 2026 Gustor-Wang
+
+Scope
+-----
+This repository contains both **code** and **data**. They are licensed
+separately:
+
+- **Code** — everything not listed in the "Data" section below, including the
+  harness source, the scoring code, the task/Runner generators under
+  `bench/lrab/`, and the analysis scripts under `benchmarks/` — is licensed
+  under the **Apache License, Version 2.0**. See the `LICENSE` file.
+
+- **Data** — the files listed in the "Data" section below — is licensed under
+  the **Creative Commons Attribution 4.0 International License (CC BY 4.0)**:
+  https://creativecommons.org/licenses/by/4.0/
+
+Data
+----
+The following paths are covered by CC BY 4.0:
+
+    bench/lrab/tasks/**
+    bench/lrab/tasks_heldout/**
+    bench/lrab/fixtures/**
+    benchmarks/*.csv
+    benchmarks/tau2/*.json
+    benchmarks/ablation/*.csv
+    benchmarks/frontier_probe/*.csv
+    benchmarks/safety/*.json
+    benchmarks/mechanism_log/**
+    benchmarks/failure_forms/**
+
+This covers the LRAB task sets and their fixtures, the per-cell result tables
+and significance inputs, the ablation and frontier-probe result tables, the
+safety-evaluation prompt sets, the mechanism/forensics tables, and the failure-
+form coding tables. Where a listed directory also contains code (for example a
+derivation or plotting script), that script remains Apache-2.0 under
+`LICENSE`; only its data outputs are CC BY 4.0.
+
+Attribution
+-----------
+When you redistribute or adapt the data, attribute it as:
+
+    LRAB / Mingbird benchmark data, Gustor-Wang, 2026,
+    licensed under CC BY 4.0.
+
+Provenance of the task data
+---------------------------
+The LRAB task texts, prompts, and fixtures are **author-written synthetic
+content**. They were written for this benchmark and are published here in
+full. Any organisation names, DOIs, citations, or other identifiers appearing
+in them are synthetic placeholders created for the tasks; they are not
+third-party material and do not reproduce any real web page, article body, or
+other third-party document. The web-research tasks are executed by the harness
+at run time against live search, but no fetched third-party page content is
+stored in this repository.
+
+Third-party benchmarks
+----------------------
+The `benchmarks/tau2/*.json` files are **derived indexes only** — one row per
+(task id, harness) recording the outcome of running a harness on that task
+(`status`, `reward`, `wall`). They are keyed by upstream task id. No upstream
+τ²-bench task text, user-simulator script, tool schema, or domain database is
+redistributed here; obtaining and running τ²-bench is left to the reader. See
+`THIRD_PARTY_NOTICES` for the upstream project and where to get it.
+
+Nothing in this repository is a redistribution of any other third-party
+benchmark's task set or answer set.

@@ -8,7 +8,7 @@
 >
 > 都说本地模型得配大独显。其实一台普通笔记本——核显、16–32 GB 内存——就够了：那些在云风格框架里跑不动的 2–9B 小模型，在这里能交付完整产物，因为你见过的那些失败是 harness 缺陷，不是模型缺陷。端到端实测，288 格数据全部公开。
 
-当前版本 **v1.8.2** · 持续维护中（[CHANGELOG](CHANGELOG_zh.md)）· 一键断网模式 · CI 构建 Linux/macOS 产物 · 459 项测试
+当前版本 **v1.8.2** · 持续维护中（[CHANGELOG](CHANGELOG_zh.md)）· 一键断网模式 · CI 构建 Linux/macOS 产物 · 461 项测试
 
 ![鸣鸟截图](docs/assets/screenshot-app.png)
 
@@ -27,7 +27,7 @@
 | …长任务不跑偏 | 交付自查门禁：宣称完成前回读任务原文核对 |
 | …抵住破坏性冲动 | 五环安全网兜住（见[安全](#安全)） |
 
-没有任何东西是写死的：Ollama 地址、可执行文件、GPU 环境变量、模型别名，全部运行时识别或在 `~/.ollama_agent/config.json` 配置（见 [AGENTS.md](AGENTS.md)）。质量底线由 459 项回归测试守住，prefill 零增长断言也在其中。
+没有任何东西是写死的：Ollama 地址、可执行文件、GPU 环境变量、模型别名，全部运行时识别或在 `~/.ollama_agent/config.json` 配置（见 [AGENTS.md](AGENTS.md)）。质量底线由 461 项回归测试守住——435 项单测 + 26 项集成，prefill 零增长断言也在其中。这套测试里**没有真调 Ollama 的端到端用例**：不需要任何后端或网络即可跑完。`bench/` 与 `benchmarks/` 下的基准运行器是独立程序，不属于 pytest 套件。
 
 ## 我们要解决的问题
 
@@ -166,6 +166,38 @@ netstat -ano | findstr <pid>   # <pid> = agent 的 python 进程
 - Linux/macOS 包是 CI 实验构建，Windows 是主平台。
 - LRAB 是我们自建的基准——这正是我们把任务、判分代码、逐格原始数据全部公开的原因：欢迎复跑，不用信我们。
 
+## 版本地图 / 复现窗口
+
+公开的数字只对应产生它们的代码基、后端与采集窗口。地图如下：
+
+| 项目 | 锚定于 |
+|---|---|
+| 论文 LRAB 数字的代码基 | git tag `v1.5.0`，commit `1ee92d1` |
+| 数据发布提交 | `61fc6aa` |
+| 数字首现提交 | `7c99941` |
+| 后端 | Ollama **0.33.2**——2026-08-28 起未变（可执行文件名、版本与 SHA-256 已钉在 [`benchmarks/models.lock`](benchmarks/models.lock)） |
+| 采集窗口 | 09-01…04 · 09-13…14 · 09-18…20 · 09-22 |
+
+有几个组件跑在比 `v1.5.0` 更晚的工作树上。这些都已在论文附录披露，此处一并复述：
+
+- **前沿模型探针**——2026-09-20，post-`v1.7.0` 树：
+  [`benchmarks/frontier_probe/`](benchmarks/frontier_probe/)。
+- **静态 prefill 成本曲线**——2026-09-20，同一棵 post-`v1.7.0` 树：
+  [`benchmarks/failure_forms/`](benchmarks/failure_forms/)（`cost_curve_data_2609.csv`、
+  `make_fig9_costcurve.py`、`fig9_caption.md`）。
+- **机制消融重跑**——2026-09-22，`v1.8.2` 时代树：
+  [`benchmarks/ablation/`](benchmarks/ablation/)。
+
+**复现窗口（reproduction window）。** 对手 harness 是活体目标而非固定产物——公开
+数字背后的版本是 goose **1.48.0**、opencode **1.18.23**、agent-mini **0.3.1**。
+这些数字对应上述冻结的采集窗口；任何一个上游 harness 后续发版都属于另一个实验：
+要复现这些数字，需要这里点名的版本，以及
+[benchmarks/README.md](benchmarks/README.md) 描述的协议。
+
 ## 许可
 
 Apache-2.0 —— 自由使用、修改、分发。
+
+代码为 Apache-2.0（见 [`LICENSE`](LICENSE)）；本仓库公开的基准数据另行采用
+CC BY 4.0（见 [`LICENSE-DATA`](LICENSE-DATA)）。第三方组件与基准清单见
+[`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES)。

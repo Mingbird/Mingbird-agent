@@ -1,7 +1,7 @@
 # P1 取证输出(纯读,零新实验)
 
 生成:2026-09-21。脚本:`extract_p1.py`(同目录,可复现;`--sample` 为 3+1 目录小样本自检模式)。
-数据源(只读):`mingbird-v16/benchmarks/lrab_scores.csv`(288 格)、`hummingbird/eval_results/`(Mingbird、agent-mini 臂)、`mingbird-v150/eval_results/rr_think0/`(goose、opencode 统一协议臂)、`mingbird-v150/eval_results/ablation/{finish_gate,verify_feedback,anti_loop,flat_prefill}/`(消融四臂,每臂 18 格、仅 gemma4_e2b)。
+数据源(只读):`mingbird-v16/benchmarks/lrab_scores.csv`(288 格)、`<HB>/eval_results/`(Mingbird、agent-mini 臂)、`mingbird-v150/eval_results/rr_think0/`(goose、opencode 统一协议臂)、`mingbird-v150/eval_results/ablation/{finish_gate,verify_feedback,anti_loop,flat_prefill}/`(消融四臂,每臂 18 格、仅 gemma4_e2b)。
 **未触碰**:`ablation/baseline_samebatch`、`ablation/finish_gate_text_only`(另一进程在跑)。未修改任何源文件,未 commit。编码:全部 utf-8(无 BOM)。
 
 ## 交付物与行数
@@ -79,8 +79,8 @@
 
 1. **CSV 的 rr 臂目录名是逻辑名**:goose/opencode 行的 `latest_attempt_dir` 形如 `rr_think0_WF01`(不含 harness/model),实际目录在 `rr_think0/<harness>_<task>_<model>_<m0|m1>_<MMDD_HHMMSS>`。本表按 (harness,task,model) 映射,取时间戳最新。
 2. **goose WF08 qwen3.5_4b 有 4 个尝试目录**(m0×2、m1×2;EXCLUSIONS.md:m0 两次 90min 超时、m1 两次被外部击杀,用户裁定记 0 分)。最新目录 m1_0918_181950 无 transcript,回退选 m0_0918_164743,其 transcript 为 0 字节 → tool_calls=0 已在 note 注明,该格资源数据不可用。
-3. **hummingbird/eval_results 有 73 个 `mingbird_*` 目录,CSV 只引用 72**:`mingbird_WF09_qwen3.5_4b_m0_0913_181117` 未被引用(旧尝试),未计入任何表。同理该目录下还有大量 agentmini 旧尝试,均以 CSV 引用为准。
-4. **消融臂目录前缀是 `hummingbird_*` 而非 `mingbird_*`**,且仅 gemma4_e2b 一个模型;解析时勿按前缀区分臂。
+3. **<HB>/eval_results 有 73 个 `mingbird_*` 目录,CSV 只引用 72**:`mingbird_WF09_qwen3.5_4b_m0_0913_181117` 未被引用(旧尝试),未计入任何表。同理该目录下还有大量 agentmini 旧尝试,均以 CSV 引用为准。
+4. **消融臂目录前缀是 `<legacy_prefix>_*` 而非 `mingbird_*`**,且仅 gemma4_e2b 一个模型;解析时勿按前缀区分臂。
 5. 「拒绝假 finish」主臂 72 格 0 触发:机制存在(代码 L2917)但从未开火——本身是有效发现,勿当作解析失败。
 6. **消融臂的机制残留是代码设计,不是数据错误**:finish_gate 消融(`_FG_OFF`)只关 假finish(L2915)/测试门(L2932)/产物核对(L2961)/计划核对(L2977)四道门;计划未同步门(L2997)只受 `finish_gate_text_only` 控制,交付自查(L3017)无开关(每任务至多回注一次,`finish_reread_used` 单次闸,故各臂稳定 14-17 次/18 格)。anti_loop 消融只关 8 连击强禁用(L3088),重复调用拦截/重复输出检测照常工作。verify_feedback 消融只把 pytest 反馈降级为通用文案(L2943),测试门本身照常触发。
 7. **主臂跑批(0913-0914)的代码与当前 v150 ollama_agent.py 可能存在版本差**:marker 文案以 transcript 实际词汇表为准(全部命中),但行号引用对应 v150 现行文件。

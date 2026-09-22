@@ -103,3 +103,51 @@ per-cell scores (72 rows), and caveats: **[frontier_probe/](frontier_probe/)**.
 All four mechanisms are non-negative; the contribution gradient is: prevent-early-finish > verify-feedback loop > anti-loop > prefill (neutral at 2B).
 
 > The 0.821 baseline is not a separate control: it **is** the 2B column of the LRAB-288 table above — the same 18 cells, the same v1.5.0 code. The ablation and the headline results share one batch and one code version.
+
+## Version map & reproduction window
+
+Everything above is reproducible only against the code base, backend, and
+collection windows that produced it. This is the map for the data in this
+directory.
+
+| What | Pinned to |
+|---|---|
+| Code base for the published LRAB numbers | git tag `v1.5.0`, commit `1ee92d1` |
+| Data release commit (τ² per-trial data unified under `tau2/`) | `61fc6aa` |
+| Commit where the numbers first appear (unified-protocol matrix) | `7c99941` |
+| Backend | Ollama **0.33.2** — unchanged since 2026-08-28 |
+| Collection windows | 09-01…04 · 09-13…14 · 09-18…20 · 09-22 |
+
+**Weight pinning.** [`models.lock`](models.lock) carries, per model tag, the
+`ollama pull` command, the manifest SHA-256, and the model-layer digest and
+size, plus the backend binary's name, version, and SHA-256. Pulling by tag
+alone is not sufficient to reproduce a run — tags are mutable; match the
+digests.
+
+**Later working trees.** Some published components were produced on later
+working trees than the `v1.5.0` code base, and are disclosed in the paper's
+appendix:
+
+- **Frontier-model probe** — 2026-09-20, a post-`v1.7.0` tree
+  ([`frontier_probe/`](frontier_probe/)).
+- **Static prefill cost curve** — 2026-09-20, the same post-`v1.7.0` tree
+  ([`failure_forms/`](failure_forms/): `cost_curve_data_2609.csv`,
+  `make_fig9_costcurve.py`, `fig9_caption.md`).
+- **Mechanism ablation re-run** — 2026-09-22, a `v1.8.2`-era tree
+  ([`ablation/`](ablation/)).
+
+**Reproduction window.** The competitor harnesses are live targets, not fixed
+artifacts. The versions behind the numbers published here are goose **1.48.0**,
+opencode **1.18.23**, and agent-mini **0.3.1**; Mingbird's own arm is the
+`v1.5.0` tag. The numbers correspond to the frozen collection windows above. A
+later upstream release of any competitor harness is a different experiment, so
+reproducing these numbers requires the versions named here.
+
+## Licensing of the data in this directory
+
+Data here (the result tables, manifests, prompt sets, and derivation scripts'
+data outputs) is CC BY 4.0; the scripts alongside it remain Apache-2.0. See
+[`../LICENSE-DATA`](../LICENSE-DATA) and
+[`../THIRD_PARTY_NOTICES`](../THIRD_PARTY_NOTICES). The τ²-bench manifests are
+derived indexes (task id → our results) and do not redistribute upstream task
+text.

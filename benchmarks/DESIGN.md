@@ -12,7 +12,7 @@ through **multi-step work that leaves verifiable artifacts** — code that
 compiles and passes tests, data analyses whose numbers cross-check, research
 dossiers with real citations. It does **not** measure conversational quality,
 knowledge, or single-shot function calling; those axes are covered by our
-external anchors (τ²-bench retail, GAIA, BFCL v3 — see below).
+external anchor (τ²-bench retail — see below).
 
 Design constraints, chosen up front:
 
@@ -200,9 +200,8 @@ actually run" (2B–4B) are exactly the segments where the separation is starkes
   does not separate harnesses statistically. Treat 35B columns as indicative.
 - **Self-designed tasks.** LRAB was designed by us — which is why generators,
   fixtures, rubrics, transcripts and the scorer are all published and every
-  number recomputes. The external anchors (τ²-bench retail 0.746 vs 0.430;
-  GAIA; BFCL v3) exist because a self-built benchmark alone cannot settle the
-  question.
+  number recomputes. The external anchor (τ²-bench retail 0.746 vs 0.430)
+  exists because a self-built benchmark alone cannot settle the question.
 - **Configuration asymmetries (disclosed).** goose exposes no context knob
   (default context); agent-mini's memory was disabled by the runner config.
   Both are recorded in METHODS §5.

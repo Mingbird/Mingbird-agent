@@ -3,7 +3,7 @@
 P1 取证提取:从本地评测 transcript 提取三张表(零新实验,纯读)。
 输入(只读):
   - <EVAL_ROOT>\\mingbird-v16\\benchmarks\\lrab_scores.csv  (主矩阵 288 格)
-  - <EVAL_ROOT>\\hummingbird\\eval_results\\<dir>\\transcript.txt   (Mingbird / agent-mini)
+  - <EVAL_ROOT>\\<HB>\\eval_results\\<dir>\\transcript.txt        (Mingbird / agent-mini)
   - <EVAL_ROOT>\\mingbird-v150\\eval_results\\rr_think0\\<dir>\\transcript.txt (goose / opencode)
   - <EVAL_ROOT>\\mingbird-v150\\eval_results\\ablation\\{finish_gate,verify_feedback,anti_loop,flat_prefill}\\<dir>\\transcript.txt
 输出(只写 p1_forensics\\):
@@ -16,7 +16,8 @@ import csv, json, os, re, statistics, sys
 
 BASE = r'<EVAL_ROOT>'  # 本地评测根目录,按需替换
 SCORES = BASE + r'\mingbird-v16\benchmarks\lrab_scores.csv'
-HB = BASE + r'\hummingbird\eval_results'
+HB = os.path.join(BASE, '<HB>', 'eval_results')   # 历史工作树(本地归档,不在公开面分发)
+LEGACY_PREFIX = '<legacy_prefix>'  # 该树结果目录名前缀,仅用于解析本地归档
 RR = BASE + r'\mingbird-v150\eval_results\rr_think0'
 ABL = BASE + r'\mingbird-v150\eval_results\ablation'
 OUT = BASE + r'\mingbird-release\diagnosis\p1_forensics'
@@ -127,7 +128,7 @@ def resolve_ablation():
     quirks = []
     for variant in ('finish_gate', 'verify_feedback', 'anti_loop', 'flat_prefill'):
         vd = os.path.join(ABL, variant)
-        pat = re.compile(r'^hummingbird_([A-Z]+\d+?)_(.+?)_m\d_\d{4}_\d{6}$')
+        pat = re.compile(r'^' + re.escape(LEGACY_PREFIX) + r'_([A-Z]+\d+?)_(.+?)_m\d_\d{4}_\d{6}$')
         for d in sorted(os.listdir(vd)):
             m = pat.match(d)
             full = os.path.join(vd, d)

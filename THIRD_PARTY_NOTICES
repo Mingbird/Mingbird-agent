@@ -1,0 +1,60 @@
+Third-party notices for Mingbird / 鸣鸟
+======================================
+
+This file records third-party components, benchmarks, and datasets that this
+repository references or was evaluated against, and states what (if anything)
+this repository redistributes. Mingbird's own code is Apache-2.0 (see
+`LICENSE`); its own data is CC BY 4.0 (see `LICENSE-DATA`).
+
+1. τ²-bench — external benchmark
+--------------------------------
+τ²-bench is an agent benchmark published by Sierra Research. It is an
+independent, third-party benchmark: a user simulator converses with the agent,
+which must drive domain tools against a live domain database, and scoring
+checks the resulting database state plus natural-language assertions.
+
+- Upstream repository: https://github.com/sierra-research/tau2-bench
+- License: see the upstream repository — we do not restate its license name or
+  terms here.
+
+What this repository redistributes: **derived indexes only.**
+`benchmarks/tau2/retail_manifest.json`, `airline_manifest.json`, and
+`telecom_manifest.json` contain one row per (task id, harness) holding the
+outcome of our own runs (`status`, `reward`, `wall`). They are keyed by
+upstream task id. No upstream task text, task prompts, user-simulator scripts,
+tool schemas, or domain databases are included, and the manifests are not a
+substitute for the upstream package — to re-run the benchmark, obtain it from
+the upstream repository above.
+
+- Our numbers use a modified protocol (local model, cloud user simulator)
+  rather than the official setup; see `benchmarks/README.md`. They are not
+  directly comparable to upstream leaderboard numbers.
+
+2. Other external benchmarks evaluated during development
+---------------------------------------------------------
+At least one further external benchmark was evaluated during development
+against its own published task and answer files. Those files, and any derived
+artifacts from them — including result tables, per-item scores, and score
+summaries — are **not** redistributed in this repository, because the task and
+answer sets are not ours to republish. Evaluation of that benchmark therefore
+cannot be repeated from this repository alone; obtain it from its own upstream
+source.
+
+No third-party benchmark's task set or answer set is included anywhere in this
+repository. The benchmarks whose data *is* published here (LRAB and the
+mechanism, ablation, frontier-probe, safety, and failure-form studies) are
+built from author-written synthetic tasks; see `LICENSE-DATA`.
+
+3. Model weights
+----------------
+No model weights are distributed in this repository. `benchmarks/models.lock`
+pins the exact Ollama model tags, manifest digests, and layer digests used for
+the published runs so that a reader can pull byte-identical weights from the
+upstream Ollama registry. Those weights remain under their own upstream
+licenses and terms, which are not restated here.
+
+4. Other dependencies
+---------------------
+Runtime dependencies are declared in `requirements.txt` and remain under their
+own upstream licenses. No vendored third-party source is included in this
+repository.

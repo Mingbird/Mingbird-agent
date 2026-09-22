@@ -14,6 +14,7 @@
 ### ☁️ Cloud model picker
 - A cloud-model box next to the 🔒 toggle: selectable only when online **and** configured; mutually exclusive with the local-model box (picking one clears the other — one model per conversation). Offline disables the box; the cloud path stays architecturally dead (`cloud_provider()` returns `{}`). A `?` button shows setup guidance; configuration is a `cloud` section in `config.json` (example in README).
 - Tests: routing tests are now isolated from the host's real offline-mode config (459 green).
+- Correction (added later, v1.8.2 entry kept as written): the suite currently collects **461** cases (`python -m pytest tests/ --collect-only -q` at the time of writing) — 435 unit + 26 integration. It contains no live-Ollama end-to-end test, and the benchmark runners under `bench/` and `benchmarks/` are separate programs, not part of the pytest suite. The 459 recorded above is the figure as of this release and is left unchanged as history.
 
 
 ## v1.8.1 (2026-09-21)

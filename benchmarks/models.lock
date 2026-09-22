@@ -3,43 +3,56 @@
 # manifest_sha256 = SHA-256 of the model's Ollama manifest file (the full form
 # of the 12-hex ID shown by `ollama list`). model_layer = the
 # application/vnd.ollama.image.model blob digest and size.
-# Reproduce: python diagnosis/get_digests-style hash of
+# Reproduce: SHA-256 the model's manifest file at
 #   ~/.ollama/models/manifests/registry.ollama.ai/library/<repo>/<tag>
 
 ollama_version: 0.33.2
+# Backend binary actually used for the published campaigns (filename only; the
+# installer's default location is per-user and not part of the pinned state).
+ollama_exe_file: ollama.exe
+ollama_exe_version: 0.33.2
+ollama_exe_sha256: c79df1e0c1bfa10ed813c7030ac4c3ba38bb0e350bd7322d9bb58320343235c6
 
 [model.gemma4:e2b]
+pull: ollama pull gemma4:e2b
 manifest_sha256: 7fbdbf8f5e45a75bb122155ed546e765b4d9c53a1285f62fd9f506baa1c5a47e
 model_layer: sha256:4e30e2665218745ef463f722c0bf86be0cab6ee676320f1cfadf91e989107448
 model_layer_bytes: 7162394016
 
 [model.qwen3.5:4b]
+pull: ollama pull qwen3.5:4b
 manifest_sha256: 2a654d98e6fba55d452b7043684e9b57a947e393bbffa62485a7aac05ee4eefd
 model_layer: sha256:81fb60c7daa80fc1123380b98970b320ae233409f0f71a72ed7b9b0d62f40490
 model_layer_bytes: 3389971840
 
 [model.gemma4:12b]
+pull: ollama pull gemma4:12b
 manifest_sha256: 4eb23ef187e2c5462566d6a1d3bbbc2f1346d0b4327cbb66d58fffbcc9b2b05c
 model_layer: sha256:1278394b693672ac2799eadc9a83fd98259a6a88a40acfb1dcaa6c6fc895a606
 model_layer_bytes: 7381382048
 projector_layer: sha256:675ad6e68101ca9413ec406855c452362f0213f2dfc5800996b086fdb8119842
 
 [model.ornith-1.5:35b]
+pull: ollama pull ornith-1.5:35b
 manifest_sha256: 9f3b89b2521908dd2e6f7a11fa368e62c8f89e1075f22604e4d1a76dd1240fcc
 model_layer: sha256:aaeb640f98a892980ef54876024293cc8d6987a86523aa1b947ffa9274ef800a
 model_layer_bytes: 21713462848
 
 [model.minicpm5-2b]  # alias of openbmb/minicpm5-2b (same manifest 71a44e98400f)
+pull: n/a (local alias; see note)
+pull_upstream: ollama pull openbmb/minicpm5-2b
 manifest_sha256: 71a44e98400fbd490d66332a0ebba31143479a714987c13f45c82e94025cbfa7
 note: created 2026-09-22 via 'ollama cp openbmb/minicpm5-2b minicpm5-2b' for slash-free
       result naming; same weights as the upstream tag (ollama list ID 71a44e98400f)
 
 [model.llama3.2:3b]  # Meta Llama 3.2 3B (second family, small tier; added 2026-09-22)
+pull: ollama pull llama3.2:3b
 manifest_sha256: a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72
 model_layer: sha256:dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff
 model_layer_bytes: 2019377376
 
 [model.llama3.2:1b]  # Meta Llama 3.2 1B (same family, lower tier)
+pull: ollama pull llama3.2:1b
 manifest_sha256: baf6a787fdffd633537aa2eb51cfd54cb93ff08e28040095462bb63daf552878
 model_layer: sha256:74701a8c35f6c8d9a4b91f3f3497643001d63e0c7a84e085bed452548fa88d45
 model_layer_bytes: 1321082688

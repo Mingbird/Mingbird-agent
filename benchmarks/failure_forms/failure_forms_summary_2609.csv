@@ -1,0 +1,5 @@
+harness,cells,platform_exit,budget_exhausted,provider_error,never_engaged,spin,format_breakdown,context_pressure,false_finish,early_stop,incomplete_delivery,tool_calls_median,wall_median_s,score_mean
+Mingbird,72,1/72,0/72,0/72,0/72,34/72,3/72,4/72,40/72,4/72,26/72,33.5,440.5,0.8858
+goose,72,1/72,1/72,0/72,0/71,n/a,n/a,n/a,n/a,23/72,44/72,15,692.4,0.6307
+opencode,72,3/72,0/72,0/72,21/72,n/a,n/a,n/a,n/a,32/72,53/72,5.0,450.1,0.4792
+agent-mini,72,0/72,0/72,8/72,0/72,n/a,n/a,n/a,n/a,44/72,61/72,7.0,116.4,0.4051

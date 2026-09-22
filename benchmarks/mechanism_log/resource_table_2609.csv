@@ -1,0 +1,289 @@
+harness,task,model,tier,score,wall_seconds,tool_calls,turns,prompt_tokens_peak,timeout_flag,attempt_dir
+Mingbird,LH01,gemma4_12b,12B,0.929,622.1,41,41,14564,no,mingbird_LH01_gemma4_12b_m0_0914_014928
+Mingbird,LH02,gemma4_12b,12B,0.765,720.7,32,33,13081,no,mingbird_LH02_gemma4_12b_m0_0914_020019
+Mingbird,LH03,gemma4_12b,12B,0.969,1450.0,102,106,20013,no,mingbird_LH03_gemma4_12b_m0_0914_021248
+Mingbird,WF01,gemma4_12b,12B,1.000,457.7,20,21,10376,no,mingbird_WF01_gemma4_12b_m0_0914_023727
+Mingbird,WF02,gemma4_12b,12B,1.000,332.6,18,18,7533,no,mingbird_WF02_gemma4_12b_m0_0914_024533
+Mingbird,WF03,gemma4_12b,12B,1.000,501.7,23,25,8917,no,mingbird_WF03_gemma4_12b_m0_0914_025134
+Mingbird,WF04,gemma4_12b,12B,1.000,298.1,22,22,7024,no,mingbird_WF04_gemma4_12b_m0_0914_030025
+Mingbird,WF05,gemma4_12b,12B,1.000,428.6,26,29,9679,no,mingbird_WF05_gemma4_12b_m0_0914_030552
+Mingbird,WF06,gemma4_12b,12B,0.929,351.6,22,23,7693,no,mingbird_WF06_gemma4_12b_m0_0914_031330
+Mingbird,WF07,gemma4_12b,12B,1.000,413.3,27,27,9658,no,mingbird_WF07_gemma4_12b_m0_0914_031950
+Mingbird,WF08,gemma4_12b,12B,1.000,568.9,20,20,8638,no,mingbird_WF08_gemma4_12b_m0_0914_032712
+Mingbird,WF09,gemma4_12b,12B,0.786,861.7,43,44,13020,no,mingbird_WF09_gemma4_12b_m0_0914_033709
+Mingbird,WF10,gemma4_12b,12B,1.000,353.5,22,25,8135,no,mingbird_WF10_gemma4_12b_m0_0914_035200
+Mingbird,WF11,gemma4_12b,12B,1.000,349.4,19,19,7417,no,mingbird_WF11_gemma4_12b_m0_0914_035821
+Mingbird,WF12,gemma4_12b,12B,0.571,393.9,19,20,7452,no,mingbird_WF12_gemma4_12b_m0_0914_040440
+Mingbird,WF13,gemma4_12b,12B,0.714,703.5,24,26,9637,no,mingbird_WF13_gemma4_12b_m0_0914_041142
+Mingbird,WF14,gemma4_12b,12B,0.786,339.9,21,21,7473,no,mingbird_WF14_gemma4_12b_m0_0914_042354
+Mingbird,WF15,gemma4_12b,12B,0.857,1551.9,38,38,18985,no,mingbird_WF15_gemma4_12b_m0_0914_043003
+Mingbird,LH01,gemma4_e2b,2B,0.929,184.7,33,34,19782,no,mingbird_LH01_gemma4_e2b_m0_0913_234546
+Mingbird,LH02,gemma4_e2b,2B,0.878,161.3,41,47,7011,no,mingbird_LH02_gemma4_e2b_m0_0913_234919
+Mingbird,LH03,gemma4_e2b,2B,0.969,529.9,91,95,25062,no,mingbird_LH03_gemma4_e2b_m0_0913_235228
+Mingbird,WF01,gemma4_e2b,2B,1.000,148.1,35,44,9971,no,mingbird_WF01_gemma4_e2b_m0_0914_000146
+Mingbird,WF02,gemma4_e2b,2B,1.000,55.9,15,18,6726,no,mingbird_WF02_gemma4_e2b_m0_0914_000442
+Mingbird,WF03,gemma4_e2b,2B,1.000,809.3,36,40,19743,no,mingbird_WF03_gemma4_e2b_m0_0914_000606
+Mingbird,WF04,gemma4_e2b,2B,1.000,137.6,34,36,15805,no,mingbird_WF04_gemma4_e2b_m0_0914_002004
+Mingbird,WF05,gemma4_e2b,2B,1.000,66.6,18,19,8494,no,mingbird_WF05_gemma4_e2b_m0_0914_002250
+Mingbird,WF06,gemma4_e2b,2B,0.857,59.4,17,17,6618,no,mingbird_WF06_gemma4_e2b_m0_0914_002426
+Mingbird,WF07,gemma4_e2b,2B,0.429,134.0,50,57,7827,no,mingbird_WF07_gemma4_e2b_m0_0914_002554
+Mingbird,WF08,gemma4_e2b,2B,1.000,334.9,33,43,19724,no,mingbird_WF08_gemma4_e2b_m0_0914_002836
+Mingbird,WF09,gemma4_e2b,2B,0.500,2661.4,39,49,32767,no,mingbird_WF09_gemma4_e2b_m0_0914_003438
+Mingbird,WF10,gemma4_e2b,2B,0.571,107.4,25,26,9383,no,mingbird_WF10_gemma4_e2b_m0_0914_011928
+Mingbird,WF11,gemma4_e2b,2B,0.857,51.4,16,16,6062,no,mingbird_WF11_gemma4_e2b_m0_0914_012144
+Mingbird,WF12,gemma4_e2b,2B,0.571,70.8,20,24,6841,no,mingbird_WF12_gemma4_e2b_m0_0914_012304
+Mingbird,WF13,gemma4_e2b,2B,0.714,75.2,26,29,7626,no,mingbird_WF13_gemma4_e2b_m0_0914_012442
+Mingbird,WF14,gemma4_e2b,2B,0.786,57.7,21,22,6336,no,mingbird_WF14_gemma4_e2b_m0_0914_012626
+Mingbird,WF15,gemma4_e2b,2B,0.714,1268.4,43,47,26557,no,mingbird_WF15_gemma4_e2b_m0_0914_012751
+Mingbird,LH01,ornith1.5_35b,35B,1.000,526.4,56,56,20097,no,mingbird_LH01_ornith1.5_35b_m0_0914_045649
+Mingbird,LH02,ornith1.5_35b,35B,0.939,295.5,38,38,14684,no,mingbird_LH02_ornith1.5_35b_m0_0914_050623
+Mingbird,LH03,ornith1.5_35b,35B,1.000,822.8,94,70,26026,no,mingbird_LH03_ornith1.5_35b_m0_0914_051205
+Mingbird,WF01,ornith1.5_35b,35B,1.000,423.1,29,29,20703,no,mingbird_WF01_ornith1.5_35b_m0_0914_052635
+Mingbird,WF02,ornith1.5_35b,35B,1.000,265.2,21,21,13185,no,mingbird_WF02_ornith1.5_35b_m0_0914_053425
+Mingbird,WF03,ornith1.5_35b,35B,1.000,452.6,44,37,21646,no,mingbird_WF03_ornith1.5_35b_m0_0914_053937
+Mingbird,WF04,ornith1.5_35b,35B,1.000,156.4,28,25,10184,no,mingbird_WF04_ornith1.5_35b_m0_0914_054756
+Mingbird,WF05,ornith1.5_35b,35B,1.000,452.4,47,47,20543,no,mingbird_WF05_ornith1.5_35b_m0_0914_055120
+Mingbird,WF06,ornith1.5_35b,35B,1.000,288.9,33,34,13397,no,mingbird_WF06_ornith1.5_35b_m0_0914_055939
+Mingbird,WF07,ornith1.5_35b,35B,1.000,1013.0,84,40,23188,no,mingbird_WF07_ornith1.5_35b_m0_0914_060515
+Mingbird,WF08,ornith1.5_35b,35B,0.000,275.7,59,49,14773,no,mingbird_WF08_ornith1.5_35b_m0_0914_062257
+Mingbird,WF09,ornith1.5_35b,35B,1.000,1392.3,113,106,24849,no,mingbird_WF09_ornith1.5_35b_m0_0914_062820
+Mingbird,WF10,ornith1.5_35b,35B,1.000,417.4,50,47,19626,no,mingbird_WF10_ornith1.5_35b_m0_0914_065224
+Mingbird,WF11,ornith1.5_35b,35B,1.000,215.2,30,18,11460,no,mingbird_WF11_ornith1.5_35b_m0_0914_070009
+Mingbird,WF12,ornith1.5_35b,35B,1.000,564.9,33,24,20356,no,mingbird_WF12_ornith1.5_35b_m0_0914_070431
+Mingbird,WF13,ornith1.5_35b,35B,1.000,575.2,37,37,20128,no,mingbird_WF13_ornith1.5_35b_m0_0914_071442
+Mingbird,WF14,ornith1.5_35b,35B,1.000,369.1,32,32,16383,no,mingbird_WF14_ornith1.5_35b_m0_0914_072505
+Mingbird,WF15,ornith1.5_35b,35B,1.000,760.3,75,63,24661,no,mingbird_WF15_ornith1.5_35b_m0_0914_073201
+Mingbird,LH01,qwen3.5_4b,4B,0.714,1271.1,198,200,24579,no,mingbird_LH01_qwen3.5_4b_m0_0913_155735
+Mingbird,LH02,qwen3.5_4b,4B,0.403,651.5,64,68,17499,no,mingbird_LH02_qwen3.5_4b_m0_0913_161914
+Mingbird,LH03,qwen3.5_4b,4B,0.429,938.6,136,139,25022,no,mingbird_LH03_qwen3.5_4b_m0_0913_163034
+Mingbird,WF01,qwen3.5_4b,4B,1.000,738.5,59,65,14266,no,mingbird_WF01_qwen3.5_4b_m0_0913_164640
+Mingbird,WF02,qwen3.5_4b,4B,1.000,256.0,23,25,11725,no,mingbird_WF02_qwen3.5_4b_m0_0913_165927
+Mingbird,WF03,qwen3.5_4b,4B,1.000,629.8,47,48,19757,no,mingbird_WF03_qwen3.5_4b_m0_0913_170410
+Mingbird,WF04,qwen3.5_4b,4B,1.000,166.1,27,26,9473,no,mingbird_WF04_qwen3.5_4b_m0_0913_171508
+Mingbird,WF05,qwen3.5_4b,4B,1.000,476.6,41,45,19837,no,mingbird_WF05_qwen3.5_4b_m0_0913_171823
+Mingbird,WF06,qwen3.5_4b,4B,1.000,267.4,24,29,11724,no,mingbird_WF06_qwen3.5_4b_m0_0913_172647
+Mingbird,WF07,qwen3.5_4b,4B,1.000,629.0,58,63,20443,no,mingbird_WF07_qwen3.5_4b_m0_0913_173143
+Mingbird,WF08,qwen3.5_4b,4B,1.000,1689.3,95,77,19665,no,mingbird_WF08_qwen3.5_4b_m0_0913_174240
+Mingbird,WF09,qwen3.5_4b,4B,0.500,1043.7,89,95,18392,no,mingbird_WF09_qwen3.5_4b_m0_0913_210334
+Mingbird,WF10,qwen3.5_4b,4B,1.000,464.2,73,76,16104,no,mingbird_WF10_qwen3.5_4b_m0_0913_215419
+Mingbird,WF11,qwen3.5_4b,4B,0.857,3344.0,200,200,30027,no,mingbird_WF11_qwen3.5_4b_m0_0913_220231
+Mingbird,WF12,qwen3.5_4b,4B,1.000,722.5,27,17,18660,no,mingbird_WF12_qwen3.5_4b_m0_0913_225843
+Mingbird,WF13,qwen3.5_4b,4B,1.000,343.1,21,22,11607,no,mingbird_WF13_qwen3.5_4b_m0_0913_231113
+Mingbird,WF14,qwen3.5_4b,4B,1.000,629.8,38,40,19869,no,mingbird_WF14_qwen3.5_4b_m0_0913_231724
+Mingbird,WF15,qwen3.5_4b,4B,0.857,1015.8,102,98,20246,no,mingbird_WF15_qwen3.5_4b_m0_0913_232822
+agent-mini,LH01,gemma4_12b,12B,0.643,499.1,40,n/a (not recorded),n/a (not recorded),no,agentmini_LH01_gemma4_12b_m0_0903_141904
+agent-mini,LH02,gemma4_12b,12B,0.878,273.3,16,n/a (not recorded),n/a (not recorded),no,agentmini_LH02_gemma4_12b_m0_0903_142751
+agent-mini,LH03,gemma4_12b,12B,0.706,520.1,40,n/a (not recorded),n/a (not recorded),no,agentmini_LH03_gemma4_12b_m0_0903_143253
+agent-mini,WF01,gemma4_12b,12B,1.0,405.6,8,n/a (not recorded),n/a (not recorded),no,agentmini_WF01_gemma4_12b_m0_0903_144201
+agent-mini,WF02,gemma4_12b,12B,1.0,421.9,14,n/a (not recorded),n/a (not recorded),no,agentmini_WF02_gemma4_12b_m0_0903_144915
+agent-mini,WF03,gemma4_12b,12B,0.714,357.1,8,n/a (not recorded),n/a (not recorded),no,agentmini_WF03_gemma4_12b_m0_0903_145645
+agent-mini,WF04,gemma4_12b,12B,0.0,958.4,2,n/a (not recorded),n/a (not recorded),no,agentmini_WF04_gemma4_12b_m0_0903_150312
+agent-mini,WF05,gemma4_12b,12B,0.857,637.3,40,n/a (not recorded),n/a (not recorded),no,agentmini_WF05_gemma4_12b_m0_0903_151939
+agent-mini,WF06,gemma4_12b,12B,0.286,1054.2,7,n/a (not recorded),n/a (not recorded),no,agentmini_WF06_gemma4_12b_m0_0903_153044
+agent-mini,WF07,gemma4_12b,12B,0.714,630.2,11,n/a (not recorded),n/a (not recorded),no,agentmini_WF07_gemma4_12b_m0_0903_154847
+agent-mini,WF08,gemma4_12b,12B,0.571,320.1,4,n/a (not recorded),n/a (not recorded),no,agentmini_WF08_gemma4_12b_m0_0903_155945
+agent-mini,WF09,gemma4_12b,12B,0.0,929.4,1,n/a (not recorded),n/a (not recorded),no,agentmini_WF09_gemma4_12b_m0_0903_160533
+agent-mini,WF10,gemma4_12b,12B,1.0,197.6,9,n/a (not recorded),n/a (not recorded),no,agentmini_WF10_gemma4_12b_m0_0903_162131
+agent-mini,WF11,gemma4_12b,12B,0.286,978.3,3,n/a (not recorded),n/a (not recorded),no,agentmini_WF11_gemma4_12b_m0_0903_162517
+agent-mini,WF12,gemma4_12b,12B,0.571,757.8,11,n/a (not recorded),n/a (not recorded),no,agentmini_WF12_gemma4_12b_m0_0903_164204
+agent-mini,WF13,gemma4_12b,12B,0.857,482.6,14,n/a (not recorded),n/a (not recorded),no,agentmini_WF13_gemma4_12b_m0_0903_165511
+agent-mini,WF14,gemma4_12b,12B,0.0,928.1,1,n/a (not recorded),n/a (not recorded),no,agentmini_WF14_gemma4_12b_m0_0903_170342
+agent-mini,WF15,gemma4_12b,12B,0.286,569.7,7,n/a (not recorded),n/a (not recorded),no,agentmini_WF15_gemma4_12b_m0_0903_171939
+agent-mini,LH01,gemma4_e2b,2B,0.643,82.2,5,n/a (not recorded),n/a (not recorded),no,agentmini_LH01_gemma4_e2b_m0_0902_164043
+agent-mini,LH02,gemma4_e2b,2B,0.0,44.4,2,n/a (not recorded),n/a (not recorded),no,agentmini_LH02_gemma4_e2b_m0_0902_164232
+agent-mini,LH03,gemma4_e2b,2B,0.363,60.7,8,n/a (not recorded),n/a (not recorded),no,agentmini_LH03_gemma4_e2b_m0_0902_164344
+agent-mini,WF01,gemma4_e2b,2B,0.286,71.7,7,n/a (not recorded),n/a (not recorded),no,agentmini_WF01_gemma4_e2b_m0_0902_164513
+agent-mini,WF02,gemma4_e2b,2B,0.286,58.0,4,n/a (not recorded),n/a (not recorded),no,agentmini_WF02_gemma4_e2b_m0_0902_164652
+agent-mini,WF03,gemma4_e2b,2B,0.286,105.0,4,n/a (not recorded),n/a (not recorded),no,agentmini_WF03_gemma4_e2b_m0_0902_164818
+agent-mini,WF04,gemma4_e2b,2B,0.0,46.1,4,n/a (not recorded),n/a (not recorded),no,agentmini_WF04_gemma4_e2b_m0_0902_165030
+agent-mini,WF05,gemma4_e2b,2B,0.0,54.2,3,n/a (not recorded),n/a (not recorded),no,agentmini_WF05_gemma4_e2b_m0_0902_165144
+agent-mini,WF06,gemma4_e2b,2B,0.286,73.2,7,n/a (not recorded),n/a (not recorded),no,agentmini_WF06_gemma4_e2b_m0_0902_165306
+agent-mini,WF07,gemma4_e2b,2B,0.286,65.9,5,n/a (not recorded),n/a (not recorded),no,agentmini_WF07_gemma4_e2b_m0_0902_165447
+agent-mini,WF08,gemma4_e2b,2B,0.286,52.0,5,n/a (not recorded),n/a (not recorded),no,agentmini_WF08_gemma4_e2b_m0_0902_165620
+agent-mini,WF09,gemma4_e2b,2B,0.0,45.7,3,n/a (not recorded),n/a (not recorded),no,agentmini_WF09_gemma4_e2b_m0_0902_165739
+agent-mini,WF10,gemma4_e2b,2B,0.0,47.2,2,n/a (not recorded),n/a (not recorded),no,agentmini_WF10_gemma4_e2b_m0_0902_165853
+agent-mini,WF11,gemma4_e2b,2B,0.286,86.5,6,n/a (not recorded),n/a (not recorded),no,agentmini_WF11_gemma4_e2b_m0_0902_170007
+agent-mini,WF12,gemma4_e2b,2B,0.286,48.0,3,n/a (not recorded),n/a (not recorded),no,agentmini_WF12_gemma4_e2b_m0_0902_170201
+agent-mini,WF13,gemma4_e2b,2B,0.571,98.0,5,n/a (not recorded),n/a (not recorded),no,agentmini_WF13_gemma4_e2b_m0_0902_170317
+agent-mini,WF14,gemma4_e2b,2B,0.286,68.6,6,n/a (not recorded),n/a (not recorded),no,agentmini_WF14_gemma4_e2b_m0_0902_170522
+agent-mini,WF15,gemma4_e2b,2B,0.286,119.8,8,n/a (not recorded),n/a (not recorded),no,agentmini_WF15_gemma4_e2b_m0_0902_170658
+agent-mini,LH01,ornith1.5_35b,35B,0.0,21.0,3,n/a (not recorded),n/a (not recorded),no,agentmini_LH01_ornith1.5_35b_m0_0904_150406
+agent-mini,LH02,ornith1.5_35b,35B,0.0,10.5,1,n/a (not recorded),n/a (not recorded),no,agentmini_LH02_ornith1.5_35b_m0_0904_150519
+agent-mini,LH03,ornith1.5_35b,35B,0.363,83.8,19,n/a (not recorded),n/a (not recorded),no,agentmini_LH03_ornith1.5_35b_m0_0904_150620
+agent-mini,WF01,ornith1.5_35b,35B,0.0,14.7,2,n/a (not recorded),n/a (not recorded),no,agentmini_WF01_ornith1.5_35b_m0_0904_150835
+agent-mini,WF02,ornith1.5_35b,35B,0.0,78.2,3,n/a (not recorded),n/a (not recorded),no,agentmini_WF02_ornith1.5_35b_m0_0904_150947
+agent-mini,WF03,ornith1.5_35b,35B,0.0,15.8,2,n/a (not recorded),n/a (not recorded),no,agentmini_WF03_ornith1.5_35b_m0_0904_151200
+agent-mini,WF04,ornith1.5_35b,35B,0.0,10.6,1,n/a (not recorded),n/a (not recorded),no,agentmini_WF04_ornith1.5_35b_m0_0904_151309
+agent-mini,WF05,ornith1.5_35b,35B,0.0,18.9,3,n/a (not recorded),n/a (not recorded),no,agentmini_WF05_ornith1.5_35b_m0_0904_151414
+agent-mini,WF06,ornith1.5_35b,35B,0.0,20.2,4,n/a (not recorded),n/a (not recorded),no,agentmini_WF06_ornith1.5_35b_m0_0904_151525
+agent-mini,WF07,ornith1.5_35b,35B,0.0,40.3,7,n/a (not recorded),n/a (not recorded),no,agentmini_WF07_ornith1.5_35b_m0_0904_151639
+agent-mini,WF08,ornith1.5_35b,35B,0.0,32.1,8,n/a (not recorded),n/a (not recorded),no,agentmini_WF08_ornith1.5_35b_m0_0904_151812
+agent-mini,WF09,ornith1.5_35b,35B,0.0,21.7,4,n/a (not recorded),n/a (not recorded),no,agentmini_WF09_ornith1.5_35b_m0_0904_151936
+agent-mini,WF10,ornith1.5_35b,35B,0.0,10.2,1,n/a (not recorded),n/a (not recorded),no,agentmini_WF10_ornith1.5_35b_m0_0904_152050
+agent-mini,WF11,ornith1.5_35b,35B,0.0,38.5,4,n/a (not recorded),n/a (not recorded),no,agentmini_WF11_ornith1.5_35b_m0_0904_152154
+agent-mini,WF12,ornith1.5_35b,35B,0.286,77.2,5,n/a (not recorded),n/a (not recorded),no,agentmini_WF12_ornith1.5_35b_m0_0904_152325
+agent-mini,WF13,ornith1.5_35b,35B,0.0,45.1,4,n/a (not recorded),n/a (not recorded),no,agentmini_WF13_ornith1.5_35b_m0_0904_152550
+agent-mini,WF14,ornith1.5_35b,35B,0.714,248.9,11,n/a (not recorded),n/a (not recorded),no,agentmini_WF14_ornith1.5_35b_m0_0904_152742
+agent-mini,WF15,ornith1.5_35b,35B,0.286,113.1,9,n/a (not recorded),n/a (not recorded),no,agentmini_WF15_ornith1.5_35b_m0_0904_153251
+agent-mini,LH01,qwen3.5_4b,4B,0.964,271.2,22,n/a (not recorded),n/a (not recorded),no,agentmini_LH01_qwen3.5_4b_m0_0903_034509
+agent-mini,LH02,qwen3.5_4b,4B,0.939,138.5,19,n/a (not recorded),n/a (not recorded),no,agentmini_LH02_qwen3.5_4b_m0_0903_035008
+agent-mini,LH03,qwen3.5_4b,4B,0.306,78.1,10,n/a (not recorded),n/a (not recorded),no,agentmini_LH03_qwen3.5_4b_m0_0903_035254
+agent-mini,WF01,qwen3.5_4b,4B,1.0,229.6,12,n/a (not recorded),n/a (not recorded),no,agentmini_WF01_qwen3.5_4b_m0_0903_035440
+agent-mini,WF02,qwen3.5_4b,4B,1.0,193.9,15,n/a (not recorded),n/a (not recorded),no,agentmini_WF02_qwen3.5_4b_m0_0903_035858
+agent-mini,WF03,qwen3.5_4b,4B,0.786,174.5,8,n/a (not recorded),n/a (not recorded),no,agentmini_WF03_qwen3.5_4b_m0_0903_040239
+agent-mini,WF04,qwen3.5_4b,4B,0.571,196.7,21,n/a (not recorded),n/a (not recorded),no,agentmini_WF04_qwen3.5_4b_m0_0903_040601
+agent-mini,WF05,qwen3.5_4b,4B,0.571,191.0,40,n/a (not recorded),n/a (not recorded),no,agentmini_WF05_qwen3.5_4b_m0_0903_040946
+agent-mini,WF06,qwen3.5_4b,4B,0.857,147.9,18,n/a (not recorded),n/a (not recorded),no,agentmini_WF06_qwen3.5_4b_m0_0903_041324
+agent-mini,WF07,qwen3.5_4b,4B,0.286,49.0,7,n/a (not recorded),n/a (not recorded),no,agentmini_WF07_qwen3.5_4b_m0_0903_041620
+agent-mini,WF08,qwen3.5_4b,4B,1.0,351.4,40,n/a (not recorded),n/a (not recorded),no,agentmini_WF08_qwen3.5_4b_m0_0903_041736
+agent-mini,WF09,qwen3.5_4b,4B,0.286,180.8,40,n/a (not recorded),n/a (not recorded),no,agentmini_WF09_qwen3.5_4b_m0_0903_042355
+agent-mini,WF10,qwen3.5_4b,4B,0.0,397.5,40,n/a (not recorded),n/a (not recorded),no,agentmini_WF10_qwen3.5_4b_m0_0903_042724
+agent-mini,WF11,qwen3.5_4b,4B,1.0,201.8,14,n/a (not recorded),n/a (not recorded),no,agentmini_WF11_qwen3.5_4b_m0_0903_043429
+agent-mini,WF12,qwen3.5_4b,4B,1.0,274.5,14,n/a (not recorded),n/a (not recorded),no,agentmini_WF12_qwen3.5_4b_m0_0903_043818
+agent-mini,WF13,qwen3.5_4b,4B,0.857,226.0,40,n/a (not recorded),n/a (not recorded),no,agentmini_WF13_qwen3.5_4b_m0_0903_044320
+agent-mini,WF14,qwen3.5_4b,4B,1.0,253.6,11,n/a (not recorded),n/a (not recorded),no,agentmini_WF14_qwen3.5_4b_m0_0903_044734
+agent-mini,WF15,qwen3.5_4b,4B,0.286,210.0,41,n/a (not recorded),n/a (not recorded),no,agentmini_WF15_qwen3.5_4b_m0_0903_045215
+goose,WF01,gemma4_e2b,2B,0,45.4,2,n/a (not recorded),n/a (not recorded),no,goose_WF01_gemma4_e2b_m0_0918_100327
+goose,WF02,gemma4_e2b,2B,0,48.0,4,n/a (not recorded),n/a (not recorded),no,goose_WF02_gemma4_e2b_m0_0918_100441
+goose,WF03,gemma4_e2b,2B,1,123.1,10,n/a (not recorded),n/a (not recorded),no,goose_WF03_gemma4_e2b_m0_0918_100557
+goose,WF04,gemma4_e2b,2B,0.571,79.9,11,n/a (not recorded),n/a (not recorded),no,goose_WF04_gemma4_e2b_m0_0918_100828
+goose,WF05,gemma4_e2b,2B,0.286,61.8,4,n/a (not recorded),n/a (not recorded),no,goose_WF05_gemma4_e2b_m0_0918_101017
+goose,WF06,gemma4_e2b,2B,0.286,56.7,7,n/a (not recorded),n/a (not recorded),no,goose_WF06_gemma4_e2b_m0_0918_101147
+goose,WF07,gemma4_e2b,2B,0.286,48.2,4,n/a (not recorded),n/a (not recorded),no,goose_WF07_gemma4_e2b_m0_0918_101313
+goose,WF08,gemma4_e2b,2B,0.786,86.2,6,n/a (not recorded),n/a (not recorded),no,goose_WF08_gemma4_e2b_m0_0918_101429
+goose,WF09,gemma4_e2b,2B,0,63.3,5,n/a (not recorded),n/a (not recorded),no,goose_WF09_gemma4_e2b_m0_0918_101624
+goose,WF10,gemma4_e2b,2B,0.786,75.5,17,n/a (not recorded),n/a (not recorded),no,goose_WF10_gemma4_e2b_m0_0918_101757
+goose,WF11,gemma4_e2b,2B,0,57.4,5,n/a (not recorded),n/a (not recorded),no,goose_WF11_gemma4_e2b_m0_0918_101940
+goose,WF12,gemma4_e2b,2B,0.571,114.4,16,n/a (not recorded),n/a (not recorded),no,goose_WF12_gemma4_e2b_m0_0918_102105
+goose,WF13,gemma4_e2b,2B,0,80.2,8,n/a (not recorded),n/a (not recorded),no,goose_WF13_gemma4_e2b_m0_0918_102327
+goose,WF14,gemma4_e2b,2B,0,50.9,4,n/a (not recorded),n/a (not recorded),no,goose_WF14_gemma4_e2b_m0_0918_102516
+goose,WF15,gemma4_e2b,2B,0,45.5,4,n/a (not recorded),n/a (not recorded),no,goose_WF15_gemma4_e2b_m0_0918_102635
+goose,LH01,gemma4_e2b,2B,0,99.7,14,n/a (not recorded),n/a (not recorded),no,goose_LH01_gemma4_e2b_m0_0918_095824
+goose,LH02,gemma4_e2b,2B,0,45.3,2,n/a (not recorded),n/a (not recorded),no,goose_LH02_gemma4_e2b_m0_0918_100032
+goose,LH03,gemma4_e2b,2B,0.306,73.9,15,n/a (not recorded),n/a (not recorded),no,goose_LH03_gemma4_e2b_m0_0918_100145
+goose,WF01,qwen3.5_4b,4B,1,416.9,11,n/a (not recorded),n/a (not recorded),no,goose_WF01_qwen3.5_4b_m0_0918_120702
+goose,WF02,qwen3.5_4b,4B,1,1164.2,90,n/a (not recorded),n/a (not recorded),no,goose_WF02_qwen3.5_4b_m0_0918_121429
+goose,WF03,qwen3.5_4b,4B,0.786,893.1,26,n/a (not recorded),n/a (not recorded),no,goose_WF03_qwen3.5_4b_m0_0918_123422
+goose,WF04,qwen3.5_4b,4B,1,230.8,24,n/a (not recorded),n/a (not recorded),no,goose_WF04_qwen3.5_4b_m0_0918_124942
+goose,WF05,qwen3.5_4b,4B,1,1002.7,36,n/a (not recorded),n/a (not recorded),no,goose_WF05_qwen3.5_4b_m0_0918_125400
+goose,WF06,qwen3.5_4b,4B,1,1193.6,62,n/a (not recorded),n/a (not recorded),no,goose_WF06_qwen3.5_4b_m0_0918_131110
+goose,WF07,qwen3.5_4b,4B,1,2418.5,180,n/a (not recorded),n/a (not recorded),no,goose_WF07_qwen3.5_4b_m0_0918_133131
+goose,WF08,qwen3.5_4b,4B,0,n/a,0,n/a (not recorded),n/a (not recorded),yes:score.json:failure_mode=timeout,goose_WF08_qwen3.5_4b_m0_0918_164743
+goose,WF09,qwen3.5_4b,4B,0.786,714.1,27,n/a (not recorded),n/a (not recorded),no,goose_WF09_qwen3.5_4b_m0_0918_202323
+goose,WF10,qwen3.5_4b,4B,1,1190.0,242,n/a (not recorded),n/a (not recorded),no,goose_WF10_qwen3.5_4b_m0_0918_203544
+goose,WF11,qwen3.5_4b,4B,1,258.5,15,n/a (not recorded),n/a (not recorded),no,goose_WF11_qwen3.5_4b_m0_0918_205601
+goose,WF12,qwen3.5_4b,4B,1,775.8,26,n/a (not recorded),n/a (not recorded),no,goose_WF12_qwen3.5_4b_m0_0918_210047
+goose,WF13,qwen3.5_4b,4B,0.714,1199.5,28,n/a (not recorded),n/a (not recorded),no,goose_WF13_qwen3.5_4b_m0_0918_211410
+goose,WF14,qwen3.5_4b,4B,1,410.3,14,n/a (not recorded),n/a (not recorded),no,goose_WF14_qwen3.5_4b_m0_0918_213436
+goose,WF15,qwen3.5_4b,4B,0.714,1140.6,46,n/a (not recorded),n/a (not recorded),no,goose_WF15_qwen3.5_4b_m0_0918_214154
+goose,LH01,qwen3.5_4b,4B,0.714,1121.5,46,n/a (not recorded),n/a (not recorded),no,goose_LH01_qwen3.5_4b_m0_0918_104819
+goose,LH02,qwen3.5_4b,4B,0,1849.2,121,n/a (not recorded),n/a (not recorded),no,goose_LH02_qwen3.5_4b_m0_0918_110730
+goose,LH03,qwen3.5_4b,4B,0.706,1662.5,54,n/a (not recorded),n/a (not recorded),no,goose_LH03_qwen3.5_4b_m0_0918_113850
+goose,WF01,gemma4_12b,12B,1,1383.1,12,n/a (not recorded),n/a (not recorded),no,goose_WF01_gemma4_12b_m0_0919_115041
+goose,WF02,gemma4_12b,12B,1,667.4,9,n/a (not recorded),n/a (not recorded),no,goose_WF02_gemma4_12b_m0_0919_121412
+goose,WF03,gemma4_12b,12B,0.286,2910.0,42,n/a (not recorded),n/a (not recorded),no,goose_WF03_gemma4_12b_m0_0919_122548
+goose,WF04,gemma4_12b,12B,0.286,3484.9,7,n/a (not recorded),n/a (not recorded),no,goose_WF04_gemma4_12b_m0_0919_131446
+goose,WF05,gemma4_12b,12B,0.857,3790.9,12,n/a (not recorded),n/a (not recorded),no,goose_WF05_gemma4_12b_m0_0919_141320
+goose,WF06,gemma4_12b,12B,0.857,591.5,12,n/a (not recorded),n/a (not recorded),no,goose_WF06_gemma4_12b_m0_0919_151658
+goose,WF07,gemma4_12b,12B,0.929,707.9,13,n/a (not recorded),n/a (not recorded),no,goose_WF07_gemma4_12b_m0_0919_152718
+goose,WF08,gemma4_12b,12B,1,1022.0,12,n/a (not recorded),n/a (not recorded),no,goose_WF08_gemma4_12b_m0_0919_153934
+goose,WF09,gemma4_12b,12B,0.786,2491.4,17,n/a (not recorded),n/a (not recorded),no,goose_WF09_gemma4_12b_m0_0919_155704
+goose,WF10,gemma4_12b,12B,0.893,448.0,11,n/a (not recorded),n/a (not recorded),no,goose_WF10_gemma4_12b_m0_0919_163903
+goose,WF11,gemma4_12b,12B,1,513.5,8,n/a (not recorded),n/a (not recorded),no,goose_WF11_gemma4_12b_m0_0919_164659
+goose,WF12,gemma4_12b,12B,0.571,778.2,14,n/a (not recorded),n/a (not recorded),no,goose_WF12_gemma4_12b_m0_0919_165600
+goose,WF13,gemma4_12b,12B,0.714,799.5,15,n/a (not recorded),n/a (not recorded),no,goose_WF13_gemma4_12b_m0_0919_170926
+goose,WF14,gemma4_12b,12B,0.786,741.2,9,n/a (not recorded),n/a (not recorded),no,goose_WF14_gemma4_12b_m0_0919_172314
+goose,WF15,gemma4_12b,12B,0.714,3484.8,17,n/a (not recorded),n/a (not recorded),no,goose_WF15_gemma4_12b_m0_0919_173603
+goose,LH01,gemma4_12b,12B,0.964,1103.1,39,n/a (not recorded),n/a (not recorded),no,goose_LH01_gemma4_12b_m0_0919_111304
+goose,LH02,gemma4_12b,12B,0.939,519.5,10,n/a (not recorded),n/a (not recorded),no,goose_LH02_gemma4_12b_m0_0919_113155
+goose,LH03,gemma4_12b,12B,0.306,550.6,1,n/a (not recorded),n/a (not recorded),no,goose_LH03_gemma4_12b_m0_0919_114102
+goose,WF01,ornith1.5_35b,35B,1,1061.6,27,n/a (not recorded),n/a (not recorded),no,goose_WF01_ornith1.5_35b_m0_0919_192215
+goose,WF02,ornith1.5_35b,35B,1,961.0,22,n/a (not recorded),n/a (not recorded),no,goose_WF02_ornith1.5_35b_m0_0919_194054
+goose,WF03,ornith1.5_35b,35B,0,819.9,28,n/a (not recorded),n/a (not recorded),no,goose_WF03_ornith1.5_35b_m0_0919_195750
+goose,WF04,ornith1.5_35b,35B,1,300.8,21,n/a (not recorded),n/a (not recorded),no,goose_WF04_ornith1.5_35b_m0_0919_201228
+goose,WF05,ornith1.5_35b,35B,1,1458.6,41,n/a (not recorded),n/a (not recorded),no,goose_WF05_ornith1.5_35b_m0_0919_201833
+goose,WF06,ornith1.5_35b,35B,1,692.4,40,n/a (not recorded),n/a (not recorded),no,goose_WF06_ornith1.5_35b_m0_0919_204348
+goose,WF07,ornith1.5_35b,35B,0.286,1502.6,72,n/a (not recorded),n/a (not recorded),no,goose_WF07_ornith1.5_35b_m0_0919_205616
+goose,WF08,ornith1.5_35b,35B,0.286,309.0,11,n/a (not recorded),n/a (not recorded),no,goose_WF08_ornith1.5_35b_m0_0919_212218
+goose,WF09,ornith1.5_35b,35B,1,1522.4,63,n/a (not recorded),n/a (not recorded),no,goose_WF09_ornith1.5_35b_m0_0919_212832
+goose,WF10,ornith1.5_35b,35B,1,1023.9,63,n/a (not recorded),n/a (not recorded),no,goose_WF10_ornith1.5_35b_m0_0919_215508
+goose,WF11,ornith1.5_35b,35B,1,1072.4,33,n/a (not recorded),n/a (not recorded),no,goose_WF11_ornith1.5_35b_m0_0919_221307
+goose,WF12,ornith1.5_35b,35B,0.857,681.0,22,n/a (not recorded),n/a (not recorded),no,goose_WF12_ornith1.5_35b_m0_0919_223157
+goose,WF13,ornith1.5_35b,35B,0.571,453.9,17,n/a (not recorded),n/a (not recorded),no,goose_WF13_ornith1.5_35b_m0_0919_224415
+goose,WF14,ornith1.5_35b,35B,1,597.8,16,n/a (not recorded),n/a (not recorded),no,goose_WF14_ornith1.5_35b_m0_0919_225253
+goose,WF15,ornith1.5_35b,35B,0.429,1544.7,36,n/a (not recorded),n/a (not recorded),no,goose_WF15_ornith1.5_35b_m0_0919_230428
+goose,LH01,ornith1.5_35b,35B,0,293.5,11,n/a (not recorded),n/a (not recorded),no,goose_LH01_ornith1.5_35b_m0_0919_183519
+goose,LH02,ornith1.5_35b,35B,0.061,161.0,13,n/a (not recorded),n/a (not recorded),no,goose_LH02_ornith1.5_35b_m0_0919_184122
+goose,LH03,ornith1.5_35b,35B,0.737,2170.3,76,n/a (not recorded),n/a (not recorded),no,goose_LH03_ornith1.5_35b_m0_0919_184508
+opencode,WF01,gemma4_e2b,2B,0,39.8,0,n/a (not recorded),n/a (not recorded),no,opencode_WF01_gemma4_e2b_m0_0918_103101
+opencode,WF02,gemma4_e2b,2B,0,40.2,0,n/a (not recorded),n/a (not recorded),no,opencode_WF02_gemma4_e2b_m0_0918_103210
+opencode,WF03,gemma4_e2b,2B,0,39.2,0,n/a (not recorded),n/a (not recorded),no,opencode_WF03_gemma4_e2b_m0_0918_103320
+opencode,WF04,gemma4_e2b,2B,0,41.6,0,n/a (not recorded),n/a (not recorded),no,opencode_WF04_gemma4_e2b_m0_0918_103428
+opencode,WF05,gemma4_e2b,2B,0,39.6,0,n/a (not recorded),n/a (not recorded),no,opencode_WF05_gemma4_e2b_m0_0918_103539
+opencode,WF06,gemma4_e2b,2B,0,29.9,0,n/a (not recorded),n/a (not recorded),no,opencode_WF06_gemma4_e2b_m0_0918_103646
+opencode,WF07,gemma4_e2b,2B,0,40.5,0,n/a (not recorded),n/a (not recorded),no,opencode_WF07_gemma4_e2b_m0_0918_103746
+opencode,WF08,gemma4_e2b,2B,0,39.2,0,n/a (not recorded),n/a (not recorded),no,opencode_WF08_gemma4_e2b_m0_0918_103856
+opencode,WF09,gemma4_e2b,2B,0,40.8,0,n/a (not recorded),n/a (not recorded),no,opencode_WF09_gemma4_e2b_m0_0918_104004
+opencode,WF10,gemma4_e2b,2B,0,39.8,0,n/a (not recorded),n/a (not recorded),no,opencode_WF10_gemma4_e2b_m0_0918_104115
+opencode,WF11,gemma4_e2b,2B,0,41.8,0,n/a (not recorded),n/a (not recorded),no,opencode_WF11_gemma4_e2b_m0_0918_104224
+opencode,WF12,gemma4_e2b,2B,0,40.2,0,n/a (not recorded),n/a (not recorded),no,opencode_WF12_gemma4_e2b_m0_0918_104337
+opencode,WF13,gemma4_e2b,2B,0,41.7,0,n/a (not recorded),n/a (not recorded),no,opencode_WF13_gemma4_e2b_m0_0918_104447
+opencode,WF14,gemma4_e2b,2B,0,40.7,0,n/a (not recorded),n/a (not recorded),no,opencode_WF14_gemma4_e2b_m0_0918_104558
+opencode,WF15,gemma4_e2b,2B,0,41.5,0,n/a (not recorded),n/a (not recorded),no,opencode_WF15_gemma4_e2b_m0_0918_104708
+opencode,LH01,gemma4_e2b,2B,0,33.7,0,n/a (not recorded),n/a (not recorded),no,opencode_LH01_gemma4_e2b_m0_0918_102751
+opencode,LH02,gemma4_e2b,2B,0,32.4,0,n/a (not recorded),n/a (not recorded),no,opencode_LH02_gemma4_e2b_m0_0918_102854
+opencode,LH03,gemma4_e2b,2B,0.306,34.5,0,n/a (not recorded),n/a (not recorded),no,opencode_LH03_gemma4_e2b_m0_0918_102956
+opencode,WF01,qwen3.5_4b,4B,0,1079.4,4,n/a (not recorded),n/a (not recorded),no,opencode_WF01_qwen3.5_4b_m0_0918_231511
+opencode,WF02,qwen3.5_4b,4B,0.714,465.0,11,n/a (not recorded),n/a (not recorded),no,opencode_WF02_qwen3.5_4b_m0_0918_233337
+opencode,WF03,qwen3.5_4b,4B,0,1523.9,162,n/a (not recorded),n/a (not recorded),no,opencode_WF03_qwen3.5_4b_m0_0918_234150
+opencode,WF04,qwen3.5_4b,4B,1,371.3,10,n/a (not recorded),n/a (not recorded),no,opencode_WF04_qwen3.5_4b_m0_0919_000741
+opencode,WF05,qwen3.5_4b,4B,0,1318.8,197,n/a (not recorded),n/a (not recorded),no,opencode_WF05_qwen3.5_4b_m0_0919_001420
+opencode,WF06,qwen3.5_4b,4B,0,1457.2,230,n/a (not recorded),n/a (not recorded),no,opencode_WF06_qwen3.5_4b_m0_0919_003646
+opencode,WF07,qwen3.5_4b,4B,0,1318.9,127,n/a (not recorded),n/a (not recorded),no,opencode_WF07_qwen3.5_4b_m0_0919_010130
+opencode,WF08,qwen3.5_4b,4B,0.786,1004.1,74,n/a (not recorded),n/a (not recorded),no,opencode_WF08_qwen3.5_4b_m0_0919_012357
+opencode,WF09,qwen3.5_4b,4B,0.286,1038.2,109,n/a (not recorded),n/a (not recorded),no,opencode_WF09_qwen3.5_4b_m0_0919_014108
+opencode,WF10,qwen3.5_4b,4B,1,316.3,14,n/a (not recorded),n/a (not recorded),no,opencode_WF10_qwen3.5_4b_m0_0919_015854
+opencode,WF11,qwen3.5_4b,4B,1,435.1,6,n/a (not recorded),n/a (not recorded),no,opencode_WF11_qwen3.5_4b_m0_0919_020437
+opencode,WF12,qwen3.5_4b,4B,1,1169.5,108,n/a (not recorded),n/a (not recorded),no,opencode_WF12_qwen3.5_4b_m0_0919_021219
+opencode,WF13,qwen3.5_4b,4B,0.714,667.7,8,n/a (not recorded),n/a (not recorded),no,opencode_WF13_qwen3.5_4b_m0_0919_023216
+opencode,WF14,qwen3.5_4b,4B,0,918.9,5,n/a (not recorded),n/a (not recorded),no,opencode_WF14_qwen3.5_4b_m0_0919_024350
+opencode,WF15,qwen3.5_4b,4B,0.286,1002.6,69,n/a (not recorded),n/a (not recorded),no,opencode_WF15_qwen3.5_4b_m0_0919_025937
+opencode,LH01,qwen3.5_4b,4B,0,117.5,2,n/a (not recorded),n/a (not recorded),no,opencode_LH01_qwen3.5_4b_m0_0918_220125
+opencode,LH02,qwen3.5_4b,4B,0.939,434.1,15,n/a (not recorded),n/a (not recorded),no,opencode_LH02_qwen3.5_4b_m0_0918_220352
+opencode,LH03,qwen3.5_4b,4B,0.649,3788.8,125,n/a (not recorded),n/a (not recorded),no,opencode_LH03_qwen3.5_4b_m0_0918_221134
+opencode,WF01,gemma4_12b,12B,0.786,2962.5,2,n/a (not recorded),n/a (not recorded),no,opencode_WF01_gemma4_12b_m0_0919_032240
+opencode,WF02,gemma4_12b,12B,0.571,482.8,2,n/a (not recorded),n/a (not recorded),no,opencode_WF02_gemma4_12b_m0_0919_041230
+opencode,WF03,gemma4_12b,12B,0.5,1095.2,8,n/a (not recorded),n/a (not recorded),no,opencode_WF03_gemma4_12b_m0_0919_042101
+opencode,WF04,gemma4_12b,12B,0.286,3771.6,5,n/a (not recorded),n/a (not recorded),no,opencode_WF04_gemma4_12b_m0_0919_043943
+opencode,WF05,gemma4_12b,12B,1,480.5,4,n/a (not recorded),n/a (not recorded),no,opencode_WF05_gemma4_12b_m0_0919_054304
+opencode,WF06,gemma4_12b,12B,0.857,473.0,5,n/a (not recorded),n/a (not recorded),no,opencode_WF06_gemma4_12b_m0_0919_055132
+opencode,WF07,gemma4_12b,12B,0.929,634.6,1,n/a (not recorded),n/a (not recorded),no,opencode_WF07_gemma4_12b_m0_0919_055952
+opencode,WF08,gemma4_12b,12B,0.571,566.1,2,n/a (not recorded),n/a (not recorded),no,opencode_WF08_gemma4_12b_m0_0919_061055
+opencode,WF09,gemma4_12b,12B,0.571,3543.2,115,n/a (not recorded),n/a (not recorded),no,opencode_WF09_gemma4_12b_m0_0919_062049
+opencode,WF10,gemma4_12b,12B,0.679,560.2,5,n/a (not recorded),n/a (not recorded),no,opencode_WF10_gemma4_12b_m0_0919_072019
+opencode,WF11,gemma4_12b,12B,0.571,743.7,2,n/a (not recorded),n/a (not recorded),no,opencode_WF11_gemma4_12b_m0_0919_073007
+opencode,WF12,gemma4_12b,12B,0.571,478.4,1,n/a (not recorded),n/a (not recorded),no,opencode_WF12_gemma4_12b_m0_0919_074259
+opencode,WF13,gemma4_12b,12B,0.714,734.7,4,n/a (not recorded),n/a (not recorded),no,opencode_WF13_gemma4_12b_m0_0919_075125
+opencode,WF14,gemma4_12b,12B,0.786,422.2,2,n/a (not recorded),n/a (not recorded),no,opencode_WF14_gemma4_12b_m0_0919_080407
+opencode,WF15,gemma4_12b,12B,0,200.4,2,n/a (not recorded),n/a (not recorded),no,opencode_WF15_gemma4_12b_m0_0919_081137
+opencode,LH01,gemma4_12b,12B,0,91.9,0,n/a (not recorded),n/a (not recorded),no,opencode_LH01_gemma4_12b_m0_0919_031646
+opencode,LH02,gemma4_12b,12B,0,91.6,0,n/a (not recorded),n/a (not recorded),no,opencode_LH02_gemma4_12b_m0_0919_031846
+opencode,LH03,gemma4_12b,12B,0.306,86.6,0,n/a (not recorded),n/a (not recorded),no,opencode_LH03_gemma4_12b_m0_0919_032045
+opencode,WF01,ornith1.5_35b,35B,1,553.7,10,n/a (not recorded),n/a (not recorded),no,opencode_WF01_ornith1.5_35b_m0_0919_083713
+opencode,WF02,ornith1.5_35b,35B,1,401.2,9,n/a (not recorded),n/a (not recorded),no,opencode_WF02_ornith1.5_35b_m0_0919_084717
+opencode,WF03,ornith1.5_35b,35B,1,298.7,11,n/a (not recorded),n/a (not recorded),no,opencode_WF03_ornith1.5_35b_m0_0919_085451
+opencode,WF04,ornith1.5_35b,35B,1,316.1,10,n/a (not recorded),n/a (not recorded),no,opencode_WF04_ornith1.5_35b_m0_0919_090043
+opencode,WF05,ornith1.5_35b,35B,1,358.9,12,n/a (not recorded),n/a (not recorded),no,opencode_WF05_ornith1.5_35b_m0_0919_090650
+opencode,WF06,ornith1.5_35b,35B,1,422.4,11,n/a (not recorded),n/a (not recorded),no,opencode_WF06_ornith1.5_35b_m0_0919_091339
+opencode,WF07,ornith1.5_35b,35B,0.286,645.1,5,n/a (not recorded),n/a (not recorded),no,opencode_WF07_ornith1.5_35b_m0_0919_092136
+opencode,WF08,ornith1.5_35b,35B,0.786,1307.7,13,n/a (not recorded),n/a (not recorded),no,opencode_WF08_ornith1.5_35b_m0_0919_093313
+opencode,WF09,ornith1.5_35b,35B,1,539.8,21,n/a (not recorded),n/a (not recorded),no,opencode_WF09_ornith1.5_35b_m0_0919_095608
+opencode,WF10,ornith1.5_35b,35B,1,518.2,23,n/a (not recorded),n/a (not recorded),no,opencode_WF10_ornith1.5_35b_m0_0919_100608
+opencode,WF11,ornith1.5_35b,35B,1,467.9,10,n/a (not recorded),n/a (not recorded),no,opencode_WF11_ornith1.5_35b_m0_0919_101553
+opencode,WF12,ornith1.5_35b,35B,1,545.5,7,n/a (not recorded),n/a (not recorded),no,opencode_WF12_ornith1.5_35b_m0_0919_102437
+opencode,WF13,ornith1.5_35b,35B,1,515.5,8,n/a (not recorded),n/a (not recorded),no,opencode_WF13_ornith1.5_35b_m0_0919_103442
+opencode,WF14,ornith1.5_35b,35B,1,392.6,6,n/a (not recorded),n/a (not recorded),no,opencode_WF14_ornith1.5_35b_m0_0919_104415
+opencode,WF15,ornith1.5_35b,35B,1,658.1,18,n/a (not recorded),n/a (not recorded),no,opencode_WF15_ornith1.5_35b_m0_0919_105146
+opencode,LH01,ornith1.5_35b,35B,0.143,232.4,7,n/a (not recorded),n/a (not recorded),no,opencode_LH01_ornith1.5_35b_m0_0919_081559
+opencode,LH02,ornith1.5_35b,35B,0.939,341.7,13,n/a (not recorded),n/a (not recorded),no,opencode_LH02_ornith1.5_35b_m0_0919_082046
+opencode,LH03,ornith1.5_35b,35B,0.969,542.2,28,n/a (not recorded),n/a (not recorded),no,opencode_LH03_ornith1.5_35b_m0_0919_082719

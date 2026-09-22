@@ -1,6 +1,6 @@
 # M2: LRAB significance under task-family (tier) clustering
 
-Source CSV: `C:\Users\99491\dev\mingbird-v16\benchmarks\lrab_scores.csv` (288 rows = 4 harnesses x 4 models x 18 tasks, completeness verified). Tier structure: tier1_retrieval (k=2); tier2_synthesis (k=4); tier3_workflow (k=9); tier4_longhorizon (k=3).
+Source CSV: `benchmarks/lrab_scores.csv` (288 rows = 4 harnesses x 4 models x 18 tasks, completeness verified). Tier structure: tier1_retrieval (k=2); tier2_synthesis (k=4); tier3_workflow (k=9); tier4_longhorizon (k=3).
 
 Cluster bootstrap: resample 4 tiers with replacement, pool all tasks of drawn tiers (multiplicity kept), mean paired diff; 10,000 replicates; percentile 95% CI. Sign-flip permutation: signs flipped independently within tiers, pooled-mean statistic, 10,000 permutations, (count+1)/(B+1) correction; Holm across the 3 comparisons within each model. Seeds fixed (bootstrap 42+, permutation 20260920+). 'Task-level' columns recompute the public analyze_significance.py numbers from the same CSV for side-by-side reading.
 

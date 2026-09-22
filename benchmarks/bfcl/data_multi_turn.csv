@@ -1,3 +1,0 @@
-Rank,Model,Multi Turn Overall Acc,Base,Miss Func,Miss Param,Long Context
-1,qwen35-4b (ollama /v1, native BFCL baseline),46.50%,60.00%,35.00%,38.00%,53.00%
-2,Mingbird (local ollama via mb.call_chat),36.25%,47.00%,25.00%,34.00%,39.00%
