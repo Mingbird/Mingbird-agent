@@ -59,13 +59,14 @@
 | LRAB-288 | 我们（自建） | 总分 0.886 vs goose 0.631 / opencode 0.479 / agent-mini 0.405 |
 | τ²-bench 三域 | 基准由 Sierra Research 出品；我方自行执行 | retail 0.763 / airline 0.740 / telecom 1.000——三域第一或并列第一 |
 | 前沿模型探针 | 我们 | 同一云端模型跑四家 harness：0.997 vs 0.989 / 0.925 / 0.478 |
-| 消融（v1.5.0 代码） | 我们 | 去掉 finish_gate 代价最大：−0.098 |
+| 消融（v1.5.0 代码） | 我们 | 只作方向性结论——单格执行方差大于任何一个机制的 delta |
 
 ![按模型规模](docs/assets/lrab_by_model.png)
 
 - **2B 列就是故事**：0.821 vs 0.017–0.271——四家里唯一没有小模型断崖的，而 2B 正是核显笔记本从容跑得动的尺寸。2B 与 12B 档对三家竞品全部显著（Holm 校正 Wilcoxon）；不显著的地方（4B 对 goose、35B 对 opencode）我们也如实写明。
+- **不是一个模型家族的特例**：一个档位只放一个模型会把档位和家族混在一起，所以整套四臂矩阵在第二个小模型（`qwen3.5:2b`）上又跑了一遍——断崖原样重现，0.779 vs 0.017 / 0.096 / 0.239，同样的 18 个任务、同一套判分（[`family_qwen352b_2609.csv`](benchmarks/family_qwen352b_2609.csv)）。
 - 外部基准 τ² 上，telecom 近饱和（1.000 / 0.991 / 0.930）：该域任务族高度重复，鸣鸟 τ² 适配层披露的重复调用守卫恰好吸收这一失败模式。
-- **钉死模型，只换 harness**：四家 harness 用同一颗云端前沿模型（温度 0、关思考，经本地 shim 接入，harness 零改动）跑同样 18 任务，结果 0.997 / 0.989 / 0.925 / 0.478；而本地 4B 下同一对最强最弱只差 0.17——模型越强，弱 harness 浪费得越多。天花板在 harness,不在模型。逐格成绩:[benchmarks/frontier_probe/](benchmarks/frontier_probe)。
+- **钉死模型，只换 harness**：四家 harness 用同一颗云端前沿模型（温度 0、关思考，经本地 shim 接入，harness 零改动）跑同样 18 任务，结果 0.997 / 0.989 / 0.925 / 0.478——一个有缺陷的脚手架能埋掉前沿模型一半以上的实测能力。但要读窄：三个完好脚手架之间只差 0.07，脚手架都完好时模型仍是更大的杠杆。逐格成绩:[benchmarks/frontier_probe/](benchmarks/frontier_probe)。
 - 思考开关本身就是 harness 层杠杆，竞品臂最大位移 +0.69——详见 [benchmarks/README.md](benchmarks/README.md)。
 
 **完整表格、显著性检验与逐格原始数据全部公开**在 [benchmarks/](benchmarks/README.md)——含 288 格全量 CSV（[`lrab_scores.csv`](benchmarks/lrab_scores.csv)）与 τ² 逐题 manifest（[`tau2/`](benchmarks/tau2)）。单机 ~30 分钟即可复现任意一格：**[benchmarks/reproduce_one.md](benchmarks/reproduce_one.md)**。

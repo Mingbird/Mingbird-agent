@@ -85,7 +85,10 @@ All four harnesses ran the same 18 LRAB tasks against one hosted frontier
 model (`qwen3.8-flash`, temperature 0, thinking off) through a local shim —
 no harness modified. Result: **mingbird 0.997 / goose 0.989 / opencode 0.925
 / agent-mini 0.478**, vs a best-to-worst gap of 0.17 under the local 4B
-model: the stronger the model, the more a weak harness strands. Protocol,
+model. The 0.52 spread is carried by one arm: the three well-formed
+scaffolds span 0.07. A defective scaffold buries more than half of a
+frontier model's capability; between intact harnesses the model is still
+the bigger lever. Protocol,
 per-cell scores (72 rows), and caveats: **[frontier_probe/](frontier_probe/)**.
 
 ## Ablations: which mechanism pays for itself (v1.5.0 code)
@@ -100,7 +103,7 @@ per-cell scores (72 rows), and caveats: **[frontier_probe/](frontier_probe/)**.
 | − anti_loop | 0.805 | −0.015 |
 | − flat_prefill | 0.818 | −0.003 |
 
-All four mechanisms are non-negative; the contribution gradient is: prevent-early-finish > verify-feedback loop > anti-loop > prefill (neutral at 2B).
+All four variants land at or below the baseline, so every mechanism is a non-negative contributor — but **the ordering above is directional only, not a ranking**. A same-night control rerun showed single-execution cell variance exceeds every nominal delta in the table, and a three-replication batch-matched contrast (full mechanism stack vs plain text re-read alone) gives +0.096 / +0.133 / +0.056 — same sign each time, individual mechanisms not separable at n=18. Data: [ablation/ablation_topup_2609.csv](ablation/ablation_topup_2609.csv), [ablation/ablation_reps_2609.csv](ablation/ablation_reps_2609.csv).
 
 > The 0.821 baseline is not a separate control: it **is** the 2B column of the LRAB-288 table above — the same 18 cells, the same v1.5.0 code. The ablation and the headline results share one batch and one code version.
 

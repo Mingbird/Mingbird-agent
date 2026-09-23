@@ -59,13 +59,14 @@ Four harnesses × four open models (2B–35B) × 18 real tasks = 288 cells, one 
 | LRAB-288 | us (self-built) | overall 0.886 vs goose 0.631 / opencode 0.479 / agent-mini 0.405 |
 | τ²-bench, 3 domains | benchmark by Sierra Research; run by the authors | retail 0.763 / airline 0.740 / telecom 1.000 — first or tied-first in every domain |
 | Frontier-model probe | us | same hosted model in all four harnesses: 0.997 vs 0.989 / 0.925 / 0.478 |
-| Ablations (v1.5.0 code) | us | removing `finish_gate` costs the most: −0.098 |
+| Ablations (v1.5.0 code) | us | directional only — single-execution cell variance exceeds every per-mechanism delta |
 
 ![By model size](docs/assets/lrab_by_model.png)
 
 - **The 2B column is the story**: 0.821 vs 0.017–0.271 — the only harness of the four with no small-model cliff, and 2B is the size an iGPU laptop runs comfortably. The edge over all three competitors is significant on 2B and 12B (Holm-corrected Wilcoxon); where it is not (4B vs goose, 35B vs opencode), we say so.
+- **Not one model family**: one model per tier confounds tier with family, so the whole four-harness matrix was re-run on a second small-tier model (`qwen3.5:2b`) — the cliff reproduces, 0.779 vs 0.017 / 0.096 / 0.239 on the same 18 tasks with the same scorer ([`family_qwen352b_2609.csv`](benchmarks/family_qwen352b_2609.csv)).
 - On the external τ²-bench, telecom is near-saturated (1.000 / 0.991 / 0.930): its task family is repetitive, and the repeat-call guardrail disclosed in our τ² adapter absorbs exactly that failure mode.
-- **Pin the model, swap the harness**: all four harnesses ran the same 18 tasks against one hosted frontier model (temperature 0, thinking off, through a local shim — no harness modified). Result: 0.997 / 0.989 / 0.925 / 0.478, while the same best-vs-worst gap under the local 4B model is 0.17 — the stronger the model, the more a weak harness wastes. The ceiling is the harness, not the model. Per-cell scores: [benchmarks/frontier_probe/](benchmarks/frontier_probe).
+- **Pin the model, swap the harness**: all four harnesses ran the same 18 tasks against one hosted frontier model (temperature 0, thinking off, through a local shim — no harness modified). Result: 0.997 / 0.989 / 0.925 / 0.478 — a defective scaffold buries more than half of a frontier model's measured capability. Read that narrowly, though: the three well-formed scaffolds sit within 0.07 of each other, and between intact harnesses the model is still the bigger lever. Per-cell scores: [benchmarks/frontier_probe/](benchmarks/frontier_probe).
 - Thinking on/off is itself a harness-level lever and moves rival arms by up to +0.69 — details in [benchmarks/README.md](benchmarks/README.md).
 
 **Full tables, significance tests, and per-cell raw data are public** in [benchmarks/](benchmarks/README.md) — including all 288 cells as CSV ([`lrab_scores.csv`](benchmarks/lrab_scores.csv)) and τ² per-trial manifests ([`tau2/`](benchmarks/tau2)). Reproduce any single cell in ~30 minutes on one machine: **[benchmarks/reproduce_one.md](benchmarks/reproduce_one.md)**.

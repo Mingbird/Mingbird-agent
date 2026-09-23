@@ -45,8 +45,13 @@ harness variance.
 
 - Under the local 4B model the best-to-worst harness gap on these tasks is
   0.17 (0.876 vs 0.706); pinned to a frontier model it widens to 0.52
-  (0.997 vs 0.478). **The stronger the model, the more capability a weak
-  harness strands. The harness is the ceiling, not the model.**
+  (0.997 vs 0.478). That headline spread is carried by one arm, though: the
+  three well-formed scaffolds sit within 0.07 of each other. So the claim is
+  deliberately narrower than "the harness is the ceiling": **a defective
+  scaffold buries more than half of a frontier model's measured capability,
+  while between intact harnesses the model remains the bigger lever**
+  (fixing the harness and swapping local 4B for the frontier model moves
+  mingbird +0.121, goose +0.188, opencode +0.460).
 - Failures are mechanistic, not noise: opencode's model replies "what
   task?" and exits on WF-03 under its scaffold (the same model does not do
   this under the others), and opencode's foreground-server block on WF-08
