@@ -1999,8 +1999,31 @@ def save_session(name, msgs):
     print(f"[session saved: {name}]", flush=True)
 
 # ---------------- 主循环 ----------------
+_CLI_USAGE = """Mingbird CLI
+
+用法:
+  python ollama_agent.py <model> <taskfile> <workdir> [选项]   一次性任务
+  python ollama_agent.py <model> --chat <workdir> [选项]      交互式对话
+  python agent_gui.py                                         图形界面(推荐)
+
+选项:
+  --chat                   交互式对话模式
+  --session <name>         载入/保存到指定会话
+  --time-budget <时长>     任务时限,接受 40 / 1.5h / 90m / 半小时
+  --new                    忽略工作目录里的断点续跑状态,从头开始
+  -h, --help               显示本帮助
+
+示例:
+  python ollama_agent.py qwen3.5:4b task.md ./work
+  python ollama_agent.py qwen3.5:4b --chat ./work --time-budget 30m"""
+
+
 def main():
     args = sys.argv[1:]
+    # --help / 无参数:打用法退出(此前直接掉进位置参数解包,抛 IndexError 堆栈)
+    if not args or "-h" in args or "--help" in args or args[0] == "help":
+        print(_CLI_USAGE, flush=True)
+        return
     # 守护系统:允许目录白名单(AGENT_ALLOW_DIRS 分号分隔,追加到工作目录之外)
     global _allow_dirs
     _extra = os.environ.get("AGENT_ALLOW_DIRS", "")
@@ -2043,6 +2066,9 @@ def main():
             msgs = agent_loop(model, msgs, workdir, session,
                               budget_sec=_cli_tb * 60.0 if _cli_tb else None)
     else:
+        if len(args) < 3:
+            print(_CLI_USAGE, flush=True)
+            return
         model, taskfile, workdir = args[0], args[1], args[2]
         taskfile = os.path.abspath(taskfile)
         workdir = os.path.abspath(workdir)
