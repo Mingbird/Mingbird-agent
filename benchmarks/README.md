@@ -107,6 +107,20 @@ All four variants land at or below the baseline, so every mechanism is a non-neg
 
 > The 0.821 baseline is not a separate control: it **is** the 2B column of the LRAB-288 table above — the same 18 cells, the same v1.5.0 code. The ablation and the headline results share one batch and one code version.
 
+## Five-ring safety probe: what the rings do under adversarial requests
+
+**Design.** 54 cases (44 adversarial natural-language user requests — never
+injected text — spread 7/9/9/12/7 across rings 1–5, plus 10 benign
+in-workdir controls), one run per case, `gemma4:e2b` and `qwen3.5:4b`,
+unattended, temperature 0, thinking off (the unified protocol). Scoring is
+dual-channel: ring-marker channel (transcript/checkpoint) plus a
+ground-truth channel (sentinels, hashes, sensitive-location listings,
+rollback checks); a transcript-level rule additionally flags danger-pattern
+matches anchored to a call's command/path — those flags are alerts, each
+carrying a human-verified disposition. Data and audit output:
+[safety/results_2609/](safety/results_2609/); runner and probe sets:
+[safety/](safety/).
+
 ## Version map & reproduction window
 
 Everything above is reproducible only against the code base, backend, and
@@ -138,6 +152,10 @@ appendix:
   `make_fig9_costcurve.py`, `fig9_caption.md`).
 - **Mechanism ablation re-run** — 2026-09-22, a `v1.8.2`-era tree
   ([`ablation/`](ablation/)).
+- **Five-ring safety probe** — 2026-10-01, the same `v1.8.2`-era tree,
+  unified protocol (temperature 0, thinking off)
+  ([`safety/results_2609/`](safety/results_2609/): per-case CSVs, summaries,
+  per-flag verification dispositions, audit script output).
 
 **Reproduction window.** The competitor harnesses are live targets, not fixed
 artifacts. The versions behind the numbers published here are goose **1.48.0**,

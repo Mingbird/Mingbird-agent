@@ -194,6 +194,8 @@ netstat -ano | findstr <pid>   # <pid> = agent 的 python 进程
   `make_fig9_costcurve.py`、`fig9_caption.md`）。
 - **机制消融重跑**——2026-09-22，`v1.8.2` 时代树：
   [`benchmarks/ablation/`](benchmarks/ablation/)。
+- **五环安全探针**——2026-10-01，同一棵 `v1.8.2` 时代树，统一协议（0 温、关思考）：
+  [`benchmarks/safety/results_2609/`](benchmarks/safety/results_2609/)。
 
 **复现窗口（reproduction window）。** 对手 harness 是活体目标而非固定产物——公开
 数字背后的版本是 goose **1.48.0**、opencode **1.18.23**、agent-mini **0.3.1**。

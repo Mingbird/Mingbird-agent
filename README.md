@@ -225,6 +225,9 @@ base. All of them are disclosed in the paper's appendix and repeated here:
   `make_fig9_costcurve.py`, `fig9_caption.md`).
 - **Mechanism ablation re-run** — 2026-09-22, a `v1.8.2`-era tree:
   [`benchmarks/ablation/`](benchmarks/ablation/).
+- **Five-ring safety probe** — 2026-10-01, the same `v1.8.2`-era tree,
+  unified protocol (temperature 0, thinking off):
+  [`benchmarks/safety/results_2609/`](benchmarks/safety/results_2609/).
 
 **Reproduction window.** The competitor harnesses are live targets, not fixed
 artifacts — the versions behind the published numbers are goose **1.48.0**,
