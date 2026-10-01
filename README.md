@@ -41,11 +41,11 @@ This is not a lonely observation. Recent public work points the same way — gua
 - **One-click offline mode (v1.8.0)** — 🔒 in the toolbar: local model only, web tools not even assembled into the prompt, zero outbound by construction (see [Where your data lives](#where-your-data-lives)).
 - **Streaming output + visible thinking** — the delivery streams; the thinking folds away once the run is done.
 - **Drag-and-drop / paste attachments** — drop a file into the chat or press Ctrl+V: clipboard files and screenshots become attachments on the spot, sent along with your instruction.
-- **Voice input out of the box** — the installer bundles a local STT model (pure CPU, ~20× real time) that stops automatically when you stop talking.
+- **Voice input out of the box, Chinese & English** — the installer bundles two local STT models (pure CPU, ~20× real time); a 中/EN toggle by the mic; it stops automatically when you stop talking.
 - **Task time-box (off by default)** — type `40` / `1.5h` / `half an hour` into the box, or write "限时 40 分钟" (or "timebox 40 minutes") right in the task description (auto-detected, highest priority); the harness nudges the run to wind down as the deadline approaches. Local-model users care about wall-clock time.
 - **Session memory** — history persists locally; searchable and replayable.
 - **Model auto-detection** — whatever you pulled in Ollama is what you use, up to 256K context.
-- **Skills & MCP** — markdown skills load on demand; MCP servers are plain JSON config.
+- **Skills & MCP** — 17 built-in skills (11 coding + 6 universal: files, web research, doc digest, Word/Excel, images) load on demand; drop your own .md into `~/.ollama_agent/skills/`; MCP servers are plain JSON config. The bundled Python runtime (`run_python`) backs the office/image skills — no Python or Office install needed.
 - Bilingual UI (English / 中文).
 - **Web UI (experimental)** — the same agent in your browser, local-only, 127.0.0.1 only ([guide](docs/webui.md)).
 - **One-click installer**, or run from source.

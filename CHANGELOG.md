@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.9.1 (2026-10-01)
+
+### 🌍 Out of the box, beyond coding
+- **Bilingual voice input out of the box**: an English streaming Zipformer STT model (en-20M, int8) is bundled alongside the Chinese one; a 中/EN toggle next to the mic picks the language (persisted). Bundled STT now ships int8-only — the unused float32 weights are gone, so the installer is ~9 MB smaller despite the second model.
+- **Six universal built-in skills** join the 11 coding ones: file organizing, web research with a written report, long-document digest, Word .docx generation/reading, Excel/CSV processing (pandas), image batch processing (PIL). Everyday computer work, not just code.
+- **New `run_python` tool**: runs Python on the interpreter bundled inside the app — no Python or Office install needed on the user's machine. Same safety model as run_bash (danger-pattern block, destructive-op classification, workspace sandbox, 300 s tree-kill timeout). It lives in the 代码/code tool category behind enable_tools, so the factory prefill is unchanged (the 797-token budget test stays green, byte-identical).
+- **Skill & MCP visibility**: the GUI Skills window now shows skill directories, how to install your own skills, and configured MCP servers; `skills/README.md` documents the format, lookup order and MCP config.
+- Tests: **472 green** (461 + 11 new: run_python dispatch/safety, bilingual STT resolution, int8-only packaging rule, universal skills presence and frontmatter).
+
 ## v1.8.2 (2026-09-21)
 
 ### 🔒 Conversation isolation (hardening after a real incident)

@@ -128,6 +128,14 @@ _T = {
     "[录音超时,自动停止]": "[Recording timed out, stopped]",
     "转写失败: ": "Transcription failed: ",
     "[语音已转录({stt})并填入输入框]": "[Transcribed ({stt}) and filled into the input]",
+    "[语音语言: 中文]": "[Voice language: Chinese]",
+    "[语音语言: 英文]": "[Voice language: English]",
+    "技能目录": "Skill directories",
+    "已装技能": "Installed skills",
+    "已配置 MCP 服务器": "Configured MCP servers",
+    "(未配置 MCP 服务器)": "(No MCP servers configured)",
+    "配置文件": "Config file",
+    "对话中说\"用 MCP\"或让它 enable_tools 即可调用;配置文件:": "Say \"use MCP\" in chat or let the agent enable_tools; config:",
     "[语音转录无结果:{stt} 转写能力有限,可换用更强音频模型]": "[No result from {stt}. Limited STT — try a stronger audio model]",
     "[已清除旧进度]": "[Old progress cleared]",
     "[已停止,重跑并勾选'续跑'可从中断处继续]": "[Stopped. Rerun with 'Resume' checked to continue from the breakpoint]",
@@ -460,7 +468,7 @@ class AgentGUI:
         # 一次性迁移为未设置;标记存在后,用户显式设置的 0 不再被抹掉。
         d = {"theme": "minty-light", "ui_mode": "auto", "ctx": 65536, "temp": None,
              "num_predict": 2048, "sys_enable": False, "sys_text": "",
-             "think": None, "prefver": 2}
+             "think": None, "prefver": 2, "stt_lang": "zh"}
         try:
             j = json.load(open(PREFS_FILE, encoding="utf-8")); d.update(j)
             # 与 webui/server.py _prefs_load 同口径:旧版隐藏默认(温度 0、思考开)
@@ -693,6 +701,12 @@ class AgentGUI:
         self.mic_btn = tb.Button(crow, text=_t("🎤 语音"), bootstyle="info",
                                  command=self.voice_input, state="disabled")
         self.mic_btn.pack(side="left", padx=4)
+        # v1.9.1 语音语言切换(中/EN 双语内置模型)
+        self.stt_lang_btn = tb.Button(crow, width=4,
+                                      text=(self.prefs.get("stt_lang", "zh") == "en" and "EN" or "中"),
+                                      bootstyle="secondary-outline",
+                                      command=self.toggle_stt_lang)
+        self.stt_lang_btn.pack(side="left")
         self.stop_btn = tb.Button(crow, text=_t("停止"), bootstyle="danger",
                                   command=self.stop, state="disabled")
         self.stop_btn.pack(side="left", padx=6)
@@ -1319,7 +1333,7 @@ class AgentGUI:
     # ================= 技能 / 搜索 =================
     def show_skills(self):
         win = tb.Toplevel(self.root); win.title(_t("技能列表"))
-        win.geometry(self._scaled_geo(600, 440))
+        win.geometry(self._scaled_geo(620, 500))
         tb.Label(win, text=_t("本地 agent 可用技能(渐进式:用到才加载全文)"), padding=6).pack(anchor="w")
         tok = self.T   # 暗色主题下不用默认白底
         txt = scrolledtext.ScrolledText(win, font=("Consolas", 9), wrap="word",
@@ -1333,11 +1347,33 @@ class AgentGUI:
                     if f.endswith((".md", ".txt", ".py")):
                         name = f.rsplit(".", 1)[0]
                         if name not in seen: seen[name] = self._skill_desc(os.path.join(base, f))
+        # v1.9.1:自装技能与 MCP 的可见性(用户问了"怎么装自己的技能/MCP")
+        txt.insert("end", f"〔{_t('技能目录')}〕\n")
+        for d in SKILL_DIRS:
+            txt.insert("end", f"  {d}\n")
+        txt.insert("end", _t("  自定义技能:把 .md 文件(开头写 name/description)放进上面的\"技能\"目录即可,重启后生效\n\n"))
+        mcp_hint = self._mcp_summary()
+        txt.insert("end", f"〔MCP〕\n{mcp_hint}\n\n")
+        txt.insert("end", f"〔{_t('已装技能')}〕{len(seen)}\n")
         if not seen:
             txt.insert("end", _t("(暂无技能)") + "\n" + "\n".join(SKILL_DIRS))
         for n in sorted(seen):
             txt.insert("end", f"■ {n}\n   {seen[n]}\n\n" if seen[n] else f"■ {n}\n\n")
         txt.config(state="disabled")
+
+    def _mcp_summary(self):
+        """技能窗里的 MCP 一览:配置了几台服务器、名字,以及没配时的上手提示。"""
+        try:
+            import ollama_agent as _oa
+            servers = list(_oa.load_mcp_servers().keys())
+        except Exception:
+            servers = []
+        if servers:
+            return (_t("已配置 MCP 服务器") + f": {', '.join(servers)}\n" +
+                    _t("对话中说\"用 MCP\"或让它 enable_tools 即可调用;配置文件:"))
+        return (_t("(未配置 MCP 服务器)") + "\n" +
+                _t("配置文件") + f": {os.path.join(AGENT_HOME, 'mcp.json')}\n" +
+                _t("示例仓库根目录有 mcp_utils_server.py(时间/计算/哈希)可直接体验"))
     def _skill_desc(self, path):
         try: head = open(path, encoding="utf-8").read(600)
         except Exception:
@@ -1524,11 +1560,23 @@ class AgentGUI:
                     resume_ok=(self.resume_var.get() and not fresh))
 
     # ================= 语音输入 =================
+    def toggle_stt_lang(self):
+        """语音语言 中↔EN(v1.9.1 双语内置模型);选择持久化到 gui_prefs。"""
+        cur = self.prefs.get("stt_lang", "zh")
+        self.prefs["stt_lang"] = "en" if cur == "zh" else "zh"
+        self.save_prefs()
+        self.stt_lang_btn.configure(text="EN" if self.prefs["stt_lang"] == "en" else "中")
+        self.log_note(_t("[语音语言: 中文]") if self.prefs["stt_lang"] == "zh"
+                      else _t("[语音语言: 英文]"))
+        self.refresh_voice_state()
+
     def refresh_voice_state(self):
-        # STT 已独立(本地 sherpa-onnx),所有模型都可用语音;若本地 STT 不可用则回退到模型音频能力
+        # STT 已独立(本地 sherpa-onnx 中英双语内置),所有模型都可用语音;
+        # 若所选语言的本地 STT 不可用则回退到模型音频能力
         def _check():
+            lang = self.prefs.get("stt_lang", "zh")
             model = self._model_map.get(self.model_var.get())
-            ok = voice_input.local_stt_available() or (model and voice_input.model_audio_capable(model))
+            ok = voice_input.local_stt_available(lang) or (model and voice_input.model_audio_capable(model))
             self.mic_btn.config(state="normal" if ok else "disabled")
             self.mic_btn.configure(text=_t("🎤 语音") if ok else _t("🎤 无音频"))
             self.mic_btn.configure(bootstyle="info" if ok else "secondary")
@@ -1588,7 +1636,8 @@ class AgentGUI:
     def _voice_worker(self, wav, model):
         try:
             stt = voice_input.pick_stt_model(model)
-            text = voice_input.transcribe(stt, wav)
+            lang = self.prefs.get("stt_lang", "zh")
+            text = voice_input.transcribe(stt, wav, lang)
             self.root.after(0, lambda: self._voice_done(text, stt))
         except Exception as e:
             _err = str(e)
@@ -2108,6 +2157,19 @@ class AgentGUI:
         self.root.destroy()
 
 if __name__ == "__main__":
+    # v1.9.1 run_python 底座:--run-py <script> 用本程序自带解释器执行后退出,
+    # 不弹 GUI(冻结版由 LocalAgent.exe --run-py 调入;开发版由 python agent_gui.py --run-py)
+    if len(sys.argv) > 2 and sys.argv[1] == "--run-py":
+        import ollama_agent as _oa
+        try:
+            _rc = _oa.run_python_file(sys.argv[2])   # 脚本内 sys.exit 经 runpy 自然传播
+            sys.exit(_rc if isinstance(_rc, int) else 0)
+        except SystemExit:
+            raise
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
     # 自检:打印关键依赖在冻结环境里的导入状态(定位打包缺失)
     if len(sys.argv) > 1 and sys.argv[1] == "selftest":
         out = []

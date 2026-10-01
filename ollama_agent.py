@@ -219,6 +219,25 @@ def read_text(path):
             continue
     return open(path, encoding="latin-1", errors="replace").read()
 
+# ---------------- v1.9.1 run_python:冻结解释器 CLI hook ----------------
+# 打包版用户机器普遍没有 Python;把代码交给本程序自带的解释器执行,
+# pandas/numpy/PIL 等随包库全可用(office_word/office_excel/image_batch
+# 三个通用 skill 的执行底座)。进程隔离跑(非本进程 exec):模型脚本可以崩、
+# 可以死循环、可以 print 巨量输出,子进程 + 300s 树杀兜底。
+def run_python_file(path):
+    """--run-py <file> 的执行体(由 agent_gui 入口转发)。"""
+    import runpy
+    sys.argv = [path]
+    runpy.run_path(path, run_name="__main__")
+    return 0
+
+def _python_hook_cmd(script_path):
+    """构造子进程命令:打包版=自身 exe --run-py;开发版=python agent_gui.py --run-py。"""
+    if getattr(sys, "frozen", False):
+        return [sys.executable, "--run-py", script_path]
+    gui = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent_gui.py")
+    return [sys.executable, gui, "--run-py", script_path]
+
 # ---------------- 工具定义(极简 schema:无参数级描述,少 token) ----------------
 def _f(name, desc, props, req=None):
     return {"type": "function", "function": {
@@ -229,7 +248,7 @@ def _f(name, desc, props, req=None):
 P = lambda **kw: kw
 # 各工具必备参数(缺参报错时给模型可操作的提示)
 _REQ_ARGS = {"create_file":["path","content"],"read_file":["path"],"edit_file":["path","old","new"],
-             "list_dir":["path"],"run_bash":["command"],"append_file":["path","content"],
+             "list_dir":["path"],"run_bash":["command"],"run_python":["code"],"append_file":["path","content"],
              "delete_file":["path"],"todo":["action"],"skills":["action"],"finish":["summary"]}
 
 # ---- 消融开关(仅消融实验用;默认全开=原行为) ----
@@ -267,6 +286,7 @@ CORE_TOOLS = [
  _f("finish","Declare the task complete with a short summary", P(summary={"type":"string"}),["summary"]),
 ]
 ADVANCED_TOOLS = [
+ _f("run_python","Run Python code with the bundled interpreter (cwd=workspace; pandas/numpy/PIL available). Use for docs/spreadsheet/image processing instead of bash one-liners", P(code={"type":"string"}),["code"]),
  _f("append_file","Append text to the end of a file", P(path={"type":"string"},content={"type":"string"}),["path","content"]),
  _f("delete_file","Delete a file (moved to .mingbird_trash/, recoverable)", P(path={"type":"string"}),["path"]),
  _f("search_files","Grep-like content search in a directory", P(path={"type":"string"},pattern={"type":"string"}),["path","pattern"]),
@@ -334,7 +354,7 @@ _BASE_TOOLS = {"read_file", "list_dir", "todo", "skills", "enable_tools", "finis
 # 类别 → 该类的工具(只在此类任务才加载)
 _CATEGORY_TOOLS = {
     "文件": ["create_file", "edit_file", "append_file", "delete_file", "search_files"],
-    "代码": ["run_bash"],
+    "代码": ["run_bash", "run_python"],
     "网络": ["web_search", "web_fetch", "web_search_multi", "batch_tools"],
     "记忆": ["memory_store", "memory_recall"],
     "MCP":  ["mcp_call"],
@@ -1539,6 +1559,52 @@ def run_tool(name, args, workdir, crawl_state=None):
                     if len(out)>=20: break
                 if len(out)>=20: break
             return "\n".join(out) or "(no matches)"
+        if name=="run_python":
+            # v1.9.1:冻结解释器直跑 Python(用户机器无需装 Python)。
+            # 场景:office_word/office_excel/image_batch 等通用 skill 的执行底座;
+            # pandas/numpy/PIL 随包可用。安全模型与 run_bash 同款:危险子串硬拦 +
+            # 破坏性分级,工作目录沙箱;进程隔离 + 300s 超时进程树杀。
+            code = str(args["code"]) if "code" in args else str(args["script"])
+            low = code.lower()
+            if any(d in low for d in _DANGER_CMD):
+                return "[安全门拦截:代码含危险操作,已拒绝执行。]"
+            if os.environ.get("AGENT_UNSAFE") != "1":
+                _risk = _risk_classify(code, workdir)
+                if _risk:
+                    return _risk
+            import tempfile as _tf
+            fd, script = _tf.mkstemp(suffix=".py", prefix="mb_run_", text=True)
+            with os.fdopen(fd, "w", encoding="utf-8") as _f:
+                _f.write(code)
+            try:
+                _env = dict(os.environ)
+                _env.setdefault("PYTHONUTF8", "1")
+                _env.setdefault("PYTHONIOENCODING", "utf-8")
+                proc = subprocess.Popen(_python_hook_cmd(script),
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                        cwd=workdir, env=_env,
+                                        encoding="utf-8", errors="replace",
+                                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                try:
+                    out_s, err_s = proc.communicate(timeout=300)
+                except subprocess.TimeoutExpired:
+                    if os.name == "nt":
+                        subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                                       capture_output=True, shell=False)
+                    else:
+                        import signal as _sig
+                        try: os.killpg(os.getpgid(proc.pid), _sig.SIGKILL)
+                        except Exception: proc.kill()
+                    try: out_s, err_s = proc.communicate(timeout=10)
+                    except Exception: out_s, err_s = "", ""
+                    return _format_bash_out(proc.returncode or 1,
+                                            (out_s or "")[:4000] + "\n[已超时:300 秒上限,进程树已终止 · timed out after 300s]",
+                                            err_s or "", small_model=_SMALL_MODEL_MODE)
+                return _format_bash_out(proc.returncode, out_s or "", err_s or "",
+                                        small_model=_SMALL_MODEL_MODE)
+            finally:
+                try: os.remove(script)
+                except Exception: pass
         if name=="run_bash":
             cmd = str(args["command"])
             cmd = re.sub(r"\\+n", "\n", cmd)

@@ -8,3 +8,4 @@ beautifulsoup4
 sounddevice
 soundfile
 tkinterdnd2
+openpyxl

@@ -41,17 +41,25 @@ jobs:
       - name: Install python deps
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller ttkbootstrap tkinterdnd2 pillow requests numpy sherpa_onnx mcp beautifulsoup4 sounddevice soundfile
+          pip install pyinstaller ttkbootstrap tkinterdnd2 pillow requests numpy sherpa_onnx mcp beautifulsoup4 sounddevice soundfile openpyxl
 
       - name: Fetch STT model (optional, voice input)
         run: |
           # spec 的 datas 含 ('stt','stt'):目录必须存在,否则 PyInstaller 直接报错
           # (P0:全新 checkout 无 stt/,三个平台 Build 全炸)。模型解进 stt/,
           # 下载失败时留空目录 = 语音降级为 No Audio,构建继续。
+          # v1.9.1: 中英双模型,只保留 int8 权重(float32 无人加载,白占 ~50MB)
           mkdir -p stt
           curl -sL -o stt.tar.bz2 "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23.tar.bz2" || true
-          if [ -s stt.tar.bz2 ]; then tar xjf stt.tar.bz2 -C stt --strip-components=1; fi
-          ls stt/ | head -3 || echo "stt model unavailable - voice input will degrade to No Audio"
+          if [ -s stt.tar.bz2 ]; then tar xjf stt.tar.bz2 -C stt; fi   # 不 strip:代码按 stt/<模型名>/ 找
+          mkdir -p stt/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17
+          for f in encoder-epoch-99-avg-1.int8.onnx decoder-epoch-99-avg-1.int8.onnx joiner-epoch-99-avg-1.int8.onnx tokens.txt; do
+            curl -sL -o "stt/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17/$f" "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17/resolve/main/$f" || true
+          done
+          # 统一清理:非 int8 权重、测试音频、导出脚本一律不进包
+          find stt -type f \( -name "*.onnx" ! -name "*int8*" \) -delete 2>/dev/null || true
+          rm -rf stt/test_wavs stt/*.sh 2>/dev/null || true
+          ls stt/*/ | head -8 || echo "stt model unavailable - voice input will degrade to No Audio"
 
       - name: Build (PyInstaller)
         run: python -m PyInstaller --noconfirm --clean LocalAgent-unix.spec

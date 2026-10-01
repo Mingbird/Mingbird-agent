@@ -2,26 +2,55 @@
 # -*- coding: utf-8 -*-
 """语音输入模块:麦克风录音(手动启停)→ 本地模型转录 → 文字。
 - 音频按钮可用性: 动态检测当前模型是否支持音频(/api/show capabilities)
-- 转录引擎: 优先 whisper 系列模型(若已拉取),否则用当前模型
+- 转录引擎: v1.9.1 起中英双语内置(sherpa-onnx 流式 zipformer,仅 int8 权重);
+  按用户选择的语言加载对应模型,优先本地,不可用则回退 ollama 音频模型
 """
-import base64, json, os, sys, time, wave
+import base64, glob as _glob, json, os, sys, time, wave
 import urllib.request
 import appconfig
 
 OLLAMA = appconfig.ollama_host()
-def _stt_model_dir():
-    """sherpa 中文转录模型:先找内嵌(安装包自带)→ 再找用户目录。"""
+
+# 内置 STT 模型目录名(v1.9.1 双语):中/英各一个流式 zipformer,只装 int8 权重
+STT_MODEL_DIRS = {
+    "zh": "sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23",
+    "en": "sherpa-onnx-streaming-zipformer-en-20M-2023-02-17",
+}
+
+def _stt_bases():
+    """候选根目录:模块同目录(开发版=仓库/打包版=_internal)→ 用户目录。"""
+    bases = [os.path.dirname(os.path.abspath(__file__))]
     if getattr(sys, "frozen", False):
         for base in (os.path.dirname(sys.executable), os.path.join(os.path.dirname(sys.executable), "_internal"),
                      getattr(sys, "_MEIPASS", "")):
-            p = os.path.join(base, "stt", "sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23")
-            if os.path.isdir(p):
-                return p
-    p = os.path.join(os.path.expanduser("~"), ".ollama_agent", "stt",
-                     "sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23")
-    return p if os.path.isdir(p) else None
+            if base not in bases:
+                bases.append(base)
+    bases.append(os.path.join(os.path.expanduser("~"), ".ollama_agent"))
+    return bases
 
-STT_MODEL = _stt_model_dir()
+def _stt_model_dir(lang):
+    """按语言找内置模型目录;找不到返回 None。"""
+    name = STT_MODEL_DIRS.get(lang) or STT_MODEL_DIRS["zh"]
+    for base in _stt_bases():
+        p = os.path.join(base, "stt", name)
+        if os.path.isdir(p):
+            return p
+    return None
+
+def _stt_files(d):
+    """目录内 int8 三件套 + tokens;对 epoch 命名鲁棒(glob)。"""
+    def one(pat):
+        hits = sorted(_glob.glob(os.path.join(d, pat)))
+        return hits[0] if hits else None
+    enc = one("encoder-*-int8.onnx") or one("*encoder*int8*.onnx")
+    dec = one("decoder-*-int8.onnx") or one("*decoder*int8*.onnx")
+    joi = one("joiner-*-int8.onnx") or one("*joiner*int8*.onnx")
+    tok = one("tokens.txt")
+    if enc and dec and joi and tok:
+        return {"encoder": enc, "decoder": dec, "joiner": joi, "tokens": tok}
+    return None
+
+_RECOG_CACHE = {}   # dir -> OnlineRecognizer(重建约百毫秒级,缓存掉)
 
 def model_audio_capable(model):
     """动态检测模型是否支持音频。"""
@@ -116,27 +145,39 @@ class Recorder:
             w.writeframes(pcm.tobytes())
         return True
 
-def local_stt_available():
+def local_stt_available(lang="zh"):
+    """内置 sherpa-onnx 模型(按语言)是否可用。"""
+    d = _stt_model_dir(lang)
     try:
         import sherpa_onnx
-        return os.path.isdir(STT_MODEL)
+        return bool(d and _stt_files(d))
     except Exception:
         return False
 
-def transcribe_local(wav_path):
-    """本地 sherpa-onnx 14M 中文模型转录(快于实时 20×,纯 CPU)。可用则优先使用。"""
-    try:
+def _recognizer(lang):
+    """取(或建)某语言的识别器;不可用返回 None。"""
+    d = _stt_model_dir(lang)
+    if not d:
+        return None
+    f = _stt_files(d)
+    if not f:
+        return None
+    if d not in _RECOG_CACHE:
         import sherpa_onnx
-        import soundfile as sf
-        if not os.path.isdir(STT_MODEL):
-            return None
-        r = sherpa_onnx.OnlineRecognizer.from_transducer(
-            tokens=f"{STT_MODEL}/tokens.txt",
-            encoder=f"{STT_MODEL}/encoder-epoch-99-avg-1.int8.onnx",
-            decoder=f"{STT_MODEL}/decoder-epoch-99-avg-1.int8.onnx",
-            joiner=f"{STT_MODEL}/joiner-epoch-99-avg-1.int8.onnx",
+        _RECOG_CACHE[d] = sherpa_onnx.OnlineRecognizer.from_transducer(
+            tokens=f["tokens"], encoder=f["encoder"], decoder=f["decoder"],
+            joiner=f["joiner"],
             num_threads=1, sample_rate=16000, feature_dim=80,
             decoding_method="greedy_search")
+    return _RECOG_CACHE[d]
+
+def transcribe_local(wav_path, lang="zh"):
+    """本地 sherpa-onnx 流式模型转录(纯 CPU,快于实时)。可用则优先使用。"""
+    try:
+        import soundfile as sf
+        r = _recognizer(lang) or _recognizer("zh")   # 所选语言缺失时退中文
+        if r is None:
+            return None
         data, sr = sf.read(wav_path, dtype="float32", always_2d=True)
         s = r.create_stream(); s.accept_waveform(sr, data[:, 0])
         while r.is_ready(s):
@@ -146,9 +187,9 @@ def transcribe_local(wav_path):
     except Exception:
         return None
 
-def transcribe(model, wav_path):
-    """转录:优先本地 sherpa-onnx(快),否则用 ollama 音频模型。返回文本(可能为空)。"""
-    local = transcribe_local(wav_path)
+def transcribe(model, wav_path, lang="zh"):
+    """转录:优先本地 sherpa-onnx(按语言),否则用 ollama 音频模型。返回文本(可能为空)。"""
+    local = transcribe_local(wav_path, lang)
     if local:
         return local[:500]
     return transcribe_ollama(model, wav_path)
