@@ -10,7 +10,13 @@
 
 Current release **v1.8.2** · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 461 tests
 
-![Mingbird screenshot](docs/assets/screenshot-app.png)
+**English UI (dark theme)**
+
+![English UI](docs/assets/screenshot-app-en.png)
+
+**中文界面 / Chinese UI (light theme)**
+
+![Chinese UI](docs/assets/screenshot-app.png)
 
 ## What makes it different
 

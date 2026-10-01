@@ -10,7 +10,13 @@
 
 当前版本 **v1.8.2** · 持续维护中（[CHANGELOG](CHANGELOG_zh.md)）· 一键断网模式 · CI 构建 Linux/macOS 产物 · 461 项测试
 
-![鸣鸟截图](docs/assets/screenshot-app.png)
+**中文界面（浅色主题）**
+
+![鸣鸟界面](docs/assets/screenshot-app.png)
+
+**English UI (dark theme)**
+
+![Mingbird English UI](docs/assets/screenshot-app-en.png)
 
 ## 有什么不同
 
