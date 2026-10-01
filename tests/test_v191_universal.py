@@ -32,13 +32,13 @@ class TestRunPythonTool(unittest.TestCase):
         self.assertEqual(cmd[-1], "x.py")
 
     def test_run_python_executes(self):
-        import tempfile
+        # 纯 stdlib 脚本(CI 最小依赖环境也能跑);顺带验证 cwd=workdir
         with tempfile.TemporaryDirectory() as d:
             out = A.run_tool("run_python",
-                             {"code": "print(6*7)\nimport numpy; print('np', numpy.__version__[:2])"},
+                             {"code": "print(6*7)\nopen('ok.txt','w').write('x')"},
                              d)
             self.assertIn("42", out)
-            self.assertIn("np", out)
+            self.assertTrue(os.path.exists(os.path.join(d, "ok.txt")))
 
     def test_run_python_danger_blocked(self):
         with tempfile.TemporaryDirectory() as d:

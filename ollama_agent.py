@@ -232,11 +232,12 @@ def run_python_file(path):
     return 0
 
 def _python_hook_cmd(script_path):
-    """构造子进程命令:打包版=自身 exe --run-py;开发版=python agent_gui.py --run-py。"""
+    """构造子进程命令:打包版=自身 exe --run-py;开发版=python ollama_agent.py --run-py
+    (dev 钩子不依赖 agent_gui,最小依赖环境/CI 也能跑)。"""
     if getattr(sys, "frozen", False):
         return [sys.executable, "--run-py", script_path]
-    gui = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent_gui.py")
-    return [sys.executable, gui, "--run-py", script_path]
+    here = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ollama_agent.py")
+    return [sys.executable, here, "--run-py", script_path]
 
 # ---------------- 工具定义(极简 schema:无参数级描述,少 token) ----------------
 def _f(name, desc, props, req=None):
@@ -3620,4 +3621,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     return messages
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 2 and sys.argv[1] == "--run-py":
+        run_python_file(sys.argv[2])   # v1.9.1:开发版 run_python 子进程钩子
+    else:
+        main()
