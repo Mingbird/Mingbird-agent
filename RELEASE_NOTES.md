@@ -1,54 +1,49 @@
-# Mingbird v1.9.1 — Release Notes · 发布说明
+## 🇨🇳 中文
 
-EN
---
-Theme of this release: out-of-the-box for everyday computer work, not just
-coding. The app now bundles bilingual voice input, six universal skills
-(files / web research / document digest / Word / Excel / images), and a
-built-in Python runtime the agent can call — while the installer actually
-got ~9 MB smaller.
+### 🌍 六个通用技能:不止写代码
+- 此前内置的 11 个技能全是编码向(代码审查、重构、TDD……),日常电脑活没有对应手册。v1.9.1 加入六个通用技能:**整理文件夹**(归类/批量重命名/查重)、**联网调研并写成报告**(多查询检索+交叉验证)、**长文速读**(摘要+要点+行动项)、**Word 文档生成与读取**、**Excel/CSV 表格处理**、**图片批量处理**。技能仍是渐进式加载:模型平时只看到名字和一行描述,用到才载全文——出厂 prefill 一字未变。
 
-v1.9.1 — universal skills & bilingual voice:
-- New `run_python` tool: executes Python on the interpreter bundled inside
-  the app. No Python, no Office install needed on the user machine.
-  pandas / numpy / PIL ship with it. Same safety gates as run_bash
-  (danger patterns blocked, destructive ops classified, workspace sandbox,
-  300 s tree-kill timeout). Behind enable_tools in the code category, so
-  the factory prefill is byte-identical (797-token budget test unchanged).
-- Six universal built-in skills (joining the 11 coding ones):
-  file_organizer, web_research, doc_digest, office_word, office_excel,
-  image_batch. Progressive loading: only names + one-line descriptions
-  are visible until a skill is actually loaded.
-- Voice input is bilingual out of the box: a second bundled streaming
-  Zipformer (English, en-20M int8) beside the Chinese one; a 中/EN toggle
-  by the mic, persisted per user. Audio never leaves the machine.
-- Installer is ~9 MB SMALLER: bundled STT models now ship int8-only (the
-  float32 weights nobody loaded are gone) even after adding the English
-  model.
-- Skill & MCP visibility: the GUI Skills window lists skill directories,
-  how to install your own skills, and configured MCP servers.
-  skills/README.md documents the format and lookup order.
-- Tests: 472 green (461 + 11 new). Upgrading from v1.8.x is drop-in.
+### 🎤 语音输入:中英双语,开箱即用
+- 旧版只内置中文模型,英文语音要自己在 Ollama 里拉 whisper。v1.9.1 把英文流式模型(en-20M)也打进安装包,麦克风旁新增 **中/EN 切换**,选择会记住。转写仍在纯 CPU 上本地完成,录音不出机器。
 
-ZH
---
-这一版的主题:日常电脑活也开箱即用,不止写代码。内置中英双语语音输入、
-六个通用技能(文件/联网调研/长文速读/Word/Excel/图片),以及一个 agent
-可以直接调用的内置 Python 运行时;安装包反而小了约 9 MB。
+### 🐍 新工具 run_python:用户机器不用装 Python
+- 办公/图片技能的执行底座:agent 生成的 Python 代码交给**程序内置的解释器**运行,pandas/numpy/PIL 随包可用——用户的电脑不需要装 Python,也不需要装 Office。安全模型与 run_bash 同款:危险命令硬拦、破坏性操作分级、工作目录沙箱、300 秒超时按进程树终止。
 
-v1.9.1——通用技能与双语语音:
-- 新工具 `run_python`:用程序内置的解释器跑 Python,用户机器无需装
-  Python 或 Office;pandas/numpy/PIL 随包可用。安全门与 run_bash 同款
-  (危险模式硬拦、破坏性操作分级、工作目录沙箱、300 秒超时进程树杀)。
-  归在"代码"类别经 enable_tools 装配,出厂 prefill 一字不变
-  (797 token 预算测试不变且全绿)。
-- 六个通用内置技能(加入原 11 个编码技能):file_organizer、
-  web_research、doc_digest、office_word、office_excel、image_batch。
-  渐进式加载:平时只暴露名字与一行描述,用到才载全文。
-- 语音输入中英双语开箱即用:在中文模型旁内置英文流式 Zipformer
-  (en-20M,int8);麦克风旁 中/EN 按钮切换,选择持久化。录音不出机器。
-- 安装包反而小约 9 MB:内置 STT 只带 int8 权重(没人加载的 float32
-  已删),即便多塞了一个英文模型。
-- 技能与 MCP 可见性:GUI 技能窗口列出技能目录、自装技能方法、已配置
-  的 MCP 服务器;skills/README.md 写明格式与查找顺序。
-- 测试:472 全绿(461 + 11 新增)。从 v1.8.x 升级直接覆盖安装即可。
+### 🧩 技能与 MCP 看得见了
+- 技能窗口现在列出技能目录、自装方法(自己的 .md 放进 `~/.ollama_agent/skills/` 即成技能)、以及已配置的 MCP 服务器;`skills/README.md` 写明格式与查找顺序。
+
+### 📦 安装包反而更小
+- 内置语音模型改为只带实际加载的 int8 权重(此前打包里躺着一半没人读的 float32):多塞了一个英文模型之后,Windows 安装包反而从 187.4MB 降到 174.5MB。
+
+472 项测试全绿(435 单测 + 26 集成 + 11 项 v1.9.1 新覆盖:run_python 分发与安全门、双语模型解析、int8 打包纪律、通用技能在位)。
+
+### 📦 构建说明
+Windows 两包从 v1.9.1 tag 源码构建,并在冻结产物上实测:依赖自检全 OK、`--run-py` 通道实跑通过、GUI 启动存活、stt 双模型仅 int8、17 个技能文件在位;Linux/macOS 三包由 CI 构建并含冒烟步骤;五个资产的 SHA-256 已与本地构建逐字节核对一致。从 v1.8.x 升级直接覆盖安装。完整变更见 [CHANGELOG_zh.md](https://github.com/Mingbird/Mingbird-agent/blob/main/CHANGELOG_zh.md)。
+
+## 🇬🇧 English
+
+### 🌍 Six universal skills: beyond coding
+- The 11 built-in skills were all coding-oriented (code review, refactoring, TDD...); everyday computer work had no playbook. v1.9.1 adds six universal skills: **file organizing** (sort / batch rename / dedup), **web research with a written report** (multi-query, cross-checked), **long-document digest** (summary + key points + action items), **Word .docx generation and reading**, **Excel/CSV processing**, and **image batch processing**. Skills stay progressive: the model only sees names and one-line descriptions until one is actually loaded — the factory prefill is unchanged byte for byte.
+
+### 🎤 Voice input: Chinese & English, out of the box
+- Previously only a Chinese model was bundled; English speech required pulling whisper into Ollama yourself. v1.9.1 bundles an English streaming model (en-20M) too, with a **中/EN toggle** next to the mic (remembered). Transcription still runs locally on pure CPU; your audio never leaves the machine.
+
+### 🐍 New run_python tool: no Python install needed on the user machine
+- The execution backbone for the office/image skills: Python code the agent writes runs on the **interpreter bundled inside the app**, with pandas/numpy/PIL available — the user's computer needs neither Python nor Office. Same safety model as run_bash: danger patterns blocked outright, destructive operations classified, workspace sandbox, 300 s timeout with process-tree kill.
+
+### 🧩 Skills & MCP made visible
+- The Skills window now lists skill directories, how to install your own (drop a .md into `~/.ollama_agent/skills/`), and the configured MCP servers; `skills/README.md` documents the format and lookup order.
+
+### 📦 The installer actually got smaller
+- Bundled voice models now ship only the int8 weights actually loaded (half the previous payload was float32 nobody read): after adding a second model, the Windows installer still shrank from 187.4 MB to 174.5 MB.
+
+472 tests green (435 unit + 26 integration + 11 new v1.9.1 cases: run_python dispatch and safety gates, bilingual model resolution, int8-only packaging rule, universal skills presence).
+
+### 📦 Build note
+The two Windows packages were built from the v1.9.1 tag source and verified on the frozen binary: dependency selftest OK, the `--run-py` path exercised for real, GUI launch stays alive, both stt models int8-only, all 17 skill files present. The Linux/macOS packages are built by CI with a smoke step. All five asset SHA-256 digests were verified byte-for-byte against the local builds. Upgrading from v1.8.x is a plain overwrite install. Full changelog in [CHANGELOG.md](https://github.com/Mingbird/Mingbird-agent/blob/main/CHANGELOG.md).
+
+---
+
+**Install / 安装**
+- Windows: download `Mingbird-v1.9.1-CN-Setup.exe` (中文界面) or `Mingbird-v1.9.1-EN-Setup.exe` (English UI).
+- Linux/macOS: experimental tarballs (`mingbird-v1.9.1-linux-x64.tar.gz` / `-macos-arm64.tar.gz` / `-macos-x64.tar.gz`), see `install-unix.sh` inside.
