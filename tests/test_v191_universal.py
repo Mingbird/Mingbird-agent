@@ -52,7 +52,14 @@ class TestRunPythonTool(unittest.TestCase):
 
 
 class TestBilingualSTT(unittest.TestCase):
+    # stt 模型是 gitignored 的分发资产:开发机/打包机上有,CI checkout 没有。
+    # 这里只测"有模型时能解析";打包完整性由冻结包自检(selftest + 目录清单)保证。
+    SIX = ["file_organizer", "web_research", "doc_digest",
+           "office_word", "office_excel", "image_batch"]
+
     def test_both_languages_resolve_model_dir(self):
+        if V._stt_model_dir("zh") is None and V._stt_model_dir("en") is None:
+            self.skipTest("stt models not present (gitignored assets)")
         for lang in ("zh", "en"):
             d = V._stt_model_dir(lang)
             self.assertIsNotNone(d, f"{lang} 模型目录未找到")
@@ -63,9 +70,13 @@ class TestBilingualSTT(unittest.TestCase):
             self.assertTrue(os.path.exists(f["tokens"]))
 
     def test_stt_dirs_only_int8(self):
+        if V._stt_model_dir("zh") is None and V._stt_model_dir("en") is None:
+            self.skipTest("stt models not present (gitignored assets)")
         # 体积纪律:内置模型目录不允许再带 float32 权重(安装包瘦身承诺)
         for lang in ("zh", "en"):
             d = V._stt_model_dir(lang)
+            if d is None:
+                continue
             floats = [x for x in os.listdir(d)
                       if x.endswith(".onnx") and "int8" not in x]
             self.assertEqual(floats, [], f"{lang} 目录残留 float 权重: {floats}")
