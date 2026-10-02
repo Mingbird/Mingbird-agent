@@ -9,8 +9,6 @@ on:
         description: "Tag to build and attach (e.g. v1.4.0)"
         required: true
         default: "v1.4.0"
-  push:
-    tags: ["v*"]
 
 permissions:
   contents: write
@@ -27,6 +25,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 从 dispatch 指定的 tag 构建(不钉 ref 会构建 main;tag 与 main 有分叉时
+          # unix 包就不等于 tag 源码,违背"Windows 包从 tag 构建"的同一纪律)
+          ref: ${{ inputs.tag }}
 
       - uses: actions/setup-python@v5
         with:
@@ -88,10 +90,14 @@ jobs:
           if kill -0 "$APP" 2>/dev/null; then echo "smoke: alive"; kill "$APP" || true; else echo "smoke: exited early (see log above)"; exit 1; fi
 
       - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/') || inputs.tag != ''
+        if: inputs.tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ inputs.tag || github.ref_name }}
+          TAG_NAME: ${{ inputs.tag }}
         run: |
-          gh release upload "$TAG_NAME" "$PKG" --clobber --repo "$GITHUB_REPOSITORY" || \
-            gh release create "$TAG_NAME" "$PKG" --title "$TAG_NAME" --notes "experimental packages" --repo "$GITHUB_REPOSITORY"
+          # CI 只往已存在的 release 上传资产,绝不创建 release(创建权在维护者:
+          # 用户 token + 模板正文;bot 建的 release 会顶掉模板,v1.9.2 事故)
+          if ! gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "::error::release $TAG_NAME does not exist yet - create it with the maintainer token and house-template notes first, then dispatch"; exit 1
+          fi
+          gh release upload "$TAG_NAME" "$PKG" --clobber --repo "$GITHUB_REPOSITORY"
