@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### 🔧 Fixes
+- **Auto-started `ollama serve` now inherits the Ollama app's custom model directory** (issue #1, Windows). Ollama 0.3x stores the GUI-set model location in `%LOCALAPPDATA%\Ollama\db.sqlite` (table `settings`, column `models`) — not in the user environment — so a serve process spawned directly by Mingbird fell back to `%USERPROFILE%\.ollama\models` and the user's models appeared to vanish. Mingbird now reads that setting (via a temp-file copy of the live DB; any failure is ignored silently) and passes it as `OLLAMA_MODELS` to the spawned serve. Precedence: user environment / config layer > Ollama GUI setting; behavior is unchanged when no custom directory is set. Tests: 10 new (fabricated-DB reads, corrupt/missing DB fallback, precedence wiring), suite now 482 green.
+
 ## v1.9.1 (2026-10-01)
 
 ### 🌍 Out of the box, beyond coding

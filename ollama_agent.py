@@ -144,6 +144,44 @@ def _find_ollama_exe():
             return p
     return "ollama"
 
+def _ollama_app_models_dir():
+    """Windows:读 Ollama 官方 app 的设置库,返回 GUI 里配置的模型目录。
+
+    Ollama 0.3x 的 GUI 把模型目录存在 %LOCALAPPDATA%\\Ollama\\db.sqlite 的
+    settings.models 列,不写用户环境变量;官方 app 启动 serve 时自带该设置,
+    而我们 spawn 的 `ollama serve` 只继承环境变量,会退回默认目录(issue #1)。
+    db.sqlite 是常驻 app 的活库(带 WAL),先复制到临时文件再读;任何失败都
+    安静返回 None,绝不影响启动路径。非 Windows 平台 Ollama app 设置存储
+    不同,这里不做猜测,返回 None。"""
+    if sys.platform != "win32":
+        return None
+    db = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Ollama", "db.sqlite")
+    if not db or not os.path.isfile(db):
+        return None
+    import shutil, sqlite3, tempfile
+    fd, tmp = tempfile.mkstemp(suffix=".sqlite")
+    os.close(fd)
+    try:
+        shutil.copyfile(db, tmp)
+        if os.path.isfile(db + "-wal"):
+            shutil.copyfile(db + "-wal", tmp + "-wal")
+        con = sqlite3.connect(tmp)
+        try:
+            row = con.execute("SELECT models FROM settings LIMIT 1").fetchone()
+        finally:
+            con.close()
+        v = os.path.expandvars(((row[0] if row else None) or "").strip())
+        return v or None
+    except Exception:
+        return None
+    finally:
+        for p in (tmp, tmp + "-wal"):
+            if os.path.exists(p):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
+
 def ensure_ollama(timeout=25):
     """按需启动 ollama:检查 API 是否可达,不可达则拉起 serve 并等就绪。
     地址/可执行文件/额外环境变量均来自配置层,用户按自己机器配置。"""
@@ -158,6 +196,12 @@ def ensure_ollama(timeout=25):
     exe = _find_ollama_exe()
     env = dict(os.environ)
     env.update(appconfig.ollama_env())
+    # 用户没在任何配置层指定模型目录时,带上 Ollama GUI 里设置的目录,
+    # 避免 spawn 出的 serve 读默认目录、用户模型"消失"(issue #1)
+    if "OLLAMA_MODELS" not in env:
+        _mdir = _ollama_app_models_dir()
+        if _mdir:
+            env["OLLAMA_MODELS"] = _mdir
     try:
         subprocess.Popen([exe, "serve"], cwd=os.path.dirname(exe),
                          env=env,
