@@ -968,7 +968,7 @@ class AgentGUI:
                                    font=("Microsoft YaHei UI", 10), lmargin1=12, lmargin2=12,
                                    rmargin=12, spacing1=4, spacing3=4)
         self.transcript.tag_config("asst", foreground=t["text"], background=t["bg"],
-                                   font=("Microsoft YaHei UI", 10), lmargin1=12, lmargin2=12)
+                                   font=("Microsoft YaHei UI", 12), lmargin1=12, lmargin2=12)
         self.transcript.tag_config("tool", foreground=tool_fg, background=t["code_bg"],
                                    font=("Consolas", 9), lmargin1=12, lmargin2=12)
         self.transcript.tag_config("note", foreground=t["muted"],

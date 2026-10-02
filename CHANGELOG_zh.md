@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### 🎨 界面
+- **回答正文加大两号,正文与思考一眼可分**(用户反馈):助手回答正文从 10pt 提到 12pt,可折叠思考块维持 9pt 灰斜体,正文作为主内容的层级立刻清晰;用户气泡、工具行、代码块字号不变。
+
 ### 🔧 修复
 - **自动启动的 `ollama serve` 继承 Ollama 官方 app 设置的自定义模型目录**(issue #1,Windows)。Ollama 0.3x 把 GUI 里设置的模型存放位置存在 `%LOCALAPPDATA%\Ollama\db.sqlite`(settings 表 models 列)而非用户环境变量,鸣鸟直接拉起的 serve 只继承环境变量,会退回 `%USERPROFILE%\.ollama\models`,用户模型看起来"全没了"。现在鸣鸟会读取该设置(经临时文件副本读常驻活库,任何失败静默忽略)并以 `OLLAMA_MODELS` 传给拉起的 serve。优先级:用户环境变量/配置层 > Ollama GUI 设置;未设置自定义目录时行为不变。测试:新增 10 项(伪造库读取、坏库/缺库回退、优先级接线),套件 482 全绿。
 
