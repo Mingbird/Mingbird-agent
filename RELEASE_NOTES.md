@@ -1,49 +1,31 @@
 ## 🇨🇳 中文
 
-### 🌍 六个通用技能:不止写代码
-- 此前内置的 11 个技能全是编码向(代码审查、重构、TDD……),日常电脑活没有对应手册。v1.9.1 加入六个通用技能:**整理文件夹**(归类/批量重命名/查重)、**联网调研并写成报告**(多查询检索+交叉验证)、**长文速读**(摘要+要点+行动项)、**Word 文档生成与读取**、**Excel/CSV 表格处理**、**图片批量处理**。技能仍是渐进式加载:模型平时只看到名字和一行描述,用到才载全文——出厂 prefill 一字未变。
+### 🔧 修复:自定义模型目录不再"丢模型"([issue #1](https://github.com/Mingbird/Mingbird-agent/issues/1))
+- 旧行为:Ollama 还没启动时先打开鸣鸟,鸣鸟拉起的 `ollama serve` 只继承环境变量——而 Ollama 官方 GUI 设置的自定义模型目录存在 `%LOCALAPPDATA%\Ollama\db.sqlite` 里、并不写环境变量,于是这个实例退回默认目录,模型列表看起来空了(模型文件本身无恙)。新行为:鸣鸟启动 serve 前会读取该设置(经临时副本读这个常驻库,任何读取失败都静默跳过)并以 `OLLAMA_MODELS` 传给拉起的进程;优先级为 环境变量/配置层显式设置 > Ollama GUI 设置,没设自定义目录的用户行为不变。感谢 @LeftOwlRight 一份四要素俱全的问题报告。
 
-### 🎤 语音输入:中英双语,开箱即用
-- 旧版只内置中文模型,英文语音要自己在 Ollama 里拉 whisper。v1.9.1 把英文流式模型(en-20M)也打进安装包,麦克风旁新增 **中/EN 切换**,选择会记住。转写仍在纯 CPU 上本地完成,录音不出机器。
+### 🎨 界面:回答正文加大两号
+- 此前回答正文与"思考"块只差一档字号加灰字,长回答扫读时不易分辨。回答正文从 10pt 提到 12pt,思考块维持 9pt 灰斜体(点击仍可折叠/展开),正文作为主内容的层级一眼可辨;用户气泡、工具行、代码块字号不变。
 
-### 🐍 新工具 run_python:用户机器不用装 Python
-- 办公/图片技能的执行底座:agent 生成的 Python 代码交给**程序内置的解释器**运行,pandas/numpy/PIL 随包可用——用户的电脑不需要装 Python,也不需要装 Office。安全模型与 run_bash 同款:危险命令硬拦、破坏性操作分级、工作目录沙箱、300 秒超时按进程树终止。
-
-### 🧩 技能与 MCP 看得见了
-- 技能窗口现在列出技能目录、自装方法(自己的 .md 放进 `~/.ollama_agent/skills/` 即成技能)、以及已配置的 MCP 服务器;`skills/README.md` 写明格式与查找顺序。
-
-### 📦 安装包反而更小
-- 内置语音模型改为只带实际加载的 int8 权重(此前打包里躺着一半没人读的 float32):多塞了一个英文模型之后,Windows 安装包反而从 187.4MB 降到 174.5MB。
-
-472 项测试全绿(435 单测 + 26 集成 + 11 项 v1.9.1 新覆盖:run_python 分发与安全门、双语模型解析、int8 打包纪律、通用技能在位)。
+482 项测试全绿(472 + 10 项新增:伪造/损坏/缺失设置库的读取回退、环境变量与配置层的优先级接线)。
 
 ### 📦 构建说明
-Windows 两包从 v1.9.1 tag 源码构建,并在冻结产物上实测:依赖自检全 OK、`--run-py` 通道实跑通过、GUI 启动存活、stt 双模型仅 int8、17 个技能文件在位;Linux/macOS 三包由 CI 构建并含冒烟步骤;五个资产的 SHA-256 已与本地构建逐字节核对一致。从 v1.8.x 升级直接覆盖安装。完整变更见 [CHANGELOG_zh.md](https://github.com/Mingbird/Mingbird-agent/blob/main/CHANGELOG_zh.md)。
+Windows 两包从 v1.9.2 tag 源码构建,并在冻结产物上实测:依赖自检全 OK、`--run-py` 通道实跑通过、GUI 启动存活、stt 双模型仅 int8、17 个技能文件在位;Linux/macOS 三包由 CI 构建并含冒烟步骤;五个资产的 SHA-256 已与本地构建逐字节核对一致。从 v1.8.x/v1.9.x 升级直接覆盖安装。完整变更见 [CHANGELOG_zh.md](https://github.com/Mingbird/Mingbird-agent/blob/main/CHANGELOG_zh.md)。
 
 ## 🇬🇧 English
 
-### 🌍 Six universal skills: beyond coding
-- The 11 built-in skills were all coding-oriented (code review, refactoring, TDD...); everyday computer work had no playbook. v1.9.1 adds six universal skills: **file organizing** (sort / batch rename / dedup), **web research with a written report** (multi-query, cross-checked), **long-document digest** (summary + key points + action items), **Word .docx generation and reading**, **Excel/CSV processing**, and **image batch processing**. Skills stay progressive: the model only sees names and one-line descriptions until one is actually loaded — the factory prefill is unchanged byte for byte.
+### 🔧 Fix: custom model directory no longer "loses" models ([issue #1](https://github.com/Mingbird/Mingbird-agent/issues/1))
+- Old behavior: start Mingbird before Ollama, and the `ollama serve` it spawned inherited only the environment — but the custom model directory set in Ollama's GUI lives in `%LOCALAPPDATA%\Ollama\db.sqlite`, not in any env var, so that instance fell back to the default directory and the model list looked empty (the model files themselves were untouched). New behavior: before starting serve, Mingbird reads that setting (via a temp copy of the live DB; any read failure is silently skipped) and passes it as `OLLAMA_MODELS` to the spawned process. Precedence: explicit env/config > Ollama GUI setting; users without a custom directory see no change. Credit to @LeftOwlRight for a model bug report.
 
-### 🎤 Voice input: Chinese & English, out of the box
-- Previously only a Chinese model was bundled; English speech required pulling whisper into Ollama yourself. v1.9.1 bundles an English streaming model (en-20M) too, with a **中/EN toggle** next to the mic (remembered). Transcription still runs locally on pure CPU; your audio never leaves the machine.
+### 🎨 UI: answer text two sizes bigger
+- The answer body and the thinking block previously differed by one font step and color, which was hard to scan in long replies. Answer text now renders at 12 pt (was 10) while the thinking block stays 9 pt gray italic (still click-to-collapse); user bubbles, tool lines and code blocks keep their sizes.
 
-### 🐍 New run_python tool: no Python install needed on the user machine
-- The execution backbone for the office/image skills: Python code the agent writes runs on the **interpreter bundled inside the app**, with pandas/numpy/PIL available — the user's computer needs neither Python nor Office. Same safety model as run_bash: danger patterns blocked outright, destructive operations classified, workspace sandbox, 300 s timeout with process-tree kill.
-
-### 🧩 Skills & MCP made visible
-- The Skills window now lists skill directories, how to install your own (drop a .md into `~/.ollama_agent/skills/`), and the configured MCP servers; `skills/README.md` documents the format and lookup order.
-
-### 📦 The installer actually got smaller
-- Bundled voice models now ship only the int8 weights actually loaded (half the previous payload was float32 nobody read): after adding a second model, the Windows installer still shrank from 187.4 MB to 174.5 MB.
-
-472 tests green (435 unit + 26 integration + 11 new v1.9.1 cases: run_python dispatch and safety gates, bilingual model resolution, int8-only packaging rule, universal skills presence).
+482 tests green (472 + 10 new: fabricated/corrupt/missing settings-DB fallbacks, env-var and config-layer precedence wiring).
 
 ### 📦 Build note
-The two Windows packages were built from the v1.9.1 tag source and verified on the frozen binary: dependency selftest OK, the `--run-py` path exercised for real, GUI launch stays alive, both stt models int8-only, all 17 skill files present. The Linux/macOS packages are built by CI with a smoke step. All five asset SHA-256 digests were verified byte-for-byte against the local builds. Upgrading from v1.8.x is a plain overwrite install. Full changelog in [CHANGELOG.md](https://github.com/Mingbird/Mingbird-agent/blob/main/CHANGELOG.md).
+The two Windows packages were built from the v1.9.2 tag source and verified on the frozen binary: dependency selftest OK, the `--run-py` path exercised for real, GUI launch stays alive, both stt models int8-only, all 17 skill files present. The Linux/macOS packages are built by CI with a smoke step. All five asset SHA-256 digests were verified byte-for-byte against the local builds. Upgrading from v1.8.x/v1.9.x is a plain overwrite install. Full changelog in [CHANGELOG.md](https://github.com/Mingbird/Mingbird-agent/blob/main/CHANGELOG.md).
 
 ---
 
 **Install / 安装**
-- Windows: download `Mingbird-v1.9.1-CN-Setup.exe` (中文界面) or `Mingbird-v1.9.1-EN-Setup.exe` (English UI).
-- Linux/macOS: experimental tarballs (`mingbird-v1.9.1-linux-x64.tar.gz` / `-macos-arm64.tar.gz` / `-macos-x64.tar.gz`), see `install-unix.sh` inside.
+- Windows: download `Mingbird-v1.9.2-CN-Setup.exe` (中文界面) or `Mingbird-v1.9.2-EN-Setup.exe` (English UI).
+- Linux/macOS: experimental tarballs (`mingbird-v1.9.2-linux-x64.tar.gz` / `-macos-arm64.tar.gz` / `-macos-x64.tar.gz`), see `install-unix.sh` inside.

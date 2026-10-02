@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.9.2 (2026-10-02)
 
 ### 🎨 UI
 - **Answer text is two sizes bigger, so body vs thinking is unmistakable** (user feedback): assistant answers render at 12 pt (was 10) while the collapsible thinking block stays 9 pt gray italic — the answer body now reads clearly as the main content. User bubbles, tool lines and code blocks keep their sizes.
