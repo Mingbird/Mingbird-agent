@@ -106,6 +106,15 @@ TEMP = _parse_temp_env(os.environ.get("AGENT_TEMP"))
 # 300 行文件的结构化输出,WF-08/4b 截断死亡螺旋实锤)。8192 对齐基准协议行
 # (opencode 同值),更大交付由截断反馈引导分块(create_file 骨架 + append_file 追加)。
 NUM_PREDICT = int(os.environ.get("AGENT_NUMPREDICT", "8192"))
+
+# v2.0.0:模型驻留与 bash 超时,两处都是 2026-10-06 现场复盘的卡顿根因。
+# KEEP_ALIVE:旧版不传 → ollama 默认 5 分钟,任务里一条工具链超 5 分钟模型就被
+# 卸载、下一轮整模型重载(大模型装填=几十秒到分钟级"假死")。任务期间钉 30m,
+# agent 退出后模型自然过期,不永久占内存。
+KEEP_ALIVE = os.environ.get("AGENT_KEEPALIVE", "30m")
+# BASH_TIMEOUT:旧版 300s,一条挂住的命令独占一个 keep_alive 周期;降为 120s,
+# 可用 AGENT_BASH_TIMEOUT 覆盖(确需长命令的批量场景)。
+BASH_TIMEOUT = int(os.environ.get("AGENT_BASH_TIMEOUT", "120"))
 SYSTEM_FILE = os.environ.get("AGENT_SYSTEM_FILE", "")
 STREAM = os.environ.get("AGENT_STREAM") == "1"   # GUI 开流式时置 1
 # 时间预算(秒)。>0 启用"预算节奏提示"(50%/75%/90% 各注入一次收尾导向提示)。
@@ -732,7 +741,14 @@ def mcp_call(server, tool, args):
                 async with stdio_client(params) as (read, write):
                     async with ClientSession(read, write) as session:
                         return await _call(session)
-        return asyncio.run(_run())
+        # v2.0.0:整体加超时——旧版 stdio 握手无上限,npx/uvx 类启动器卡住时
+        # mcp_call 无限阻塞、agent 直接假死(2026-10-06 复盘)。超时返回错误
+        # 文本让模型换路,不再挂死整个任务。
+        try:
+            return asyncio.run(asyncio.wait_for(_run(), timeout=120))
+        except (asyncio.TimeoutError, TimeoutError):
+            return ("[mcp_call error: 服务器启动或握手超时(120s)。该 MCP server "
+                    "可能卡死或启动极慢,请改用其他工具完成本步。]")
     except Exception as e:
         return f"[mcp_call error: {e}]"
 
@@ -759,11 +775,12 @@ def _load_mcp_cache_disk():
         pass
     return 0, None
 
-def _save_mcp_cache_disk(data):
-    """把探测结果写盘(含时间戳)。失败静默(缓存只是加速,不阻塞)。"""
+def _save_mcp_cache_disk(data, ts=None):
+    """把探测结果写盘(含时间戳)。失败静默(缓存只是加速,不阻塞)。
+    v2.0.0:ts 可指定——探测有失败时写缩短的 TTL,让下次尽快重试。"""
     try:
         os.makedirs(AGENT_HOME, exist_ok=True)
-        json.dump({"ts": time.time(), "data": data},
+        json.dump({"ts": ts if ts is not None else time.time(), "data": data},
                   open(_MCP_CACHE_FILE, "w", encoding="utf-8"), ensure_ascii=False)
     except Exception:
         pass
@@ -788,36 +805,97 @@ def _compact_schema(js):
         props = {k: props[k] for k in req if k in props}
     return {"type": "object", "properties": props, "required": req}
 
-def _introspect_mcp_tools(name, cfg):
-    """连接 MCP 服务器取 tools/list(名称+描述+输入 schema)。失败返回 []。
-    支持本地 stdio(command) 与远程 HTTP(url, 如 tavily)。"""
+def _kill_proc_tree(proc):
+    """v2.0.0:按进程树杀(Windows taskkill /T;POSIX 进程组杀)。探测/调用
+    超时的 MCP server 用它收尸——旧版 wait_for 超时只取消协程,Windows 下
+    子进程泄漏成僵尸(2026-10-06 实测残留 6 个)。"""
+    try:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                           capture_output=True, shell=False)
+        else:
+            import signal as _sig
+            try: os.killpg(os.getpgid(proc.pid), _sig.SIGKILL)
+            except Exception: proc.kill()
+    except Exception:
+        try: proc.kill()
+        except Exception: pass
+
+def _probe_stdio(cfg, timeout=10):
+    """v2.0.0 手写 stdio 探测:直接 Popen 起服务器,行分隔 JSON-RPC 走
+    initialize → tools/list;超时拿得住 Popen 句柄,按进程树硬杀。
+    返回 None=失败/超时(区别于 []=成功且无工具)。"""
+    import queue as _q, threading as _th
+    env = dict(os.environ)
+    env.update({str(k): str(v) for k, v in (cfg.get("env") or {}).items()})
+    proc = subprocess.Popen([cfg["command"]] + list(cfg.get("args", [])),
+                            stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL, env=env,
+                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    box = _q.Queue()
+    def _reader():
+        try:
+            for ln in proc.stdout:
+                box.put(ln)
+        except Exception:
+            pass
+        finally:
+            box.put(None)
+    _th.Thread(target=_reader, daemon=True).start()
+    def _send(obj):
+        proc.stdin.write((json.dumps(obj) + "\n").encode("utf-8"))
+        proc.stdin.flush()
+    try:
+        _send({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+            "protocolVersion": "2024-11-05", "capabilities": {},
+            "clientInfo": {"name": "mingbird-probe", "version": "2.0.0"}}})
+        deadline = time.time() + timeout
+        def _recv(_id):
+            while time.time() < deadline:
+                try: ln = box.get(timeout=max(0.05, deadline - time.time()))
+                except Exception: break
+                if ln is None: break
+                try: msg = json.loads(ln)
+                except Exception: continue
+                if msg.get("id") == _id:
+                    return msg.get("result")
+            return None
+        if _recv(1) is None:
+            return None
+        _send({"jsonrpc": "2.0", "method": "notifications/initialized"})
+        _send({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
+        res = _recv(2) or {}
+        return [{"name": t.get("name", ""),
+                 "desc": (t.get("description") or "")[:150],
+                 "schema": _compact_schema(t.get("inputSchema") or {})}
+                for t in (res.get("tools") or [])]
+    except Exception:
+        return None
+    finally:
+        _kill_proc_tree(proc)
+        try: proc.stdin.close(); proc.stdout.close()
+        except Exception: pass
+
+def _probe_http(cfg, timeout=10):
+    """远程 HTTP MCP(如 tavily)探测;沿用 mcp 客户端。失败/超时返回 None。"""
     try:
         from mcp import ClientSession
-        url = cfg.get("url")
+        from mcp.client.streamable_http import streamablehttp_client
         async def _run():
-            if url:
-                from mcp.client.streamable_http import streamablehttp_client
-                async with streamablehttp_client(url, headers=cfg.get("headers")) as (read, write, _sid):
-                    async with ClientSession(read, write) as session:
-                        await session.initialize()
-                        res = await session.list_tools()
-                        return [{"name": t.name, "desc": (t.description or "")[:150],
-                                 "schema": _compact_schema(getattr(t, "inputSchema", None) or {})}
-                                for t in res.tools]
-            else:
-                from mcp import StdioServerParameters
-                from mcp.client.stdio import stdio_client
-                params = StdioServerParameters(command=cfg["command"], args=cfg.get("args", []), env=cfg.get("env"))
-                async with stdio_client(params) as (read, write):
-                    async with ClientSession(read, write) as session:
-                        await session.initialize()
-                        res = await session.list_tools()
-                        return [{"name": t.name, "desc": (t.description or "")[:150],
-                                 "schema": _compact_schema(getattr(t, "inputSchema", None) or {})}
-                                for t in res.tools]
-        return asyncio.run(asyncio.wait_for(_run(), timeout=10))   # 坏服务器最多等 10s,不阻塞任务
+            async with streamablehttp_client(cfg["url"], headers=cfg.get("headers")) as (read, write, _sid):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    res = await session.list_tools()
+                    return [{"name": t.name, "desc": (t.description or "")[:150],
+                             "schema": _compact_schema(getattr(t, "inputSchema", None) or {})}
+                            for t in res.tools]
+        return asyncio.run(asyncio.wait_for(_run(), timeout=timeout))
     except Exception:
-        return []
+        return None
+
+def _probe_server(cfg):
+    """v2.0.0 探测入口:stdio 手写(可硬杀)/HTTP 走 mcp 客户端。失败返回 None。"""
+    return _probe_http(cfg) if cfg.get("url") else _probe_stdio(cfg)
 
 def _mcp_expose(per_tool, tname, server_expose):
     """解析工具的暴露策略。优先级:工具级 expose > 服务器级 expose > 默认 auto。
@@ -847,26 +925,40 @@ def mcp_manifest(force=False):
             return disk_data
     servers = load_mcp_servers()
     manifest = {}
-    for name, cfg in servers.items():
-        if not isinstance(cfg, dict) or not (cfg.get("command") or cfg.get("url")):
-            continue
-        server_cats = mcp_server_categories(name, cfg)
-        server_expose = cfg.get("expose")
-        per_tool = cfg.get("tools") if isinstance(cfg.get("tools"), dict) else {}
-        raw = _introspect_mcp_tools(name, cfg)
-        tools = []
-        for t in raw:
-            tname = t["name"]
-            tools.append({
-                "name": tname,
-                "desc": t.get("desc", ""),
-                "schema": t.get("schema") or {"type": "object", "properties": {}},
-                "categories": per_tool.get(tname) if isinstance(per_tool.get(tname), list) else server_cats,
-                "expose": _mcp_expose(per_tool, tname, server_expose),
-            })
-        manifest[name] = {"categories": server_cats, "tools": tools}
-    _MCP_CACHE.update({"t": now, "data": manifest})
-    _save_mcp_cache_disk(manifest)   # 写盘,下次进程直接用
+    # v2.0.0 探测三改(2026-10-06 复盘):①并行(旧版串行,7 个 server 最坏 ~70s
+    # 无输出);②失败的服务器用磁盘旧缓存顶上(stale-while-revalidate),不再把
+    # 超时静默缓存成"无工具"一个 TTL——旧版等于把慢服务器临时除名;③彻底失败
+    # (连旧缓存都没有)时缓存期压到 60s 尽快重试。
+    prev = _load_mcp_cache_disk()[1] or {}
+    cand = {name: cfg for name, cfg in servers.items()
+            if isinstance(cfg, dict) and (cfg.get("command") or cfg.get("url"))}
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futs = {name: ex.submit(_probe_server, cfg) for name, cfg in cand.items()}
+        any_fail = False
+        for name, fut in futs.items():
+            cfg = cand[name]
+            raw = fut.result()
+            if raw is None:
+                any_fail = True
+                raw = ((prev.get(name) or {}).get("tools") or [])
+            server_cats = mcp_server_categories(name, cfg)
+            server_expose = cfg.get("expose")
+            per_tool = cfg.get("tools") if isinstance(cfg.get("tools"), dict) else {}
+            tools = []
+            for t in raw:
+                tname = t.get("name") or t["name"]
+                tools.append({
+                    "name": tname,
+                    "desc": t.get("desc", ""),
+                    "schema": t.get("schema") or {"type": "object", "properties": {}},
+                    "categories": per_tool.get(tname) if isinstance(per_tool.get(tname), list) else server_cats,
+                    "expose": _mcp_expose(per_tool, tname, server_expose),
+                })
+            manifest[name] = {"categories": server_cats, "tools": tools}
+    _cache_t = now if not any_fail else now - _MCP_TTL + 60
+    _MCP_CACHE.update({"t": _cache_t, "data": manifest})
+    _save_mcp_cache_disk(manifest, ts=_cache_t)   # 写盘,下次进程直接用
     return manifest
 
 _BUILTIN_NAMES = {t["function"]["name"] for t in CORE_TOOLS + ADVANCED_TOOLS}
@@ -1631,7 +1723,7 @@ def run_tool(name, args, workdir, crawl_state=None):
                                         encoding="utf-8", errors="replace",
                                         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
                 try:
-                    out_s, err_s = proc.communicate(timeout=300)
+                    out_s, err_s = proc.communicate(timeout=BASH_TIMEOUT)
                 except subprocess.TimeoutExpired:
                     if os.name == "nt":
                         subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
@@ -1643,7 +1735,7 @@ def run_tool(name, args, workdir, crawl_state=None):
                     try: out_s, err_s = proc.communicate(timeout=10)
                     except Exception: out_s, err_s = "", ""
                     return _format_bash_out(proc.returncode or 1,
-                                            (out_s or "")[:4000] + "\n[已超时:300 秒上限,进程树已终止 · timed out after 300s]",
+                                            (out_s or "")[:4000] + f"\n[已超时:{BASH_TIMEOUT} 秒上限,进程树已终止 · timed out after {BASH_TIMEOUT}s]",
                                             err_s or "", small_model=_SMALL_MODEL_MODE)
                 return _format_bash_out(proc.returncode, out_s or "", err_s or "",
                                         small_model=_SMALL_MODEL_MODE)
@@ -1672,7 +1764,7 @@ def run_tool(name, args, workdir, crawl_state=None):
                                     encoding="utf-8", errors="replace",
                                     start_new_session=(os.name!="nt"))
             try:
-                out_s, err_s = proc.communicate(timeout=300)
+                out_s, err_s = proc.communicate(timeout=BASH_TIMEOUT)
             except subprocess.TimeoutExpired:
                 # 只杀 shell 会留孤儿孙进程(握住 stdout 管道让本调用永久挂住):
                 # Windows 按进程树杀;POSIX 已设进程组,组杀。
@@ -1685,7 +1777,7 @@ def run_tool(name, args, workdir, crawl_state=None):
                     except Exception: proc.kill()
                 try: out_s, err_s = proc.communicate(timeout=10)
                 except Exception: out_s, err_s = "", ""
-                note = "\n[已超时:300 秒上限,进程树已终止 · timed out after 300s]"
+                note = f"\n[已超时:{BASH_TIMEOUT} 秒上限,进程树已终止 · timed out after {BASH_TIMEOUT}s]"
                 return _format_bash_out(proc.returncode or 1,
                                         (out_s or "")[:4000] + note,
                                         err_s or "", small_model=_SMALL_MODEL_MODE)
@@ -1890,7 +1982,10 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
         _opts["temperature"] = TEMP
     payload = {"model":model,"messages":messages,
                "tools": active_tool_defs() if tools is None else tools,
-               "stream":stream, "options":_opts}
+               "stream":stream, "options":_opts,
+               # v2.0.0:keep_alive 是 /api/chat 顶层字段(进 options 会被静默忽略),
+               # 防长工具链期间模型被 ollama 5 分钟默认值卸载重载。
+               "keep_alive": KEEP_ALIVE}
     # 三态思考:think 必须是 /api/chat 的顶层字段,放进 options 会被 ollama 静默丢弃
     # (2026-09-02 运行时复现实锤:options 形态 thinking=1102/content=0,顶层形态
     # content 正常)。未设置 → 不带 think 字段(ollama 出厂默认:具备 thinking 能力的
@@ -2088,9 +2183,22 @@ def sanitize_ckpt(msgs):
             msgs.pop(); changed = True
     return msgs
 
-def save_session(name, msgs):
+def save_session(name, msgs, workdir=None):
     if not name: return
     _atomic_write_json(os.path.join(SESSIONS_DIR, name + ".json"), msgs)
+    # v2.0.0 todo 会话绑定:存会话时把当前计划快照到会话目录;GUI 续跑该会话
+    # 时写回工作目录。旧版 todo.json 按工作目录共享,恢复老对话会串到别的任务
+    # 留下的计划(或啥都没有)。会话无计划时顺手删旧快照,防串档。
+    try:
+        _snap = os.path.join(SESSIONS_DIR, name + ".todo.json")
+        _tj = os.path.join(workdir, "todo.json") if workdir else None
+        if _tj and os.path.exists(_tj):
+            import shutil
+            shutil.copyfile(_tj, _snap)
+        elif os.path.exists(_snap):
+            os.remove(_snap)
+    except Exception:
+        pass
     try:
         task = next((str(m.get("content","")) for m in msgs if m.get("role")=="user" and not m.get("tool_calls")), "")
         status = "running"
@@ -3132,12 +3240,12 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                 print(f"[{i}] 修复对话结构(连续 assistant),已清理重试", flush=True)
                                 fails += 1
                                 if fails >= 6:
-                                    save_session(session, messages); sys.exit(1)
+                                    save_session(session, messages, workdir); sys.exit(1)
                                 time.sleep(1)
                                 continue
                         # 其他 4xx(模型/参数) → 不可修复,停止
                         print(f"[{i}] API 4xx 错误(重试无意义,已停止): {e} {body}", flush=True)
-                        save_session(session, messages)
+                        save_session(session, messages, workdir)
                         sys.exit(1)
             except Exception:
                 pass
@@ -3192,7 +3300,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
             time.sleep(wait)
             if fails >= 8:
                 print("===== FAILED: ollama 连续错误(含重启后仍失败),已停止。修复后勾选'续跑'可从中断处继续 =====", flush=True)
-                save_session(session, messages)
+                save_session(session, messages, workdir)
                 sys.exit(1)
             continue
         pt = r.get("prompt_eval_count") or (r.get("usage") or {}).get("prompt_tokens", 0)
@@ -3448,7 +3556,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                             messages.append({"role":"tool","content":res})
                             continue
                     print("\n===== TASK COMPLETE =====", flush=True); print(res, flush=True)
-                    save_session(session, messages)
+                    save_session(session, messages, workdir)
                     return messages
                 # 重复失败检测:同工具连续失败(只有同工具成功才清零)→ 强制换策略/禁用
                 if _is_tool_error(res):
@@ -3627,7 +3735,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                 if empty_turns >= 3 and empty_resets >= 3:
                     # 复位额度用尽仍空 = 模型已失去行动能力,保留检查点优雅退出(可续跑)。
                     print(f"[{i}] 累计 {empty_total} 个空轮且 3 次复位无效,优雅退出", flush=True)
-                    save_session(session, messages)
+                    save_session(session, messages, workdir)
                     sys.exit(1)
                 if empty_turns == 3:
                     # (原写法">=3 且清零计数"令 >=6 硬复位永远不可达——死代码,WF-08/4b
@@ -3661,7 +3769,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     else:
                         messages.append({"role":"user","content":"Continue: keep making real progress with tools, or call finish only when fully verified/answered."})
     print("===== MAX ITERATIONS =====", flush=True)
-    save_session(session, messages)
+    save_session(session, messages, workdir)
     return messages
 
 if __name__ == "__main__":

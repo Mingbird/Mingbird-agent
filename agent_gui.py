@@ -130,6 +130,8 @@ _T = {
     "[语音已转录({stt})并填入输入框]": "[Transcribed ({stt}) and filled into the input]",
     "[语音语言: 中文]": "[Voice language: Chinese]",
     "[语音语言: 英文]": "[Voice language: English]",
+    "[设置已保存:自下一个任务起生效(运行中的任务不受影响)]":
+        "[Settings saved: takes effect from the next task (running task unaffected)]",
     "技能目录": "Skill directories",
     "已装技能": "Installed skills",
     "已配置 MCP 服务器": "Configured MCP servers",
@@ -1489,7 +1491,11 @@ class AgentGUI:
         tb.Label(r1, text=_t("上下文窗口:")).pack(side="left")
         ctx = tb.Combobox(r1, values=[16384, 32768, 65536, 131072, 262144],
                           width=10, state="readonly")
-        if prefs["ctx"] not in ctx["values"]:
+        # v2.0.0 修复:tk 的 values 读回是字符串元组,int 与 str 比较恒不等,
+        # 导致每次打开对话框显示值都被重置为 32768、保存时覆盖用户设置
+        # ("上下文怎么设都是 32K"的根因)。统一转 int 再比。
+        _ctx_vals = [int(v) for v in ctx["values"]]
+        if prefs["ctx"] not in _ctx_vals:
             prefs["ctx"] = 32768   # 兼容旧保存值,归入梯度
         ctx.set(prefs["ctx"]); ctx.pack(side="left", padx=6)
         tb.Label(r1, text=_t("温度:")).pack(side="left")
@@ -1529,6 +1535,7 @@ class AgentGUI:
             if prefs["sys_enable"] and prefs["sys_text"]:
                 open(SYS_OVERRIDE_FILE, "w", encoding="utf-8").write(prefs["sys_text"])
             self.save_prefs()
+            self.log_note(_t("[设置已保存:自下一个任务起生效(运行中的任务不受影响)]"))
             win.destroy()
         tb.Button(win, text=_t("保存"), bootstyle="success", command=save).pack(pady=8)
 
@@ -1671,7 +1678,21 @@ class AgentGUI:
         """整场重开(v1.8.2):会话、上下文、工作目录、计划面板全部复位。
         旧实现不重置工作目录——上一个对话若用过别的目录(如个人文档文件夹),
         新对话会静默继承,task_input.txt 都写进去;这是跨对话记忆/隐私事故的
-        第二条泄漏通道,已封死。"""
+        第二条泄漏通道,已封死。
+        v2.0.0:补两处磁盘残留——旧 todo.json 不删,poll_todo 每 500ms 就把它
+        渲染回计划面板(用户看到"新对话不清空旧清单");旧 .agent_state.json
+        同理会被下次任务意外续跑。任务在跑则先停,避免边跑边清。"""
+        if self.proc and self.proc.poll() is None:
+            self._kill_tree()
+        _old_wd = self.wd_var.get() if hasattr(self, "wd_var") else None
+        for _wd in {_old_wd, os.path.join(DEFAULT_TASKS, "work")}:
+            if not _wd: continue
+            for _stale in ("todo.json", ".agent_state.json"):
+                try:
+                    _p = os.path.join(_wd, _stale)
+                    if os.path.exists(_p): os.remove(_p)
+                except Exception:
+                    pass
         self.session = None
         self.sess_lbl.configure(text=_t("会话:无"))
         self.clear_transcript()
@@ -1711,6 +1732,20 @@ class AgentGUI:
                 tj = os.path.join(workdir, "todo.json")
                 if os.path.exists(tj): os.remove(tj)
                 self._render_plan([], force=True)
+            except Exception:
+                pass
+        else:
+            # v2.0.0 todo 会话绑定:恢复旧对话(续跑)时,把该会话保存时快照的
+            # todo.json 写回工作目录——计划面板与 agent 上下文都拿到当时的
+            # 未完成清单;会话没有快照则清掉现场残留,杜绝串到别的任务的计划。
+            try:
+                _snap = os.path.join(SESSION_DIR, self.session + ".todo.json") if self.session else None
+                tj = os.path.join(workdir, "todo.json")
+                if _snap and os.path.exists(_snap):
+                    import shutil
+                    shutil.copyfile(_snap, tj)
+                elif os.path.exists(tj):
+                    os.remove(tj)
             except Exception:
                 pass
         env = dict(os.environ); env["PYTHONIOENCODING"]="utf-8"

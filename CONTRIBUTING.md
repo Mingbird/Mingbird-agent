@@ -12,10 +12,10 @@ model's context needs to pay for itself elsewhere. / 大改动请先开 issue �
 一个字节都会让 CI 挂掉）——任何给模型上下文加静态文本的改动必须在别处把成本省回来。
 
 - Run the tests before submitting: `python -m pytest tests/ -q`
-  (482 tests — 435 unit + 26 integration + 11 v1.9.1 + 10 issue-#1 cases, includes the prefill byte-level
+  (488 tests — 435 unit + 26 integration + 11 v1.9.1 + 10 issue-#1 + 6 v2.0.0 cases, includes the prefill byte-level
   assertion; the benchmark runners under `bench/` and `benchmarks/` are
   separate programs and are not collected by pytest). /
-  提交前请跑测试：`python -m pytest tests/ -q`（482 项——435 项单测 + 26 项集成 + 11 项 v1.9.1 新增 + 10 项 issue #1 修复覆盖，
+  提交前请跑测试：`python -m pytest tests/ -q`（488 项——435 项单测 + 26 项集成 + 11 项 v1.9.1 + 10 项 issue #1 + 6 项 v2.0.0 修复覆盖，
   含 prefill 逐字节断言；`bench/` 与 `benchmarks/` 下的基准运行器是独立程序，
   不归 pytest 收集）。
 - Benchmark-related changes should keep the published protocol intact

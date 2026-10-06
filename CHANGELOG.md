@@ -1,5 +1,26 @@
 # Changelog
 
+## v2.0.0 (2026-10-06)
+
+Every item in this release comes from a live post-mortem of one real long task
+(broad search + a 10k-word survey): all five root causes sat in the framework
+pipeline, none in the model.
+
+### ⚡ Performance (fixing the stutter in long tasks)
+- **Model residency (`keep_alive`)**: previously unset → Ollama's 5-minute default unloaded the model whenever one tool chain ran long, and the next turn paid a full 20 GB-class reload — tens of seconds to minutes of apparent death, recurring throughout a task. /api/chat now sends an explicit top-level `keep_alive` (default 30m, tunable via `AGENT_KEEPALIVE`); after the agent exits the model expires naturally instead of squatting memory.
+- **MCP probing, three fixes**: (1) probes run in parallel (serial worst case was ~70 s of silence across 7 servers); (2) a server that times out is backed by its stale disk cache (stale-while-revalidate) — the old code silently cached a timeout as "no tools" for a full TTL, effectively benching slow servers; on total failure the cache TTL shrinks to 60 s for a fast retry; (3) stdio probing now uses a hand-rolled JSON-RPC client with a **process-tree hard kill** on timeout — the old `wait_for` only cancelled the coroutine and leaked zombie child processes on Windows (6 found live in the wild).
+- **MCP calls get an overall 120 s cap**: the stdio handshake previously had no limit, so a stuck `npx`/`uvx` launcher could block mcp_call forever and freeze the task; timeouts now return an error string so the model can route around it.
+- **bash/python tool timeout 300 s → 120 s** (tunable via `AGENT_BASH_TIMEOUT`): one hung command no longer eats an entire keep_alive window.
+
+### 🔧 Fixes
+- **Settings dialog: "context is always 32K no matter what I pick"**: tkinter Combobox values read back as a tuple of strings, so the int-vs-str membership check always failed and reset the displayed value to 32768 on every open — then saved that over the user's setting. Values are now compared as ints. The temperature and output-limit chains were audited and are fine. Saving now logs "takes effect from the next task" (settings are injected via environment at task start; a running task is unaffected).
+
+### 📋 Todos are now session-bound
+- **New Chat clears for real**: it used to clear only the panel while the on-disk todo.json got rendered right back by the 500 ms poller ("new chat doesn't empty the todo list"), and a stale `.agent_state.json` could be accidentally resumed. New Chat now stops a running task first, then deletes both leftover files from the work directory.
+- **Plans travel with the conversation**: saving a session snapshots its todo.json into the session directory; resuming an old conversation restores it into the work directory — a half-finished chat comes back with its unfinished plan, and no longer inherits whatever another task left behind.
+
+Tests: **488 green** (482 + 6 new: MCP probe success/timeout hard-kill, keep_alive & ctx in payload, bash timeout default, todo snapshot write/cleanup, stale-cache fallback with short TTL).
+
 ## v1.9.2 (2026-10-02)
 
 ### 🎨 UI
