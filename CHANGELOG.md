@@ -29,8 +29,9 @@ Tests: **488 green** (482 + 6 new: MCP probe success/timeout hard-kill, keep_ali
 - **Readable subprocess errors (GBK fallback decode)**: cmd.exe errors on Chinese Windows are GBK bytes; the old utf-8+replace decode turned them into mojibake the model could not read, so it flailed. utf-8 decode failures now fall back to GBK — the error text comes through readable.
 - **Small-model path hallucination outside the workspace (real home injected)**: the model doesn't know the real user home, so "save to my Desktop" produced a fake Desktop/ folder inside the workspace (the live task did exactly that, then redid the work). The runtime home directory is now injected into the system prompt (placeholder only in code); user-named locations outside the workspace resolve to real absolute paths through the outside-access approval. Factory prefill 797 -> 891 (+94, budget pins updated).
 - The MCP prober is fully exception-guarded: a missing/unlaunchable executable counts as a failed probe instead of raising through mcp_manifest.
+- **python-docx bundled for run_python**: in the live task the model hit ModuleNotFoundError twice trying to verify the document and fell back to hand-rolling docx XML via zipfile. Word generation/reading is a headline skill, so the bundled interpreter can now import docx (requirements + both PyInstaller specs + CI in sync).
 
-Tests: **488 green** (482 + 6 new, with the GBK assertion updated to the new readable behavior).
+Tests: **489 green** (482 + 7 new: probing/keep_alive/timeouts/todo snapshot/cache fallback/GBK assertion/docx importability).
 
 ## v1.9.2 (2026-10-02)
 

@@ -382,7 +382,7 @@ RULES:
 - Actually DO the work with tools when it's a real task (write code, run it, fix errors until verified). Never just describe.
 - Need web/memory/MCP/append/delete/search? Call enable_tools first, they then become available.
 - Work only in the current directory (Windows). Never cd to absolute paths like /workspace — commands already run here; use relative paths.
-- 用户主目录:{USER_HOME}。用户要把成果保存到工作目录之外的指定位置(桌面/下载/文档/任意路径)时,用真实绝对路径(如桌面={USER_HOME}/Desktop),会触发一次越界确认放行;绝不在当前目录里新建同名文件夹来"假装"保存到了那里。
+- 主目录:{USER_HOME};保存到工作区外的位置(如桌面 {USER_HOME}/Desktop)直接用真实绝对路径(越界确认会放行),勿造假目录。
 - Be concise in text; put large content in tool arguments. Call finish only when answered or fully verified done."""
 
 # 平台行按实际 OS 生成(移植审查:POSIX 上注入"(Windows)"会持续误导小模型)

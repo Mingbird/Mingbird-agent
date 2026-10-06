@@ -112,6 +112,13 @@ def test_keep_alive_and_ctx_in_payload(oa, monkeypatch):
     assert p["options"]["num_predict"] == oa.NUM_PREDICT
 
 
+def test_run_python_docx_importable(oa, tmp_path):
+    """v2.0.0:run_python 环境必须能 import docx(当晚实录:模型两次因缺库炸掉,
+    被迫用 zipfile 手搓 docx XML;通用技能里 Word 生成/读取是卖点)。"""
+    out = oa.run_tool("run_python", {"code": "import docx\nprint('docx-ok')"}, str(tmp_path))
+    assert "[exit 0]" in out and "docx-ok" in out
+
+
 def test_bash_timeout_default(oa):
     assert oa.BASH_TIMEOUT == 120                     # v2.0.0:300 → 120
 

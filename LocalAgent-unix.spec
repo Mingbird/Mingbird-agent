@@ -16,7 +16,7 @@ a = Analysis(
     binaries=[],
     datas=datas,
     hiddenimports=['PIL._tkinter_finder', 'ttkbootstrap', 'sounddevice',
-                   'soundfile', 'sherpa_onnx', 'numpy', 'requests', 'bs4'],
+                   'soundfile', 'sherpa_onnx', 'numpy', 'requests', 'bs4', 'docx'],
     excludes=[],
     noarchive=False,
 )
