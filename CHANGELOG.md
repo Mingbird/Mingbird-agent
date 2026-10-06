@@ -21,6 +21,17 @@ pipeline, none in the model.
 
 Tests: **488 green** (482 + 6 new: MCP probe success/timeout hard-kill, keep_alive & ctx in payload, bash timeout default, todo snapshot write/cleanup, stale-cache fallback with short TTL).
 
+### 🌍 Platform
+- **macOS/Windows system-language auto-detection** (root cause of the "no Chinese after install" report from a Mac user): GUI apps don't inherit the shell's LANG variable (Finder/Dock launches on macOS, GUI context on Windows), so Chinese-system users fell through to English. When env vars are absent we now ask the OS itself (Windows: GetUserDefaultUILanguage; macOS: AppleLocale) — Chinese systems start in Chinese out of the box. AGENT_LANG and the installer's app_lang.txt keep their precedence.
+
+### 🔧 Fixes (added, same live-transcript post-mortem)
+- **Stopping a task now saves the session**: only natural endings used to write the session file, so a manually stopped conversation vanished from the history list. Stop now persists the checkpoint (with a todo snapshot) as a session — loadable and resumable from history.
+- **Readable subprocess errors (GBK fallback decode)**: cmd.exe errors on Chinese Windows are GBK bytes; the old utf-8+replace decode turned them into mojibake the model could not read, so it flailed. utf-8 decode failures now fall back to GBK — the error text comes through readable.
+- **Small-model path hallucination outside the workspace (real home injected)**: the model doesn't know the real user home, so "save to my Desktop" produced a fake Desktop/ folder inside the workspace (the live task did exactly that, then redid the work). The runtime home directory is now injected into the system prompt (placeholder only in code); user-named locations outside the workspace resolve to real absolute paths through the outside-access approval. Factory prefill 797 -> 891 (+94, budget pins updated).
+- The MCP prober is fully exception-guarded: a missing/unlaunchable executable counts as a failed probe instead of raising through mcp_manifest.
+
+Tests: **488 green** (482 + 6 new, with the GBK assertion updated to the new readable behavior).
+
 ## v1.9.2 (2026-10-02)
 
 ### 🎨 UI

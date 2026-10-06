@@ -53,11 +53,37 @@ def _open_doc_cmd(path):
         return ["open", "-t", path]
     return ["xdg-open", path]
 # ============ 国际化:自动检测语言(OS 中文→中文,否则英文),可用 AGENT_LANG 强制 ============
+def _os_ui_lang_zh():
+    """v2.0.0:OS 界面语言探测。GUI 程序在 mac/win 上拿不到 shell 的 LANG 环境变量
+    (mac 从 Finder/Dock 启动无 LANG;win 图形/服务环境也常无),中文系统用户会被
+    误判成英文——mac 用户实测反馈"装完没有中文"。env 缺失时再问系统本体。"""
+    try:
+        if sys.platform == "win32":
+            import ctypes
+            # 0x0804 zh-CN / 0x0404 zh-TW / 0x0C04 zh-HK / 0x1004 zh-SG / 0x1404 zh-MO
+            return ctypes.windll.kernel32.GetUserDefaultUILanguage() in (
+                0x0804, 0x0404, 0x0C04, 0x1004, 0x1404)
+        if sys.platform == "darwin":
+            out = subprocess.run(["defaults", "read", "-g", "AppleLocale"],
+                                 capture_output=True, timeout=5,
+                                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
+                                 ).stdout.decode("utf-8", "replace")
+            return out.strip().lower().startswith("zh")
+    except Exception:
+        pass
+    return False
+
+
 _LANG = os.environ.get("AGENT_LANG", "")
 if not _LANG:
     try:
-        _LANG = "zh" if (os.environ.get("LANG", "") or "").startswith("zh") or \
-                       "Chinese" in os.environ.get("LANGUAGE", "") else "en"
+        if (os.environ.get("LANG", "") or "").startswith("zh") or \
+                "Chinese" in os.environ.get("LANGUAGE", ""):
+            _LANG = "zh"
+        elif _os_ui_lang_zh():
+            _LANG = "zh"
+        else:
+            _LANG = "en"
     except Exception:
         _LANG = "en"
 # 安装器强制语言(app_lang.txt 在 exe 旁)
@@ -1820,6 +1846,40 @@ class AgentGUI:
         if self.proc and self.proc.poll() is None:
             self._kill_tree(); self.log("\n" + _t("[已停止,重跑并勾选'续跑'可从中断处继续]"))
             self.log_note(_t("[已停止 — 重跑勾选'续跑'可从中断处继续]"))
+            self._save_interrupted_session()
+
+    def _save_interrupted_session(self):
+        """v2.0.0:停止任务时把检查点落成会话文件。此前只有自然结束才 save_session,
+        用户手动停止的对话在历史列表里根本不存在——换窗口就再也找不回。现在停止即
+        存(含 todo 快照,与 agent 侧 save_session 同构),历史里可加载、可续跑。"""
+        try:
+            if not self.session:
+                return
+            _wd = self.wd_var.get() if hasattr(self, "wd_var") else os.path.join(DEFAULT_TASKS, "work")
+            ck = os.path.join(_wd, ".agent_state.json")
+            if not os.path.exists(ck):
+                return
+            msgs = json.load(open(ck, encoding="utf-8"))
+            if not isinstance(msgs, list) or len(msgs) < 2:
+                return
+            json.dump(msgs, open(os.path.join(SESSION_DIR, self.session + ".json"), "w",
+                                 encoding="utf-8"), ensure_ascii=False, indent=2)
+            meta = {"updated": time.strftime("%Y-%m-%d %H:%M"),
+                    "task": next((str(m.get("content", "")) for m in msgs
+                                  if m.get("role") == "user" and not m.get("tool_calls")), "")[:200],
+                    "status": "interrupted", "msgs": len(msgs)}
+            json.dump(meta, open(os.path.join(SESSION_DIR, self.session + ".meta.json"), "w",
+                                 encoding="utf-8"), ensure_ascii=False, indent=2)
+            import shutil
+            tj = os.path.join(_wd, "todo.json")
+            snap = os.path.join(SESSION_DIR, self.session + ".todo.json")
+            if os.path.exists(tj):
+                shutil.copyfile(tj, snap)
+            elif os.path.exists(snap):
+                os.remove(snap)
+            self.refresh_sessions()
+        except Exception:
+            pass
 
     # ================= 流解析 =================
     def poll(self):

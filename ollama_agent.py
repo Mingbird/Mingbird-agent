@@ -236,6 +236,23 @@ def system_prompt():
         return read_text(SYSTEM_FILE)
     return SYSTEM
 
+def _decode_console(raw):
+    """v2.0.0:子进程输出解码——utf-8 优先,失败回退 GBK(中文 Windows 控制台)。
+    旧版 utf-8+replace 把 cmd 的 GBK 报错变成天书('ϵͳ找不到指定的路径'),
+    模型读不懂错误只能瞎试(2026-10-06 实录:同型报错连挂)。永不抛异常。"""
+    if not raw:
+        return ""
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        for _enc in ("gbk", "cp1252"):
+            try:
+                return raw.decode(_enc)
+            except UnicodeDecodeError:
+                continue
+        return raw.decode("utf-8", "replace")
+
+
 def restart_ollama(timeout=40):
     """重启 ollama(治本:长运行后的进程级退化,重启即恢复)。
     流程:taskkill ollama → 等 API 死透 → ensure_ollama 拉起 → 等就绪。
@@ -365,6 +382,7 @@ RULES:
 - Actually DO the work with tools when it's a real task (write code, run it, fix errors until verified). Never just describe.
 - Need web/memory/MCP/append/delete/search? Call enable_tools first, they then become available.
 - Work only in the current directory (Windows). Never cd to absolute paths like /workspace — commands already run here; use relative paths.
+- 用户主目录:{USER_HOME}。用户要把成果保存到工作目录之外的指定位置(桌面/下载/文档/任意路径)时,用真实绝对路径(如桌面={USER_HOME}/Desktop),会触发一次越界确认放行;绝不在当前目录里新建同名文件夹来"假装"保存到了那里。
 - Be concise in text; put large content in tool arguments. Call finish only when answered or fully verified done."""
 
 # 平台行按实际 OS 生成(移植审查:POSIX 上注入"(Windows)"会持续误导小模型)
@@ -374,6 +392,11 @@ SYSTEM = SYSTEM.replace(
      if os.name == "nt" else
      "Work only in the current directory. Never cd outside it and never invent paths like C:\\ — commands already run here; use relative paths.")
 )
+# v2.0.0 通用修复(用户定调):小模型在工作区里不知道真实用户主目录,用户说"保存到
+# 桌面/某盘路径"时只能猜相对路径,于是在工作区里造出假的 Desktop/ 文件夹。把运行时
+# 真实主目录注入系统提示,任何工作区外的指定位置都能拼成真实绝对路径,由越界确认
+# 流程放行。代码里只有占位符,不含任何具体路径。
+SYSTEM = SYSTEM.replace("{USER_HOME}", os.path.expanduser("~") or "~")
 
 # 问答模式:聊天级 prefill(根治小模型"加戏"死循环)。
 # 根因:任务向系统提示+全量工具+Continue 注入,把"你好"逼成工具演示死循环。
@@ -824,28 +847,31 @@ def _kill_proc_tree(proc):
 def _probe_stdio(cfg, timeout=10):
     """v2.0.0 手写 stdio 探测:直接 Popen 起服务器,行分隔 JSON-RPC 走
     initialize → tools/list;超时拿得住 Popen 句柄,按进程树硬杀。
-    返回 None=失败/超时(区别于 []=成功且无工具)。"""
+    返回 None=失败/超时(区别于 []=成功且无工具)。
+    整体异常防护:spawn 失败(可执行文件缺失/权限)也是 None,绝不向上抛——
+    单元测试环境的 PATH 里未必有 uvx/npx,探测失败不该炸 mcp_manifest。"""
     import queue as _q, threading as _th
-    env = dict(os.environ)
-    env.update({str(k): str(v) for k, v in (cfg.get("env") or {}).items()})
-    proc = subprocess.Popen([cfg["command"]] + list(cfg.get("args", [])),
-                            stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                            stderr=subprocess.DEVNULL, env=env,
-                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-    box = _q.Queue()
-    def _reader():
-        try:
-            for ln in proc.stdout:
-                box.put(ln)
-        except Exception:
-            pass
-        finally:
-            box.put(None)
-    _th.Thread(target=_reader, daemon=True).start()
-    def _send(obj):
-        proc.stdin.write((json.dumps(obj) + "\n").encode("utf-8"))
-        proc.stdin.flush()
+    proc = None
     try:
+        env = dict(os.environ)
+        env.update({str(k): str(v) for k, v in (cfg.get("env") or {}).items()})
+        proc = subprocess.Popen([cfg["command"]] + list(cfg.get("args", [])),
+                                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL, env=env,
+                                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        box = _q.Queue()
+        def _reader():
+            try:
+                for ln in proc.stdout:
+                    box.put(ln)
+            except Exception:
+                pass
+            finally:
+                box.put(None)
+        _th.Thread(target=_reader, daemon=True).start()
+        def _send(obj):
+            proc.stdin.write((json.dumps(obj) + "\n").encode("utf-8"))
+            proc.stdin.flush()
         _send({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
             "protocolVersion": "2024-11-05", "capabilities": {},
             "clientInfo": {"name": "mingbird-probe", "version": "2.0.0"}}})
@@ -872,9 +898,10 @@ def _probe_stdio(cfg, timeout=10):
     except Exception:
         return None
     finally:
-        _kill_proc_tree(proc)
-        try: proc.stdin.close(); proc.stdout.close()
-        except Exception: pass
+        if proc is not None:
+            _kill_proc_tree(proc)
+            try: proc.stdin.close(); proc.stdout.close()
+            except Exception: pass
 
 def _probe_http(cfg, timeout=10):
     """远程 HTTP MCP(如 tavily)探测;沿用 mcp 客户端。失败/超时返回 None。"""
@@ -1720,10 +1747,10 @@ def run_tool(name, args, workdir, crawl_state=None):
                 proc = subprocess.Popen(_python_hook_cmd(script),
                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                         cwd=workdir, env=_env,
-                                        encoding="utf-8", errors="replace",
                                         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
                 try:
-                    out_s, err_s = proc.communicate(timeout=BASH_TIMEOUT)
+                    _ob, _eb = proc.communicate(timeout=BASH_TIMEOUT)
+                    out_s, err_s = _decode_console(_ob), _decode_console(_eb)
                 except subprocess.TimeoutExpired:
                     if os.name == "nt":
                         subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
@@ -1732,7 +1759,9 @@ def run_tool(name, args, workdir, crawl_state=None):
                         import signal as _sig
                         try: os.killpg(os.getpgid(proc.pid), _sig.SIGKILL)
                         except Exception: proc.kill()
-                    try: out_s, err_s = proc.communicate(timeout=10)
+                    try:
+                        _ob, _eb = proc.communicate(timeout=10)
+                        out_s, err_s = _decode_console(_ob), _decode_console(_eb)
                     except Exception: out_s, err_s = "", ""
                     return _format_bash_out(proc.returncode or 1,
                                             (out_s or "")[:4000] + f"\n[已超时:{BASH_TIMEOUT} 秒上限,进程树已终止 · timed out after {BASH_TIMEOUT}s]",
@@ -1754,17 +1783,17 @@ def run_tool(name, args, workdir, crawl_state=None):
             _env = dict(os.environ)
             _env.setdefault("PYTHONUTF8", "1")
             _env.setdefault("PYTHONIOENCODING", "utf-8")
-            # 读端编码健壮性(35b GAIA L1-03/04/05 三格毒杀实证):text=True 不带
-            # encoding 时继承进程默认(PYTHONUTF8=1 环境=utf-8),而 cmd 内建命令/
-            # 非 python 程序在中文 Windows 上输出 GBK 字节 → reader 线程
-            # UnicodeDecodeError 炸死,run_bash 挂掉。显式 utf-8 + replace:
-            # 非 UTF-8 输出降级为替换符(乱码可见),永不崩。
+            # 读端编码健壮性(35b GAIA L1-03/04/05 三格毒杀实证):cmd 内建命令/
+            # 非 python 程序在中文 Windows 上输出 GBK 字节,按 utf-8 硬解曾把
+            # reader 线程炸死(run_bash 挂掉)。v2.0.0 起改为字节捕获 +
+            # _decode_console(utf-8 优先,GBK 回退):GBK 报错原文可读,模型能
+            # 看懂"系统找不到指定的路径"而不再瞎试;永不崩。
             proc = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,cwd=workdir,env=_env,
-                                    encoding="utf-8", errors="replace",
                                     start_new_session=(os.name!="nt"))
             try:
-                out_s, err_s = proc.communicate(timeout=BASH_TIMEOUT)
+                _ob, _eb = proc.communicate(timeout=BASH_TIMEOUT)
+                out_s, err_s = _decode_console(_ob), _decode_console(_eb)
             except subprocess.TimeoutExpired:
                 # 只杀 shell 会留孤儿孙进程(握住 stdout 管道让本调用永久挂住):
                 # Windows 按进程树杀;POSIX 已设进程组,组杀。
@@ -1775,7 +1804,9 @@ def run_tool(name, args, workdir, crawl_state=None):
                     import signal as _sig
                     try: os.killpg(os.getpgid(proc.pid), _sig.SIGKILL)
                     except Exception: proc.kill()
-                try: out_s, err_s = proc.communicate(timeout=10)
+                try:
+                    _ob, _eb = proc.communicate(timeout=10)
+                    out_s, err_s = _decode_console(_ob), _decode_console(_eb)
                 except Exception: out_s, err_s = "", ""
                 note = f"\n[已超时:{BASH_TIMEOUT} 秒上限,进程树已终止 · timed out after {BASH_TIMEOUT}s]"
                 return _format_bash_out(proc.returncode or 1,

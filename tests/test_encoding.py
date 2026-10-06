@@ -19,14 +19,15 @@ def test_run_bash_survives_raw_gbk_bytes(tmp_path):
     # 子进程往 stdout 写原始 GBK 字节(两格 transcript 实锤的 0xb2 0xd5),
     # 修复前 reader 线程 UnicodeDecodeError 炸死 → subprocess 静默返回空 stdout
     # (回执只剩 STDERR 里的 traceback,模型拿不到任何输出空转)。
-    # 修复后:字节被替换符解码,stdout 内容可见。
+    # v2.0.0 起:_decode_console utf-8 失败回退 GBK,原始 GBK 字节能正确解出
+    # "舱的"——报错原文可读,模型不再面对天书。
     payload = tmp_path / "payload.py"
     payload.write_bytes(b"import sys\nsys.stdout.buffer.write(b'\\xb2\\xd5\\xb5\\xc4\\n')\n")
     out = A.run_tool("run_bash", {"command": "python payload.py"}, str(tmp_path))
     assert "[exit 0]" in out
     # stdout 段必须真的有内容(修复前为空);GBK 字节按 utf-8+replace 解出替换符
     stdout_section = out.split("STDOUT:", 1)[1].split("STDERR:", 1)[0]
-    assert stdout_section.strip() and "�" in stdout_section
+    assert stdout_section.strip() and "舱的" in stdout_section
 
 
 def test_run_bash_normal_utf8_still_clean(tmp_path):
