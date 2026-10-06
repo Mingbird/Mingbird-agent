@@ -190,7 +190,8 @@ def kill_tree():
     proc = STATE.get("proc")
     if proc and proc.poll() is None:
         if os.name == "nt":
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         else:
             proc.kill()
     STATE["ask_pending"] = False

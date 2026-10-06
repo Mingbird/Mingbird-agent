@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.0.1 (2026-10-07)
+
+Bug-fix release from day-one feedback on v2.0.0. Tests: **498 green** (489 + 9 new).
+
+### 🔧 Fixes
+- **No more console windows flashing during tasks**: the app ships as a windowed executable with no console of its own, so every console program it spawned (shell commands, taskkill, the pytest guard) got its own terminal window — dozens could flash by during a busy task. Every spawn site now passes `CREATE_NO_WINDOW`, and a source-scan test pins this so future spawn sites cannot regress. (The MCP client SDK already hid its own processes.)
+- **Collapsed thinking blocks open again**: thinking text lived in a single global buffer that each new thinking block overwrote — after a task ended, clicking an old thinking marker did nothing, or expanded the *last* block's text at the wrong position. Each block now freezes into its own store with its own click binding, so blocks expand and collapse independently. Loading a saved session also renders its stored thinking as expandable markers (previously dropped entirely).
+- **Long plans fully visible**: the todo panel was pinned to 8 lines no matter how tall the sidebar was (its inner frame only stretched horizontally), and Windows wheel events go to the focused widget — which a disabled panel never is, so hover-scrolling did nothing. The panel now fills the sidebar and wheel events route to it while the pointer is inside.
+
+### ✨ New
+- **Sessions get names**: after the first reply the model titles the conversation via one tiny side call (48-token budget, never enters the main context); the session list shows `title · chat_timestamp`. Titles persist in session metadata, survive stop/resume, resuming adopts the existing title instead of re-naming, and history search matches titles. Any failure falls back silently to the plain timestamp name.
+
 ## v2.0.0 (2026-10-06)
 
 This release targets long-task performance: all five root causes sat in the

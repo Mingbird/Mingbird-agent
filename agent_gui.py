@@ -415,6 +415,8 @@ class AgentGUI:
         self.proc = None
         self.q = queue.Queue()
         self.session = None
+        self.session_title = ""       # v2.0.1 模型起的会话名(@@TITLE@@ / meta.title)
+        self._sess_names = []         # v2.0.1 会话列表行号→文件名(显示名加了标题前缀,不再反解字符串)
         self.attachments = []      # 已复制的附件绝对路径
         self._rendered_session = None  # 当前 transcript 对应的会话名
         self._new_chat_guard = False
@@ -424,9 +426,14 @@ class AgentGUI:
         self._voice_stop_timer = None
         self._vad_timer = None
         # 流式思考状态
-        self._think_text = ""        # 累计的思考内容
+        self._think_text = ""        # 当前活动块的累计思考内容
         self._think_live = False     # 思考正在流式显示
-        self._think_open = False     # 思考已展开(还是折叠成标记行)
+        self._think_hdr = False      # 活动块的"思考中…"块头已上屏
+        # v2.0.1 思考块按块存档:uid → 全文。旧版只有单个全局 _think_text,任务里
+        # 多个思考块(每轮工具调用一块)收尾后,点旧标记要么没反应(新任务已清空)
+        # 要么展开的是最后一块的内容/位置(2026-10-07 实测反馈)。
+        self._think_store = {}
+        self._think_seq = 0
         self._streaming_asst = False # 当前助手内容是否已流式上屏(避免重复渲染)
         # v1.8.2 流式渲染节流:token 只进缓冲,由 150ms 周期渲染器批量上屏。
         # 旧实现每 token 一次 state 切换+insert+see("end") 强制同步重排,
@@ -767,13 +774,18 @@ class AgentGUI:
                   command=self.clear_files).pack(side="left", padx=(4, 0))
         self.plan_frame = tb.Labelframe(right, text=_t("计划 (todo)"), padding=6)
         self.plan_frame.pack(fill="both", expand=True, padx=(2, 10), pady=4)
-        pf = tb.Frame(self.plan_frame); pf.pack(fill="x")
+        # v2.0.1 fill=both+expand:旧版 pf 只 fill="x",面板再高 Text 也钉死在
+        # height=8 行,长任务清单下半截永远看不见(只能拖那条细滚动条)
+        pf = tb.Frame(self.plan_frame); pf.pack(fill="both", expand=True)
         self.plan_txt = tk.Text(pf, height=8, font=("Consolas", 9), state="disabled",
                                 relief="flat", wrap="word")
         self.plan_sb = tk.Scrollbar(pf, command=self.plan_txt.yview)
         self.plan_txt.configure(yscrollcommand=self.plan_sb.set)
         self.plan_txt.pack(side="left", fill="both", expand=True)
         self.plan_sb.pack(side="right", fill="y")
+        # v2.0.1 滚轮接管:Windows 滚轮默认给"焦点控件",禁用态的计划面板永远
+        # 拿不到焦点 → 悬停滚不动。指针在面板内时路由给 plan_txt,在外放行。
+        self.root.bind_all("<MouseWheel>", self._route_wheel, add="+")
         # 暗色主题刷新链:裸 Tk 控件必须注册,apply_theme 才会刷色(否则暗色下白底穿帮)
         self._themable += [(self.att_lb, "list"), (self.plan_txt, "list")]
 
@@ -1013,7 +1025,8 @@ class AgentGUI:
         self.transcript.tag_config("think_marker", foreground=t["muted"], background=t["code_bg"],
                                    font=("Microsoft YaHei UI", 9, "italic"),
                                    lmargin1=16, lmargin2=16, spacing1=3, spacing3=3)
-        self.transcript.tag_bind("think_marker", "<Button-1>", self._toggle_think)
+        # 点击绑定在 _think_freeze 里按块 uid 逐个挂(旧版绑在 think_marker 全局
+        # 标签上,handler 只认单个全局 _think_text → 多块/收尾后点击失灵)
 
     def _c(self, key, fallback=None):
         return self.style.colors.get(key, fallback or "#222222")
@@ -1111,6 +1124,7 @@ class AgentGUI:
     # ================= 会话 =================
     def refresh_sessions(self):
         self.se_lb.delete(0, "end")
+        self._sess_names = []
         flt = ""
         if hasattr(self, "history_search_var"):
             flt = (self.history_search_var.get() or "").lower()
@@ -1118,22 +1132,36 @@ class AgentGUI:
                  if not f.endswith(".meta.json")]
         for s in files[-200:]:
             name = os.path.basename(s)[:-5]
-            if flt and flt not in name.lower():
-                continue
             meta_p = os.path.join(SESSION_DIR, name + ".meta.json")
-            tag = ""
+            tag = ""; title = ""
             if os.path.exists(meta_p):
                 try:
                     m = json.load(open(meta_p, encoding="utf-8"))
                     tag = f"[{m.get('status','?')}]"
+                    title = str(m.get("title", "") or "")
                 except Exception: pass
-            self.se_lb.insert("end", f"{name} {tag}")
+            # v2.0.1 标题前缀(模型起名)+ 搜索同时匹配标题与文件名
+            if flt and flt not in (name + " " + title).lower():
+                continue
+            disp = f"{title}·{name} {tag}" if title else f"{name} {tag}"
+            self._sess_names.append(name)
+            self.se_lb.insert("end", disp)
     def load_selected_session(self):
         sel = self.se_lb.curselection()
         if not sel: return
-        name = self.se_lb.get(sel[0]).split(" [")[0]
+        # 显示名可能带标题前缀,文件名从 _sess_names 取;列表异常陈旧时兜底反解
+        if sel[0] < len(self._sess_names):
+            name = self._sess_names[sel[0]]
+        else:
+            name = self.se_lb.get(sel[0]).split(" [")[0].split("·")[-1].strip()
         self.session = name
-        self.sess_lbl.configure(text=_t("会话:") + name)
+        # 模型起过名的会话,会话栏一并带上标题
+        _mt = {}
+        try:
+            _mt = json.load(open(os.path.join(SESSION_DIR, name + ".meta.json"), encoding="utf-8"))
+        except Exception: pass
+        self.session_title = str(_mt.get("title", "") or "")
+        self.sess_lbl.configure(text=_t("会话:") + (f"{self.session_title}·{name}" if self.session_title else name))
         p = os.path.join(SESSION_DIR, name + ".json")
         try: msgs = json.load(open(p, encoding="utf-8"))
         except Exception: msgs = None
@@ -1142,7 +1170,10 @@ class AgentGUI:
     def replay_selected_session(self):
         sel = self.se_lb.curselection()
         if not sel: return
-        name = self.se_lb.get(sel[0]).split(" [")[0]
+        if sel[0] < len(self._sess_names):
+            name = self._sess_names[sel[0]]
+        else:
+            name = self.se_lb.get(sel[0]).split(" [")[0].split("·")[-1].strip()
         self.view_transcript(name)
     def _session_summary(self, name):
         meta_p = os.path.join(SESSION_DIR, name + ".meta.json")
@@ -1172,6 +1203,13 @@ class AgentGUI:
                 self.transcript.insert("end", "  " + c + "\n", "user")
                 self.transcript.config(state="disabled")
             elif role == "assistant":
+                # v2.0.1 历史思考也渲染成可展开标记(会话 JSON 存有 m["thinking"],
+                # 旧版直接丢弃——加载历史后再也看不到当时的思考过程)
+                th = m.get("thinking")
+                if th:
+                    self.transcript.config(state="normal")
+                    self._think_freeze(str(th))
+                    self.transcript.config(state="disabled")
                 tcs = m.get("tool_calls")
                 if tcs:
                     for tc in tcs:
@@ -1235,8 +1273,8 @@ class AgentGUI:
         self._set_text(self.transcript)
         self._rendered_session = None
         # 流式缓冲一并复位:否则切换会话后旧缓冲继续往新屏上写
-        self._think_text = ""; self._think_live = False; self._think_open = False
-        self._think_shown = 0
+        self._think_text = ""; self._think_live = False; self._think_hdr = False
+        self._think_shown = 0; self._think_store = {}; self._think_seq = 0
         self._asst_buf = ""; self._asst_shown = 0; self._streaming_asst = False
     def clear_log(self):
         self._set_text(self.console)
@@ -1588,6 +1626,7 @@ class AgentGUI:
         fresh = not self.session
         if fresh:
             self.session = "chat_" + time.strftime("%m%d_%H%M%S")
+            self.session_title = ""
             self.sess_lbl.configure(text=_t("会话:") + self.session)
         self.launch(msg, use_session=True,
                     resume_ok=(self.resume_var.get() and not fresh))
@@ -1681,7 +1720,8 @@ class AgentGUI:
             if self.proc and self.proc.poll() is None:
                 if os.name == "nt":
                     subprocess.run(["taskkill", "/F", "/T", "/PID", str(self.proc.pid)],
-                                   capture_output=True)
+                                   capture_output=True,
+                                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
                 else:
                     self.proc.kill()
         except Exception:
@@ -1720,6 +1760,7 @@ class AgentGUI:
                 except Exception:
                     pass
         self.session = None
+        self.session_title = ""
         self.sess_lbl.configure(text=_t("会话:无"))
         self.clear_transcript()
         self.wd_var.set(os.path.join(DEFAULT_TASKS, "work"))
@@ -1776,6 +1817,7 @@ class AgentGUI:
                 pass
         env = dict(os.environ); env["PYTHONIOENCODING"]="utf-8"
         env["AGENT_STREAM"] = "1"   # 对话流式输出 + 思考流
+        env["AGENT_LANG"] = _LANG   # v2.0.1 会话标题按界面语言起名(中文界面→中文标题)
         # 采样三态(v1.7.0):未设置 → 从 env 里删掉继承值,agent 载荷即不带
         # temperature/think 字段(ollama 默认);显式选择(含 0/关)才透传。
         _tv = self.prefs.get("think")
@@ -1864,12 +1906,19 @@ class AgentGUI:
                 return
             json.dump(msgs, open(os.path.join(SESSION_DIR, self.session + ".json"), "w",
                                  encoding="utf-8"), ensure_ascii=False, indent=2)
-            meta = {"updated": time.strftime("%Y-%m-%d %H:%M"),
+            # v2.0.1 合并写:标题等已有字段不丢(agent 侧 save_session 同构)
+            _old_meta = {}
+            try:
+                _old_meta = json.load(open(os.path.join(SESSION_DIR, self.session + ".meta.json"),
+                                           encoding="utf-8"))
+            except Exception:
+                pass
+            _old_meta.update({"updated": time.strftime("%Y-%m-%d %H:%M"),
                     "task": next((str(m.get("content", "")) for m in msgs
                                   if m.get("role") == "user" and not m.get("tool_calls")), "")[:200],
-                    "status": "interrupted", "msgs": len(msgs)}
-            json.dump(meta, open(os.path.join(SESSION_DIR, self.session + ".meta.json"), "w",
-                                 encoding="utf-8"), ensure_ascii=False, indent=2)
+                    "status": "interrupted", "msgs": len(msgs)})
+            json.dump(_old_meta, open(os.path.join(SESSION_DIR, self.session + ".meta.json"), "w",
+                                      encoding="utf-8"), ensure_ascii=False, indent=2)
             import shutil
             tj = os.path.join(_wd, "todo.json")
             snap = os.path.join(SESSION_DIR, self.session + ".todo.json")
@@ -1960,7 +2009,7 @@ class AgentGUI:
         try:
             if self._think_live and self._think_shown < len(self._think_text):
                 self.transcript.config(state="normal")
-                self.transcript.insert("end", self._think_text[self._think_shown:], "think_region")
+                self.transcript.insert("end", self._think_text[self._think_shown:], ("think_region", "think_live"))
                 if not self._selecting:
                     self.transcript.config(state="disabled")
                 self._think_shown = len(self._think_text)
@@ -1987,8 +2036,9 @@ class AgentGUI:
     def _stream_tok(self, tok):
         """流式回答 token:只进缓冲,由 _stream_render_tick 批量上屏。"""
         try:
-            if self._think_live or self._think_open:
-                self._collapse_think()   # 回答开始前先收掉思考
+            if self._think_live:
+                self._collapse_think()   # 回答开始前先把活动思考块收成标记
+            # 用户手动展开过的旧块保持展开:按块存档后块与块互不影响
             if not self._asst_buf:
                 self.transcript.config(state="normal")
                 self.transcript.insert("end", "\n", "spacer")
@@ -1999,79 +2049,71 @@ class AgentGUI:
             pass
 
     def _stream_think(self, tok):
-        """流式思考 token:只进缓冲;块头缺失时补建(用户中途手动折叠后再流,
-        标记行上方保留旧块,下方起新块,不吞内容)。"""
+        """流式思考 token:只进缓冲;块头缺失时补建。"""
         try:
             if not self._think_live:
-                self._collapse_think()
+                self._collapse_think()   # 冻结上一个活动块(若有)
                 self._think_text = ""
                 self._think_shown = 0
                 self._think_live = True
-            if not self.transcript.tag_ranges("think_region"):
+                self._think_hdr = False
+            if not self._think_hdr:
                 self.transcript.config(state="normal")
-                self.transcript.insert("end", _t("🤔 思考中…") + "\n", "think_region")
+                self.transcript.insert("end", _t("🤔 思考中…") + "\n", ("think_region", "think_live"))
                 self.transcript.config(state="disabled")
+                self._think_hdr = True
             self._think_text += tok
         except Exception:
             pass
 
+    def _think_freeze(self, text, at=None):
+        """在 at 位置落一行可点击的思考标记,并把全文登记进 _think_store。
+        每块独立 uid + 独立点击绑定;加载历史会话渲染 thinking 时也走这里。"""
+        self._think_seq += 1
+        uid = f"thinkmk{self._think_seq}"
+        self._think_store[uid] = text
+        self.transcript.insert(at or "end",
+            _t("🤔 思考过程 ({n} 字) — 点击展开/折叠").format(n=len(text)) + "\n",
+            ("think_marker", uid))
+        self.transcript.tag_bind(uid, "<Button-1>",
+                                 lambda e, u=uid: self._toggle_think(u))
+        return uid
+
     def _collapse_think(self):
-        """把思考区域(think_region)折叠成一行可点击标记;只动思考区,不碰正文。"""
+        """把活动思考块(think_live)折叠成一行可点击标记;只动活动块,不碰正文,
+        也不碰用户展开过的旧块。"""
         try:
-            self._flush_stream_pending()   # 先补齐尾部:标记行字数与删除范围才准确
+            self._flush_stream_pending()   # 先补齐尾部:标记行字数才准确
             self.transcript.config(state="normal")
-            r = self.transcript.tag_ranges("think_region")
+            r = self.transcript.tag_ranges("think_live")
             if r:
                 start, end = r[0], r[1]
-                m = self.transcript.tag_ranges("think_marker")
-                if m:
-                    # 展开态末尾的"点击折叠"标记一并移除
-                    try:
-                        if self.transcript.compare(m[0], ">=", start):
-                            end = m[1]
-                    except Exception:
-                        pass
                 self.transcript.delete(start, end)
-                n = len(self._think_text)
-                self.transcript.insert(start, _t("🤔 思考过程 ({n} 字) — 点击展开/折叠").format(n=n) + "\n", "think_marker")
+                if self._think_text:
+                    self._think_freeze(self._think_text, start)
             self.transcript.config(state="disabled")
         except Exception:
             pass
         self._think_live = False
-        self._think_open = False
+        self._think_hdr = False
+        self._think_text = ""
+        self._think_shown = 0
 
-    def _toggle_think(self, event=None):
-        """点击思考标记:展开显示全文 / 重新折叠(只动思考区,不碰正文)。"""
-        if not self._think_text:
+    def _toggle_think(self, uid):
+        """点击思考标记:展开/折叠对应块(store 按块取全文,块与块互不干扰)。"""
+        text = self._think_store.get(uid)
+        if not text:
             return
         try:
             self.transcript.config(state="normal")
-            r = self.transcript.tag_ranges("think_region")
+            body = uid + "_body"
+            r = self.transcript.tag_ranges(body)
             if r:
-                # 展开态 → 折叠
-                start, end = r[0], r[1]
-                m = self.transcript.tag_ranges("think_marker")
-                if m:
-                    try:
-                        if self.transcript.compare(m[0], ">=", start):
-                            end = m[1]
-                    except Exception:
-                        pass
-                self.transcript.delete(start, end)
-                n = len(self._think_text)
-                self.transcript.insert(start, _t("🤔 思考过程 ({n} 字) — 点击展开/折叠").format(n=n) + "\n", "think_marker")
-                self._think_open = False
-                self._think_live = False   # 用户手动收起活动思考:后续 token 起新块,不续写折叠区
+                self.transcript.delete(r[0], r[1])      # 展开 → 折叠
             else:
-                m = self.transcript.tag_ranges("think_marker")
+                m = self.transcript.tag_ranges(uid)     # 折叠 → 标记行下方展开
                 if m:
-                    start = m[0]
-                    self.transcript.delete(start, m[1])
-                    # 同位置插入会反序:按 标记→正文→头 顺序插,最终显示 头→正文→标记
-                    self.transcript.insert(start, _t("🤔 思考过程 ({n} 字) — 点击折叠").format(n=len(self._think_text)) + "\n", "think_marker")
-                    self.transcript.insert(start, self._think_text + "\n", "think_region")
-                    self.transcript.insert(start, _t("🤔 思考过程 · {n} 字").format(n=len(self._think_text)) + "\n", "think_region")
-                    self._think_open = True
+                    self.transcript.insert(m[1], text + "\n", ("think_region", body))
             self.transcript.config(state="disabled")
             self._scroll_transcript()
         except Exception:
@@ -2140,6 +2182,14 @@ class AgentGUI:
             return
         if line.startswith("@@THINK@@"):
             self._stream_think(line[len("@@THINK@@"):])
+            return
+        if line.startswith("@@TITLE@@"):
+            # v2.0.1 模型起的会话名:会话栏与历史列表即时换成"标题·日期"
+            _t1 = line[len("@@TITLE@@"):].strip()
+            if _t1 and self.session:
+                self.session_title = _t1
+                self.sess_lbl.configure(text=_t("会话:") + f"{_t1}·{self.session}")
+                self.refresh_sessions()
             return
         if line.startswith("@@DISPATCH@@"):
             self._on_dispatch(line[len("@@DISPATCH@@"):])
@@ -2246,6 +2296,20 @@ class AgentGUI:
             if target is not None:
                 self.plan_txt.see(f"{target}.0")
         self.plan_txt.config(state="disabled")
+
+    def _route_wheel(self, event):
+        """滚轮路由:指针在计划面板内 → 滚 plan_txt 并拦截;其余情况放行
+        (焦点控件的默认滚动不受影响)。"""
+        try:
+            w = self.root.winfo_containing(event.x_root, event.y_root)
+            while w is not None:
+                if w is self.plan_frame:
+                    self.plan_txt.yview_scroll(int(-1 * (event.delta / 120)), "units")
+                    return "break"
+                w = w.master
+        except Exception:
+            pass
+        return None
 
     def on_close(self):
         if self.proc and self.proc.poll() is None: self._kill_tree()

@@ -115,6 +115,11 @@ KEEP_ALIVE = os.environ.get("AGENT_KEEPALIVE", "30m")
 # BASH_TIMEOUT:旧版 300s,一条挂住的命令独占一个 keep_alive 周期;降为 120s,
 # 可用 AGENT_BASH_TIMEOUT 覆盖(确需长命令的批量场景)。
 BASH_TIMEOUT = int(os.environ.get("AGENT_BASH_TIMEOUT", "120"))
+# v2.0.1:GUI 以 console=False 打包,自身无控制台——本模块 spawn 的任何控制台
+# 程序(cmd/taskkill/pytest…)若不带 CREATE_NO_WINDOW,Windows 会给每个子进程
+# 新开一个终端框再关闭,任务运行期"一次闪几十个黑框"(2026-10-07 实测反馈)。
+# 所有 spawn 位点必须带 creationflags=NOWIN;POSIX 上 getattr 回退为 0,零影响。
+NOWIN = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 SYSTEM_FILE = os.environ.get("AGENT_SYSTEM_FILE", "")
 STREAM = os.environ.get("AGENT_STREAM") == "1"   # GUI 开流式时置 1
 # 时间预算(秒)。>0 启用"预算节奏提示"(50%/75%/90% 各注入一次收尾导向提示)。
@@ -262,7 +267,7 @@ def restart_ollama(timeout=40):
     # 1) 杀掉现有 ollama(serve 与 runner 子进程)
     if os.name == "nt":
         subprocess.run(["taskkill", "/F", "/IM", "ollama.exe"],
-                       capture_output=True, shell=False)
+                       capture_output=True, shell=False, creationflags=NOWIN)
     else:  # macOS and Linux both ship pkill; match the serve process only,
         # never our own agent cmdline (ollama_agent.py contains the substring)
         subprocess.run(["pkill", "-f", "ollama serve"], capture_output=True)
@@ -835,7 +840,7 @@ def _kill_proc_tree(proc):
     try:
         if os.name == "nt":
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                           capture_output=True, shell=False)
+                           capture_output=True, shell=False, creationflags=NOWIN)
         else:
             import signal as _sig
             try: os.killpg(os.getpgid(proc.pid), _sig.SIGKILL)
@@ -1754,7 +1759,7 @@ def run_tool(name, args, workdir, crawl_state=None):
                 except subprocess.TimeoutExpired:
                     if os.name == "nt":
                         subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                                       capture_output=True, shell=False)
+                                       capture_output=True, shell=False, creationflags=NOWIN)
                     else:
                         import signal as _sig
                         try: os.killpg(os.getpgid(proc.pid), _sig.SIGKILL)
@@ -1790,6 +1795,7 @@ def run_tool(name, args, workdir, crawl_state=None):
             # 看懂"系统找不到指定的路径"而不再瞎试;永不崩。
             proc = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,cwd=workdir,env=_env,
+                                    creationflags=NOWIN,
                                     start_new_session=(os.name!="nt"))
             try:
                 _ob, _eb = proc.communicate(timeout=BASH_TIMEOUT)
@@ -1799,7 +1805,7 @@ def run_tool(name, args, workdir, crawl_state=None):
                 # Windows 按进程树杀;POSIX 已设进程组,组杀。
                 if os.name=="nt":
                     subprocess.run(["taskkill","/F","/T","/PID",str(proc.pid)],
-                                   capture_output=True, shell=False)
+                                   capture_output=True, shell=False, creationflags=NOWIN)
                 else:
                     import signal as _sig
                     try: os.killpg(os.getpgid(proc.pid), _sig.SIGKILL)
@@ -2214,6 +2220,59 @@ def sanitize_ckpt(msgs):
             msgs.pop(); changed = True
     return msgs
 
+def _load_session_meta(name):
+    try:
+        return json.load(open(os.path.join(SESSIONS_DIR, name + ".meta.json"), encoding="utf-8"))
+    except Exception:
+        return {}
+
+def _merge_session_meta(name, extra):
+    """合并写 meta:保住已有字段(如 title/status),不做整体覆盖。"""
+    try:
+        meta = _load_session_meta(name)
+        meta.update(extra)
+        _atomic_write_json(os.path.join(SESSIONS_DIR, name + ".meta.json"), meta)
+    except Exception:
+        pass
+
+# v2.0.1 会话标题:模型在第一轮响应后给对话起名(6~14 字),会话列表从纯时间戳
+# 变成"名字·日期"。进程内共享;续跑时从 meta 恢复,不重复起名。
+SESSION_TITLE = {"v": ""}
+
+def sanitize_title(s):
+    """清洗模型给的标题:首行、去引号/书名号/装饰符/前后缀、限 16 字。"""
+    s = str(s or "").strip().split("\n")[0].strip()
+    for pre in ("标题:", "标题：", "Title:", "title:", "标题", "Title"):
+        if s.startswith(pre):
+            s = s[len(pre):].strip()
+            break
+    s = s.strip("\"'`“”‘’《》【】「」[]()（）#*·:：,，.。~—- ")
+    return s[:16].rstrip()
+
+def gen_session_title(model, first_user_msg):
+    """旁路小调用:让同款模型给对话起名。num_predict=48、无工具、独立请求,
+    不污染主对话上下文;任何失败返回 ''(会话名保持纯时间戳,不影响任务)。"""
+    first_user_msg = str(first_user_msg or "")[:600]
+    if not first_user_msg.strip():
+        return ""
+    zh = os.environ.get("AGENT_LANG", "") != "en"
+    ask = (f"给下面的任务起一个不超过12字的中文标题,概括它在做什么。"
+           f"只输出标题本身,不要标点、引号或任何解释:\n{first_user_msg}"
+           if zh else
+           f"Give this task a short English title (max 8 words) saying what it does. "
+           f"Output only the title itself — no quotes, no punctuation, no explanation:\n{first_user_msg}")
+    try:
+        payload = {"model": model, "messages": [{"role": "user", "content": ask}],
+                   "stream": False, "keep_alive": KEEP_ALIVE,
+                   "options": {"num_predict": 48, "temperature": 0.3}}
+        req = urllib.request.Request(appconfig.ollama_host().rstrip("/") + "/api/chat",
+                                     data=json.dumps(payload).encode("utf-8"),
+                                     headers={"Content-Type": "application/json"})
+        r = json.loads(urllib.request.urlopen(req, timeout=120).read())
+        return sanitize_title((r.get("message") or {}).get("content", ""))
+    except Exception:
+        return ""
+
 def save_session(name, msgs, workdir=None):
     if not name: return
     _atomic_write_json(os.path.join(SESSIONS_DIR, name + ".json"), msgs)
@@ -2241,8 +2300,11 @@ def save_session(name, msgs, workdir=None):
                 if tc.get("function",{}).get("name") == "finish":
                     status = "done"; break
             if status == "done": break
-        meta = {"updated": time.strftime("%Y-%m-%d %H:%M"), "task": task[:200],
-                "status": status, "msgs": len(msgs)}
+        meta = _load_session_meta(name)   # 合并写:标题等旧字段不丢(v2.0.1)
+        meta.update({"updated": time.strftime("%Y-%m-%d %H:%M"), "task": task[:200],
+                "status": status, "msgs": len(msgs)})
+        if SESSION_TITLE["v"]:
+            meta["title"] = SESSION_TITLE["v"]
         _atomic_write_json(os.path.join(SESSIONS_DIR, name + ".meta.json"), meta)
     except Exception:
         pass
@@ -3163,6 +3225,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
         messages = _maybe_parallel_dispatch(model, messages, workdir, session)
     casual_warns = 0
     casual_force = False            # 强制收尾标志(问答答完 / 重复死循环)
+    _title_done = False             # v2.0.1 会话标题只起一次(续跑认领 meta 旧标题)
     last_text = ""                  # 上一次助手文本输出(重复检测)
     repeat_count = 0
     if qa:
@@ -3371,6 +3434,24 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                 print(f"[{i}] ⚡ 抢救到文本工具调用: {', '.join(n for n,_ in salvaged)}", flush=True)
         if tcs: messages.append({"role":"assistant","content":content,"tool_calls":tcs})
         else: messages.append({"role":"assistant","content":content})
+        # v2.0.1 会话标题:第一轮响应落地后让模型起一次名(≤12 字),立刻并入 meta;
+        # GUI 通过 @@TITLE@@ 协议行即时换会话栏/列表显示。续跑会话先认领旧标题,
+        # 不重起;旁路小调用不进主上下文,任何失败静默(会话名退回纯时间戳)。
+        if session and not _title_done:
+            _title_done = True
+            _mt = _load_session_meta(session) or {}
+            if _mt.get("title"):
+                SESSION_TITLE["v"] = str(_mt["title"])
+            else:
+                _fu = next((str(m.get("content","")) for m in messages
+                            if m.get("role")=="user" and not m.get("tool_calls")), "")
+                if _fu:
+                    _tt = gen_session_title(model, _fu)
+                    if _tt:
+                        SESSION_TITLE["v"] = _tt
+                        _merge_session_meta(session, {"title": _tt})
+                        if STREAM:
+                            print("@@TITLE@@" + _tt, flush=True)
         _ckpt = os.path.join(workdir,".agent_state.json")
         try:
             with open(_ckpt + ".tmp","w",encoding="utf-8") as _f:
@@ -3489,7 +3570,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         try:
                             pr = subprocess.run("python -m pytest -q", shell=True,
                                                 capture_output=True, cwd=workdir, timeout=300,
-                                                encoding="utf-8", errors="replace")
+                                                encoding="utf-8", errors="replace",
+                                                creationflags=NOWIN)
                         except subprocess.TimeoutExpired:
                             pr = None
                         ok = (pr is not None and pr.returncode == 0)
