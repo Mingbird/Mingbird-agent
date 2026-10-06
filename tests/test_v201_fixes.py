@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-"""v2.0.1 四项修复的单元测试(2026-10-07 试用反馈):
+"""v2.0.1→v2.0.2 修复的单元测试(2026-10-07 二轮试用反馈):
 ①spawn 位点全量 CREATE_NO_WINDOW——GUI console=False 打包下,任何裸 spawn 的
   控制台程序都会闪一个终端框再消失(实测"一次闪几十个"),源级扫描钉死回归。
-②会话标题:起名小调用/清洗/meta 合并写/标题不丢。
+②会话命名改纯程序:首句前 15 字 + 时间后缀(v2.0.1 模型起名实测不出,已下线)。
 ③思考块按块存档与独立展开折叠(旧版全局单变量导致收尾后点击失灵/展开错块)。
 ④计划面板纵向扩展 + 滚轮路由(源锚点)。
-不联网、不调 ollama;③用隐藏 Tk,无显示环境自动跳过。
+⑤finish 收尾可见性:GUI 工具行正则兼容 [i|+Ns] 格式 + 裸 finish 兜底收尾调用。
+不联网、不调 ollama;思考块用隐藏 Tk,无显示环境自动跳过。
 """
 import json
 import os
@@ -66,81 +67,99 @@ def test_nowin_constant_pinned():
     assert 'NOWIN = getattr(subprocess, "CREATE_NO_WINDOW", 0)' in SRC_OA
 
 
-# ================= ② 会话标题 =================
+# ================= ② 会话命名(纯程序,v2.0.2) =================
 
-def test_sanitize_title(oa):
-    assert oa.sanitize_title("《材料调研》") == "材料调研"
-    assert oa.sanitize_title("  标题：修复登录bug \n第二行不要") == "修复登录bug"
-    assert oa.sanitize_title('"写周报"') == "写周报"
-    assert len(oa.sanitize_title("长" * 40)) == 16
-    assert oa.sanitize_title("") == ""
-    assert oa.sanitize_title(None) == ""
-
-
-def test_gen_session_title_roundtrip(oa, monkeypatch):
-    captured = {}
-
-    class FakeResp:
-        def read(self):
-            return json.dumps({"message": {"content": "《材料调研》"}}).encode()
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *a):
-            return False
-
-    def fake_urlopen(req, timeout=None):
-        captured["payload"] = json.loads(req.data.decode())
-        return FakeResp()
-
-    monkeypatch.setattr(oa.urllib.request, "urlopen", fake_urlopen)
-    monkeypatch.setenv("AGENT_LANG", "zh")
-    t = oa.gen_session_title("m", "整理实验数据并生成图表周报")
-    assert t == "材料调研"
-    p = captured["payload"]
-    assert p["options"]["num_predict"] == 48     # 旁路小调用,预算钉死
-    assert p["keep_alive"] == oa.KEEP_ALIVE      # 不把模型踢回 5 分钟卸载
-    assert p["stream"] is False
-    assert p["messages"][0]["role"] == "user"
+def test_first_msg_title():
+    import agent_gui as G
+    assert G._first_msg_title("修复登录页面的问题") == "修复登录页面的问题"
+    # 多行只取首行;文件名非法字符剔除;超 15 字截断
+    assert G._first_msg_title("第一行标题\n第二行不取") == "第一行标题"
+    assert G._first_msg_title("a/b\\c:d*e?f\"g<h>i|j") == "abcdefghij"
+    assert len(G._first_msg_title("长" * 40)) == 15
+    assert G._first_msg_title("   ") == ""
+    assert G._first_msg_title(None) == ""
+    assert G._first_msg_title('以句号结尾.') == "以句号结尾"
 
 
-def test_gen_session_title_failure_silent(oa, monkeypatch):
-    def boom(req, timeout=None):
-        raise OSError("ollama down")
+def test_programmatic_session_name_pinned():
+    # 新会话名 = 首句15字_月日_时分;模型起名链路(v2.0.1)已整体下线
+    assert "_first_msg_title(msg)" in SRC_GUI
+    assert "gen_session_title" not in SRC_OA and "SESSION_TITLE" not in SRC_OA
+    assert '"chat_"' in SRC_GUI
 
-    monkeypatch.setattr(oa.urllib.request, "urlopen", boom)
-    assert oa.gen_session_title("m", "任何任务") == ""
 
-
-def test_save_session_preserves_title(oa, tmp_path, monkeypatch):
+def test_save_session_meta_merge(oa, tmp_path, monkeypatch):
+    """meta 合并写:外部(GUI/旧版)写入的字段不被整体覆盖丢失。"""
     monkeypatch.setattr(oa, "SESSIONS_DIR", str(tmp_path))
-    oa.SESSION_TITLE["v"] = "示例标题"
+    msgs = [{"role": "user", "content": "做点事"},
+            {"role": "assistant", "content": "done",
+             "tool_calls": [{"function": {"name": "finish", "arguments": {}}}]}]
+    oa._merge_session_meta("s1", {"title": "外部写入的标题"})
+    oa.save_session("s1", msgs, workdir=str(tmp_path))
+    m = json.load(open(tmp_path / "s1.meta.json", encoding="utf-8"))
+    assert m["title"] == "外部写入的标题" and m["status"] == "done"
+    oa._merge_session_meta("s1", {"status": "interrupted"})
+    m2 = json.load(open(tmp_path / "s1.meta.json", encoding="utf-8"))
+    assert m2["status"] == "interrupted" and m2["title"] == "外部写入的标题"
+
+
+# ================= ⑤ finish 收尾可见性(v2.0.2) =================
+
+def test_finish_visibility_pinned():
+    # agent 打印的是 [i|+Ns] ⚙ …,GUI 旧正则 \[(\d+)\] 永远匹配不上 → 工具卡/
+    # finish ✅ 卡从不渲染(用户只能翻思考过程才知道任务结束)。钉住新正则与
+    # 裸 finish 兜底收尾调用。
+    assert r"\[(\d+)[^\]]*\] ⚙ " in SRC_GUI
+    assert r"\[(\d+)[^\]]*\] ✍ " in SRC_GUI
+    assert "任务已收尾" in SRC_OA            # 裸 finish 的无工具收尾兜底
+    assert "向用户总结成果" in SRC_OA        # 门禁拒绝词要求 summary 总结成果
+
+
+def test_gui_feed_renders_real_agent_lines():
+    """行为级:feed_transcript 吃 agent 实际打印格式([i|+Ns] ⚙ / ✍)必须渲染成
+    卡片/气泡——旧正则在这些行上全部失配,finish 完成卡从不出现。"""
+    tk = pytest.importorskip("tkinter")
+    import agent_gui as G
     try:
-        msgs = [{"role": "user", "content": "做点事"},
-                {"role": "assistant", "content": "done",
-                 "tool_calls": [{"function": {"name": "finish", "arguments": {}}}]}]
-        oa.save_session("s1", msgs, workdir=str(tmp_path))
-        m = json.load(open(tmp_path / "s1.meta.json", encoding="utf-8"))
-        assert m["title"] == "示例标题" and m["status"] == "done"
-        # 换一个没起过标题的进程再存:合并写不许清掉已有标题
-        oa.SESSION_TITLE["v"] = ""
-        oa.save_session("s1", msgs, workdir=str(tmp_path))
-        m2 = json.load(open(tmp_path / "s1.meta.json", encoding="utf-8"))
-        assert m2.get("title") == "示例标题"
-        # merge 辅助:改状态不动标题
-        oa._merge_session_meta("s1", {"status": "interrupted"})
-        m3 = json.load(open(tmp_path / "s1.meta.json", encoding="utf-8"))
-        assert m3["status"] == "interrupted" and m3["title"] == "示例标题"
+        root = tk.Tk()
+    except Exception:
+        pytest.skip("无显示环境,跳过 Tk 界面测试")
+    root.withdraw()
+    try:
+        class D(G.AgentGUI):
+            def __init__(self):
+                pass
+            def refresh_sessions(self):
+                pass
+        d = D()
+        d.transcript = tk.Text(root)
+        d._think_text = ""; d._think_live = False; d._think_hdr = False
+        d._think_store = {}; d._think_seq = 0; d._think_shown = 0
+        d._asst_buf = ""; d._asst_shown = 0; d._streaming_asst = False
+        d._selecting = False
+        d._flush_stream_pending = lambda: None
+        d._scroll_transcript = lambda: None
+
+        # finish 工具行(agent 真实格式) → ✅ 完成卡,且不带 [TASK_COMPLETE] 前缀
+        d.feed_transcript('[7|+132s] ⚙ finish {"summary":""} -> [TASK_COMPLETE] 已生成 x.md 与结论')
+        body = d.transcript.get("1.0", "end")
+        assert "✅" in body and "已生成 x.md 与结论" in body
+        assert "[TASK_COMPLETE]" not in body
+
+        # 普通工具行 → ⚙ 卡
+        d.feed_transcript('[8|+140s] ⚙ create_file {"path":"a.py"} -> ok')
+        assert "⚙ create_file" in d.transcript.get("1.0", "end")
+
+        # ✍ 正文行 → 助手气泡缓冲
+        d.feed_transcript("[9|+150s] ✍ 任务完成:共处理 3 个文件。")
+        assert d._asst_buf == "任务完成:共处理 3 个文件。"
+        d._flush_asst()
+        assert "任务完成:共处理 3 个文件。" in d.transcript.get("1.0", "end")
     finally:
-        oa.SESSION_TITLE["v"] = ""
-
-
-def test_title_protocol_pinned():
-    # agent 侧发协议行(GUI 模式),GUI 侧接收并换会话栏/列表显示(标题前缀)
-    assert '@@TITLE@@' in SRC_OA and '"@@TITLE@@"' in SRC_GUI
-    assert "session_title" in SRC_GUI
-    assert 'disp = f"{title}·{name} {tag}"' in SRC_GUI
+        try:
+            root.destroy()
+        except Exception:
+            pass
 
 
 # ================= ③ 思考块按块存档 =================

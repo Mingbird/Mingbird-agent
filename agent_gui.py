@@ -226,8 +226,18 @@ def _t(s):
     if _LANG == "zh":
         return s
     return _T.get(s, s)
+
+def _first_msg_title(msg, limit=15):
+    """v2.0.2 会话命名:新对话第一句话前 15 字(首行、去文件名非法字符、
+    折叠空白)。空 → ""(调用方退回 chat_ 前缀)。纯程序,不起模型调用。"""
+    s = str(msg or "").split("\n")[0].strip()
+    s = re.sub(r'[\\/:*?"<>|\r\t]', "", s)
+    s = re.sub(r"\s+", " ", s).strip().strip(". ")
+    return s[:limit].rstrip()
+
 # v1.8.0 一键断网/联网(offline mode):断网=仅本地模型+禁联网工具+禁 url 型 MCP,
 # 零出站(netstat 可验证);联网=本地+搜索+已配置的 MCP/云端 provider。
+_T["任务完成"] = "Task complete"
 _T["🌐 联网"] = "🌐 Online"
 _T["🔒 断网"] = "🔒 Offline"
 _T["(本地)"] = "(local)"
@@ -415,7 +425,7 @@ class AgentGUI:
         self.proc = None
         self.q = queue.Queue()
         self.session = None
-        self.session_title = ""       # v2.0.1 模型起的会话名(@@TITLE@@ / meta.title)
+        self.session_title = ""       # 旧版会话的模型标题(仅加载历史时从 meta 恢复显示)
         self._sess_names = []         # v2.0.1 会话列表行号→文件名(显示名加了标题前缀,不再反解字符串)
         self.attachments = []      # 已复制的附件绝对路径
         self._rendered_session = None  # 当前 transcript 对应的会话名
@@ -1625,7 +1635,10 @@ class AgentGUI:
         # 才按"续跑"勾选决定是否续接进度。
         fresh = not self.session
         if fresh:
-            self.session = "chat_" + time.strftime("%m%d_%H%M%S")
+            # v2.0.2 会话命名:新对话第一句话前 15 字 + 时间后缀,纯程序实现
+            # (v2.0.1 的模型起名实测不出,弃用;首行全空/非法 → 退回 chat_ 前缀)
+            _name15 = _first_msg_title(msg)
+            self.session = (f"{_name15}_" if _name15 else "chat_") + time.strftime("%m%d_%H%M%S")
             self.session_title = ""
             self.sess_lbl.configure(text=_t("会话:") + self.session)
         self.launch(msg, use_session=True,
@@ -2183,14 +2196,6 @@ class AgentGUI:
         if line.startswith("@@THINK@@"):
             self._stream_think(line[len("@@THINK@@"):])
             return
-        if line.startswith("@@TITLE@@"):
-            # v2.0.1 模型起的会话名:会话栏与历史列表即时换成"标题·日期"
-            _t1 = line[len("@@TITLE@@"):].strip()
-            if _t1 and self.session:
-                self.session_title = _t1
-                self.sess_lbl.configure(text=_t("会话:") + f"{_t1}·{self.session}")
-                self.refresh_sessions()
-            return
         if line.startswith("@@DISPATCH@@"):
             self._on_dispatch(line[len("@@DISPATCH@@"):])
             return
@@ -2204,12 +2209,16 @@ class AgentGUI:
             return
         if line.startswith("[ctx:") or line == "":
             return
-        m = re.match(r"\[(\d+)\] ⚙ (\w+)\s*(\{.*\})?\s*->\s*(.*)", line)
+        m = re.match(r"\[(\d+)[^\]]*\] ⚙ (\w+)\s*(\{.*\})?\s*->\s*(.*)", line)
         if m:
             self._collapse_think()
             self._flush_asst()
             name, args, res = m.group(2), m.group(3) or "", m.group(4)
             if name == "finish":
+                # 完成卡片:剥掉 harness 的 [TASK_COMPLETE] 内部前缀,只给用户看 summary
+                if res.startswith("[TASK_COMPLETE] "):
+                    res = res[len("[TASK_COMPLETE] "):]
+                res = res.strip() or _t("任务完成")
                 self.transcript.config(state="normal")
                 self.transcript.insert("end", "\n", "spacer")
                 self.transcript.insert("end", "  ✅ " + res[:300] + "\n", "done")
@@ -2220,7 +2229,7 @@ class AgentGUI:
                 self.transcript.config(state="disabled")
             self._scroll_transcript()
             return
-        m = re.match(r"\[(\d+)\] ✍ (.*)", line, re.S)
+        m = re.match(r"\[(\d+)[^\]]*\] ✍ (.*)", line, re.S)
         if m:
             self._flush_asst()
             self._asst_buf = m.group(2)

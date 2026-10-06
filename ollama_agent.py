@@ -2227,51 +2227,13 @@ def _load_session_meta(name):
         return {}
 
 def _merge_session_meta(name, extra):
-    """合并写 meta:保住已有字段(如 title/status),不做整体覆盖。"""
+    """合并写 meta:保住已有字段(如外部写入的 title/status),不做整体覆盖。"""
     try:
         meta = _load_session_meta(name)
         meta.update(extra)
         _atomic_write_json(os.path.join(SESSIONS_DIR, name + ".meta.json"), meta)
     except Exception:
         pass
-
-# v2.0.1 会话标题:模型在第一轮响应后给对话起名(6~14 字),会话列表从纯时间戳
-# 变成"名字·日期"。进程内共享;续跑时从 meta 恢复,不重复起名。
-SESSION_TITLE = {"v": ""}
-
-def sanitize_title(s):
-    """清洗模型给的标题:首行、去引号/书名号/装饰符/前后缀、限 16 字。"""
-    s = str(s or "").strip().split("\n")[0].strip()
-    for pre in ("标题:", "标题：", "Title:", "title:", "标题", "Title"):
-        if s.startswith(pre):
-            s = s[len(pre):].strip()
-            break
-    s = s.strip("\"'`“”‘’《》【】「」[]()（）#*·:：,，.。~—- ")
-    return s[:16].rstrip()
-
-def gen_session_title(model, first_user_msg):
-    """旁路小调用:让同款模型给对话起名。num_predict=48、无工具、独立请求,
-    不污染主对话上下文;任何失败返回 ''(会话名保持纯时间戳,不影响任务)。"""
-    first_user_msg = str(first_user_msg or "")[:600]
-    if not first_user_msg.strip():
-        return ""
-    zh = os.environ.get("AGENT_LANG", "") != "en"
-    ask = (f"给下面的任务起一个不超过12字的中文标题,概括它在做什么。"
-           f"只输出标题本身,不要标点、引号或任何解释:\n{first_user_msg}"
-           if zh else
-           f"Give this task a short English title (max 8 words) saying what it does. "
-           f"Output only the title itself — no quotes, no punctuation, no explanation:\n{first_user_msg}")
-    try:
-        payload = {"model": model, "messages": [{"role": "user", "content": ask}],
-                   "stream": False, "keep_alive": KEEP_ALIVE,
-                   "options": {"num_predict": 48, "temperature": 0.3}}
-        req = urllib.request.Request(appconfig.ollama_host().rstrip("/") + "/api/chat",
-                                     data=json.dumps(payload).encode("utf-8"),
-                                     headers={"Content-Type": "application/json"})
-        r = json.loads(urllib.request.urlopen(req, timeout=120).read())
-        return sanitize_title((r.get("message") or {}).get("content", ""))
-    except Exception:
-        return ""
 
 def save_session(name, msgs, workdir=None):
     if not name: return
@@ -2300,11 +2262,9 @@ def save_session(name, msgs, workdir=None):
                 if tc.get("function",{}).get("name") == "finish":
                     status = "done"; break
             if status == "done": break
-        meta = _load_session_meta(name)   # 合并写:标题等旧字段不丢(v2.0.1)
+        meta = _load_session_meta(name)   # 合并写:外部写入的标题等旧字段不丢(v2.0.1)
         meta.update({"updated": time.strftime("%Y-%m-%d %H:%M"), "task": task[:200],
                 "status": status, "msgs": len(msgs)})
-        if SESSION_TITLE["v"]:
-            meta["title"] = SESSION_TITLE["v"]
         _atomic_write_json(os.path.join(SESSIONS_DIR, name + ".meta.json"), meta)
     except Exception:
         pass
@@ -3225,7 +3185,6 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
         messages = _maybe_parallel_dispatch(model, messages, workdir, session)
     casual_warns = 0
     casual_force = False            # 强制收尾标志(问答答完 / 重复死循环)
-    _title_done = False             # v2.0.1 会话标题只起一次(续跑认领 meta 旧标题)
     last_text = ""                  # 上一次助手文本输出(重复检测)
     repeat_count = 0
     if qa:
@@ -3434,24 +3393,6 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                 print(f"[{i}] ⚡ 抢救到文本工具调用: {', '.join(n for n,_ in salvaged)}", flush=True)
         if tcs: messages.append({"role":"assistant","content":content,"tool_calls":tcs})
         else: messages.append({"role":"assistant","content":content})
-        # v2.0.1 会话标题:第一轮响应落地后让模型起一次名(≤12 字),立刻并入 meta;
-        # GUI 通过 @@TITLE@@ 协议行即时换会话栏/列表显示。续跑会话先认领旧标题,
-        # 不重起;旁路小调用不进主上下文,任何失败静默(会话名退回纯时间戳)。
-        if session and not _title_done:
-            _title_done = True
-            _mt = _load_session_meta(session) or {}
-            if _mt.get("title"):
-                SESSION_TITLE["v"] = str(_mt["title"])
-            else:
-                _fu = next((str(m.get("content","")) for m in messages
-                            if m.get("role")=="user" and not m.get("tool_calls")), "")
-                if _fu:
-                    _tt = gen_session_title(model, _fu)
-                    if _tt:
-                        SESSION_TITLE["v"] = _tt
-                        _merge_session_meta(session, {"title": _tt})
-                        if STREAM:
-                            print("@@TITLE@@" + _tt, flush=True)
         _ckpt = os.path.join(workdir,".agent_state.json")
         try:
             with open(_ckpt + ".tmp","w",encoding="utf-8") as _f:
@@ -3641,7 +3582,9 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                 f"当前计划:\n{load_todo_str(workdir)}\n"
                                 "请先把已完成的步骤逐个勾掉: todo(action=update, index=步骤号);"
                                 "已全部完成可一次同步: todo(action=update, all=true)。"
-                                "若仍有步骤没做,请继续执行后再 finish。"})
+                                "若仍有步骤没做,请继续执行后再 finish;"
+                                "重新 finish 时务必在 summary 里用两三句话向用户总结成果"
+                                "(完成了什么、产物是什么)。"})
                             messages.append({"role":"tool","content":res})
                             continue
                     # 交付自查门禁(语义漂移防护):finish 放行前把任务原文回注一次,
@@ -3664,10 +3607,33 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                 "取整方式)、命名、数值范围,以及任务明确点名的每一个子项。"
                                 "长任务执行到末尾容易遗忘题面细节。\n"
                                 "若发现任何一条不满足:先修正交付物,再重新 finish;"
-                                "若全部满足:直接重新 finish 即可。\n"
+                                "若全部满足:重新 finish,并在 summary 里用两三句话"
+                                "向用户总结成果(完成了什么、产物/答案是什么)。\n"
                                 "--- 原始任务指令 ---\n" + _orig + "\n--- 原始任务指令结束 ---"})
                             messages.append({"role":"tool","content":res})
                             continue
+                    # v2.0.2 收尾可见性:finish 附带的正文此前从不打印(工具轮的
+                    # content 被 GUI 静默跳过),连过数道门后的"裸 finish"更是
+                    # summary/正文全空——用户只能翻思考过程才知道任务结束了
+                    # (2026-10-07 实测)。这里保证放行时必有一条面向用户的收尾:
+                    # ①有附带正文 → 直接以 ✍ 上屏;②summary 为空且无正文 →
+                    # 补一次无工具小调用,让模型给用户几句总结(以 ✍ 上屏并存档)。
+                    if content and not _semantically_empty(content):
+                        print(f"[{i}] ✍ {content[:2000]}", flush=True)
+                    elif not str(args.get("summary","") or "").strip() \
+                            and not qa and _child_sandbox is None and not _FG_OFF:
+                        try:
+                            _wm = messages + [{"role":"tool","content":res},
+                                              {"role":"user","content":
+                               "任务已收尾。请直接用文字向用户总结(不要调用任何工具):"
+                               "完成了什么、关键产物/结论是什么。不超过 5 句话。"}]
+                            _wr = call_chat(model, _wm, tools=[])
+                            _wt = ((_wr.get("message") or {}).get("content") or "").strip()
+                            if _wt:
+                                messages.append({"role":"assistant","content": _wt})
+                                print(f"[{i}] ✍ {_wt[:2000]}", flush=True)
+                        except Exception:
+                            pass
                     print("\n===== TASK COMPLETE =====", flush=True); print(res, flush=True)
                     save_session(session, messages, workdir)
                     return messages

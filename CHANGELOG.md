@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0.2 (2026-10-07)
+
+Two fixes from v2.0.1 feedback. Tests: 498 green.
+
+### 🔧 Fixes
+- **Finish became silent after gate rejections** — completion had no user-visible signal; you had to open the thinking blocks to learn the task had ended. Root cause was a long-standing GUI parser bug: the agent prints tool lines as `[7|+132s] ⚙ …`, but the parser's regex only accepted `[7] ⚙ …`, so tool cards — including the finish ✅ card — never rendered at all. The regex now accepts the real format (tool cards, assistant text and finish cards all render again); text attached to a finish call is printed; and a bare finish (empty summary, no text) triggers a framework backstop — one tool-free side call that makes the model hand the user a few closing sentences, shown on screen and archived into the session. Gate rejection messages now also demand a summary on the next finish.
+- **Session naming is now fully programmatic**: new conversations are named after the first 15 characters of your first message plus a timestamp (e.g. `修复登录页面的问题_1007_2330`), computed the moment you hit send. The model-titled mechanism from v2.0.1 never fired reliably and has been removed entirely.
+
 ## v2.0.1 (2026-10-07)
 
 Bug-fix release from day-one feedback on v2.0.0. Tests: **498 green** (489 + 9 new).
