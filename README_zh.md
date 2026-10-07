@@ -33,7 +33,7 @@
 | …长任务不跑偏 | 交付自查门禁：宣称完成前回读任务原文核对 |
 | …抵住破坏性冲动 | 五环安全网兜住（见[安全](#安全)） |
 
-没有任何东西是写死的：Ollama 地址、可执行文件、GPU 环境变量、模型别名，全部运行时识别或在 `~/.ollama_agent/config.json` 配置（见 [AGENTS.md](AGENTS.md)）。质量底线由 488 项回归测试守住——435 项单测 + 26 项集成 + v1.9.1/v1.9.2/v2.0.0 共新增 28 项，prefill 零增长断言也在其中。这套测试里**没有真调 Ollama 的端到端用例**：不需要任何后端或网络即可跑完。`bench/` 与 `benchmarks/` 下的基准运行器是独立程序，不属于 pytest 套件。
+没有任何东西是写死的：本地引擎、端点、GPU 环境变量、模型别名，全部运行时识别或在 `~/.ollama_agent/config.json` 配置（见 [AGENTS.md](AGENTS.md)）；v2.1.1 起引擎可以是 Ollama 或任何 OpenAI 兼容本地服务（LM Studio、llama.app、llama-server、Jan、vLLM）。质量底线由 539 项回归测试守住——435 项单测 + 26 项集成 + v1.9.1 起新增 78 项，prefill 零增长断言也在其中。这套测试里**没有真调 Ollama 的端到端用例**：不需要任何后端或网络即可跑完。`bench/` 与 `benchmarks/` 下的基准运行器是独立程序，不属于 pytest 套件。
 
 ## 我们要解决的问题
 
@@ -50,7 +50,8 @@
 - **语音输入开箱即用，中英双语**——安装包内置两个本地 STT 小模型（纯 CPU，~20× 实时转写）；麦克风旁 中/EN 一键切换；说完自动停。
 - **任务时限（默认关）**——输入框填 `40` / `1.5h` / `半小时`，或直接在任务描述里写"限时 40 分钟"（自动识别、优先级最高）；临近时限自动收尾提醒。本地模型用户在意墙钟时间。
 - **会话记忆**——历史会话持久保存，可搜索、可回放。
-- **模型自动识别**——Ollama 里拉什么就用什么，最高 256K 上下文。
+- **多本地引擎**——Ollama 是默认引擎（自动拉起、keep-alive、思考三态），任何 OpenAI 兼容本地服务也能直接用：设置里选 **LM Studio**（`:1234/v1`）、**llama.app**（llama.cpp 官方桌面应用，`:9931/v1`）、**llama-server**（`:8080/v1`）或自定义端点。流式输出、思考通道分离（服务端没配 reasoning 解析器时，行内 `<think>` 标签照样实时剥离，跨流式分片撕裂也不误判）与工具调用在两种引擎下都可用。
+- **模型自动识别**——引擎里装载了什么模型就用什么，最高 256K 上下文。
 - **技能 & MCP**——17 个内置技能（11 个编码向 + 6 个通用向：文件整理、联网调研、长文速读、Word/Excel、图片批处理）按需装载；自己的 .md 放进 `~/.ollama_agent/skills/` 即成技能；MCP 服务器纯 JSON 配置。办公/图片技能由内置 Python 运行时（`run_python`）执行——用户机器无需装 Python 或 Office。
 - **中英双语**界面。
 - **Web UI（实验版）**——同一个 agent 跑进浏览器：源码运行 `python webui/server.py`，打开 http://127.0.0.1:8765（仅绑定 127.0.0.1，数据不出本机）——[指南](docs/webui_zh.md)。
@@ -92,7 +93,7 @@
 | 入门 | 任意核显 · 16 GB 内存 | 2–4B | 流式近实时 |
 | 基准 | 核显或入门独显 · 32 GB 内存 | 2–35B | 35B 长任务端到端可跑 |
 
-能跑 Ollama 的机器就能跑鸣鸟。鸣鸟对模型的全部静态附加只有自己的 prefill 文本。而本地不只是速度与成本的选择——它决定了你的工作目录能不能离开这台机器。
+能跑 Ollama——或任何 OpenAI 兼容本地服务——的机器就能跑鸣鸟。鸣鸟对模型的全部静态附加只有自己的 prefill 文本。而本地不只是速度与成本的选择——它决定了你的工作目录能不能离开这台机器。
 
 ## 快速开始
 
@@ -112,11 +113,12 @@
    ollama pull gemma4:e2b      # 小而快
    ollama pull qwen3.5:4b      # 4B，主力型号
    ```
+   已经在用 LM Studio、llama.app 或 llama-server？可以不装 Ollama——打开设置（⚙）选引擎即可。
 2. 从 [最新版 Release](https://github.com/Mingbird/Mingbird-agent/releases/latest) 下载 `-EN-Setup.exe`（或 `-CN` 中文版）并安装 → 桌面快捷方式。
    Windows 可能对未签名安装包弹出 SmartScreen——点"更多信息"→"仍要运行"。
 3. 启动，选模型，直接派活。
 
-Linux & macOS（实验性，CI 构建）：从 [最新版 Release](https://github.com/Mingbird/Mingbird-agent/releases/latest) 下载 `linux-x64` / `macos-arm64` 的 tar.gz，解压后 `sh install-unix.sh`，启动 `~/.local/share/Mingbird/LocalAgent`。需在该机上安装 Ollama。
+Linux & macOS（实验性，CI 构建）：从 [最新版 Release](https://github.com/Mingbird/Mingbird-agent/releases/latest) 下载 `linux-x64` / `macos-arm64` 的 tar.gz，解压后 `sh install-unix.sh`，启动 `~/.local/share/Mingbird/LocalAgent`。需在该机上安装 Ollama 或任何 OpenAI 兼容本地服务。
 
 源码运行：`python agent_gui.py`（图形界面）或 `python ollama_agent.py --help`（命令行）。建议 Python 3.12。
 

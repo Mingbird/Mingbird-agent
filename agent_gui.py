@@ -239,6 +239,19 @@ def _first_msg_title(msg, limit=15):
 # 零出站(netstat 可验证);联网=本地+搜索+已配置的 MCP/云端 provider。
 _T["任务完成"] = "Task complete"
 _T["不限"] = "Unlimited"
+# v2.1.1 多引擎(OpenAI 兼容本地服务)
+_T["本地引擎:"] = "Local engine:"
+_T["自定义 OpenAI 兼容"] = "Custom OpenAI-compatible"
+_T["端点(Ollama 引擎忽略);本地服务 API Key 可空:"] = \
+    "Endpoint (ignored on Ollama); API key optional for local servers:"
+_T["本地引擎"] = "Local engine"
+_T["OpenAI 兼容引擎需要手动启动:\n请先打开 LM Studio / llama.app,\n或运行 llama-server 后再试。\n端点: {url}"] = \
+    "The OpenAI-compatible engine must be started manually:\nopen LM Studio / llama.app,\nor run llama-server first.\nEndpoint: {url}"
+_T["OpenAI 兼容引擎未就绪:{url}\n请先启动 LM Studio / llama.app / llama-server。"] = \
+    "OpenAI-compatible engine not reachable: {url}\nStart LM Studio / llama.app / llama-server first."
+_T["{eng} ✓(无模型)"] = "{eng} ✓ (no models)"
+_T["{eng} ✗ 未启动"] = "{eng} ✗ not running"
+_T["[ {eng} 离线 — 启动后自动重试 ]"] = "[ {eng} offline — auto-retry once started ]"
 _T["🌐 联网"] = "🌐 Online"
 _T["🔒 断网"] = "🔒 Offline"
 _T["(本地)"] = "(local)"
@@ -381,19 +394,26 @@ class AgentGUI:
         entries = []
         import urllib.request as _ur
         import time as _sleep_mod
+        _lb = appconfig.backend_openai()
         for _ in range(3):
             try:
-                r = json.loads(_ur.urlopen(f"{appconfig.ollama_host()}/api/tags", timeout=6).read())
-                entries = [x for x in r.get("models", []) if x.get("name")]
+                if _lb:
+                    # v2.1.1 OpenAI 兼容引擎:GET /models(OpenAI 形态 {"data":[{"id":..}]},
+                    # LM Studio/llama.app/llama-server 同构)→ 归一成 /api/tags 的 entries 形态
+                    r = json.loads(_ur.urlopen(_lb["base_url"] + "/models", timeout=6).read())
+                    entries = [{"name": x.get("id")} for x in (r.get("data") or []) if x.get("id")]
+                else:
+                    r = json.loads(_ur.urlopen(f"{appconfig.ollama_host()}/api/tags", timeout=6).read())
+                    entries = [x for x in r.get("models", []) if x.get("name")]
                 break
             except Exception:
                 entries = []
                 _sleep_mod.sleep(0.8)
         if not entries:
-            # ollama 不可达:不把配置里的陈旧映射当可用模型展示(那会让用户选到跑不起来的模型)
+            # 引擎不可达:不把配置里的陈旧映射当可用模型展示(那会让用户选到跑不起来的模型)
             self._model_map = {}
             try:
-                _off = "[ Ollama 离线 — 启动后自动重试 ]"
+                _off = f"[ {appconfig.engine_display_name()} 离线 — 启动后自动重试 ]"
                 self.model_cb.configure(values=[_off],
                                         width=max(13, min(self._disp_units(_off), 40)))
                 self.model_var.set(_off)
@@ -646,7 +666,8 @@ class AgentGUI:
         if not getattr(self, "_model_map", None):
             _cfg_models = appconfig.model_map()
             self._model_map = {_t(k): v for k, v in _cfg_models.items()}
-        _vals = list(self._model_map) or [_t("[ Ollama 离线 — 启动后自动重试 ]")]
+        _vals = list(self._model_map) or [_t("[ {eng} 离线 — 启动后自动重试 ]").format(
+            eng=appconfig.engine_display_name())]
         self.model_var = tk.StringVar(value=_vals[0])
         # 下拉宽度按最长显示名适配(CJK 记 2 单位):否则 "qwen2b (长上下文 256K)"
         # 这类名字在闭合态被截断
@@ -1557,11 +1578,44 @@ class AgentGUI:
         txt.config(state="disabled")
 
     # ================= 设置 =================
+    # v2.1.1 引擎预设:名字 → OpenAI 兼容 base_url(端口为各家出厂默认)。
+    # llama.app = llama.cpp 官方桌面应用的本地服务;选预设只填 base_url,均可手改。
+    ENGINE_PRESETS = [("Ollama", ""),
+                      ("LM Studio", "http://127.0.0.1:1234/v1"),
+                      ("llama.app", "http://127.0.0.1:9931/v1"),
+                      ("llama.cpp server", "http://127.0.0.1:8080/v1")]
+
     def open_settings(self):
         win = tb.Toplevel(self.root); win.title(_t("设置"))
-        win.geometry(self._scaled_geo(560, 540))
+        win.geometry(self._scaled_geo(560, 620))
         prefs = dict(self.prefs)
         body = tb.Frame(win, padding=12); body.pack(fill="both", expand=True)
+        # v2.1.1 本地引擎行:Ollama(默认,自动拉起/keep_alive)或 OpenAI 兼容本地服务
+        r0 = tb.Frame(body); r0.pack(fill="x", pady=2)
+        tb.Label(r0, text=_t("本地引擎:")).pack(side="left")
+        _lb = appconfig.local_backend()
+        _cur_base = _lb.get("base_url", "") if _lb.get("type") == "openai" else ""
+        _CUSTOM = _t("自定义 OpenAI 兼容")
+        eng = tb.Combobox(r0, values=[p[0] for p in self.ENGINE_PRESETS] + [_CUSTOM],
+                          width=16, state="readonly")
+        _sel = "Ollama" if _lb.get("type") == "ollama" else _CUSTOM
+        for _n, _u in self.ENGINE_PRESETS[1:]:
+            if _cur_base == _u:
+                _sel = _n
+        eng.set(_sel); eng.pack(side="left", padx=6)
+        base = tb.Entry(r0, width=36)
+        base.insert(0, _cur_base or self.ENGINE_PRESETS[1][1])
+        base.pack(side="left", padx=2)
+        r0b = tb.Frame(body); r0b.pack(fill="x", pady=1)
+        tb.Label(r0b, text=_t("端点(Ollama 引擎忽略);本地服务 API Key 可空:")).pack(side="left")
+        key = tb.Entry(r0b, width=30, show="•")
+        key.insert(0, (_lb.get("api_key") or "") if _lb.get("type") == "openai" else "")
+        key.pack(side="left", padx=4)
+        def _eng_picked(_e=None):
+            for _n, _u in self.ENGINE_PRESETS[1:]:
+                if eng.get() == _n:
+                    base.delete(0, "end"); base.insert(0, _u)
+        eng.bind("<<ComboboxSelected>>", _eng_picked)
         r1 = tb.Frame(body); r1.pack(fill="x", pady=2)
         tb.Label(r1, text=_t("上下文窗口:")).pack(side="left")
         ctx = tb.Combobox(r1, values=[16384, 32768, 65536, 131072, 262144],
@@ -1597,6 +1651,18 @@ class AgentGUI:
         sys_txt.pack(fill="both", expand=True)
         sys_txt.insert("1.0", prefs["sys_text"])
         def save():
+            # v2.1.1 引擎持久化:写 config.json 层(config.json 是 agent 子进程的
+            # 同源配置,不进 gui_prefs)。Ollama=清回默认;openai=base_url 归一
+            # (去尾斜杠,与 appconfig.local_backend 同口径)。
+            _sel = eng.get()
+            _base = base.get().strip().rstrip("/")
+            _cfg = dict(appconfig.load_config())
+            if _sel == "Ollama" or not _base.startswith("http"):
+                _cfg["local_backend"] = {"type": "ollama"}
+            else:
+                _cfg["local_backend"] = {"type": "openai", "base_url": _base,
+                                         "api_key": key.get().strip()}
+            appconfig.save_config(_cfg)
             _raw_t = temp.get().strip()
             if _raw_t == "":
                 prefs["temp"] = None            # 留空=未设置 → ollama 默认
@@ -1617,6 +1683,11 @@ class AgentGUI:
             if prefs["sys_enable"] and prefs["sys_text"]:
                 open(SYS_OVERRIDE_FILE, "w", encoding="utf-8").write(prefs["sys_text"])
             self.save_prefs()
+            # 引擎切换立即生效:重刷模型下拉(下个任务起 agent 子进程读同一 config)
+            try:
+                self.refresh_models()
+            except Exception:
+                pass
             self.log_note(_t("[设置已保存:自下一个任务起生效(运行中的任务不受影响)]"))
             win.destroy()
         tb.Button(win, text=_t("保存"), bootstyle="success", command=save).pack(pady=8)
@@ -1971,35 +2042,52 @@ class AgentGUI:
         self.root.after(100, self.poll)
 
     def _check_ollama(self):
-        """Ollama 在线状态灯:绿=在线有模型,黄=在线无模型,红=离线。
+        """本地引擎在线状态灯:绿=在线有模型,黄=在线无模型,红=离线。
+        v2.1.1 按 engine 分流探测(Ollama /api/tags vs OpenAI 兼容 GET /models)。
         自愈:在线且模型清单变化时自动刷新下拉(启动瞬间查询失败的下拉会在此自愈)。
         比较集合必须与 refresh_models 同源(同一去重规则):拿原始 tag 集合去比
         去重后的下拉值,会在存在 ollama cp 别名时恒不等 → 每 5 秒主线程重刷。"""
         up = False; has_models = False
         try:
             import urllib.request as _ur
-            r = json.loads(_ur.urlopen(appconfig.ollama_host().rstrip("/") + "/api/tags", timeout=2).read())
-            up = True; has_models = bool(r.get("models"))
+            _lb = appconfig.backend_openai()
+            if _lb:
+                r = json.loads(_ur.urlopen(_lb["base_url"] + "/models", timeout=2).read())
+                _live = [{"name": x.get("id")} for x in (r.get("data") or []) if x.get("id")]
+            else:
+                r = json.loads(_ur.urlopen(appconfig.ollama_host().rstrip("/") + "/api/tags", timeout=2).read())
+                _live = r.get("models", [])
+            up = True; has_models = bool(_live)
             # 自愈条件:当前下拉框里的 tag 集合 != 去重后的应有集合
-            # (覆盖:启动时 ollama 未就绪走了配置回退 / 用户 pull 了新模型 / 卸载了模型)
+            # (覆盖:启动时引擎未就绪走了配置回退 / 用户装载了新模型 / 卸载了模型)
             cur_tags = frozenset(getattr(self, "_model_map", {}).values())
             tag_to_display = {v: k for k, v in appconfig.model_map().items()}
-            want_tags = frozenset(t for _, t in _dedupe_model_entries(r.get("models", []), tag_to_display))
+            want_tags = frozenset(t for _, t in _dedupe_model_entries(_live, tag_to_display))
             if cur_tags != want_tags:
                 self.refresh_models()
         except Exception:
             pass
+        _eng = appconfig.engine_display_name()
         if up and has_models:
-            self.ollama_lbl.configure(text="Ollama ✓", bootstyle="success")
+            self.ollama_lbl.configure(text=f"{_eng} ✓", bootstyle="success")
         elif up:
-            self.ollama_lbl.configure(text=_t("Ollama ✓(无模型)"), bootstyle="warning")
+            self.ollama_lbl.configure(text=_t("{eng} ✓(无模型)").format(eng=_eng), bootstyle="warning")
         else:
-            self.ollama_lbl.configure(text=_t("Ollama ✗ 未启动"), bootstyle="danger")
+            self.ollama_lbl.configure(text=_t("{eng} ✗ 未启动").format(eng=_eng), bootstyle="danger")
         self.root.after(5000, self._check_ollama)
 
     def _try_start_ollama(self):
-        """拉起 ollama serve(后台进程,不弹窗)。"""
+        """拉起 ollama serve(后台进程,不弹窗)。
+        v2.1.1:OpenAI 兼容引擎无权重启,提示用户手动打开对应服务。"""
         try:
+            if appconfig.backend_openai():
+                from tkinter import messagebox
+                _lb = appconfig.backend_openai()
+                messagebox.showwarning(
+                    _t("本地引擎"),
+                    _t("OpenAI 兼容引擎需要手动启动:\n请先打开 LM Studio / llama.app,\n"
+                       "或运行 llama-server 后再试。\n端点: {url}").format(url=_lb["base_url"]))
+                return
             import ollama_agent
             ok = ollama_agent.ensure_ollama()
             if ok:
@@ -2367,13 +2455,23 @@ if __name__ == "__main__":
         except SystemExit:
             pass
         sys.exit(0)
-    # 打开 GUI 时按需拉起 ollama(不在开机自启常驻)
+    # 打开 GUI 时按需拉起 ollama(不在开机自启常驻);
+    # v2.1.1:OpenAI 兼容引擎无权重启,只探测并提示用户手动打开对应服务
     try:
-        import ollama_agent
-        ok = ollama_agent.ensure_ollama()
-        if not ok:
-            import tkinter.messagebox as _mb
-            _mb.showwarning(_t("鸣鸟 · 本地 AI 助手"), _t("未能自动启动 ollama,请先手动运行 ollama serve。"))
+        if appconfig.backend_openai():
+            import ollama_agent
+            if not ollama_agent.probe_openai_backend():
+                import tkinter.messagebox as _mb
+                _lb = appconfig.backend_openai()
+                _mb.showwarning(_t("鸣鸟 · 本地 AI 助手"),
+                                _t("OpenAI 兼容引擎未就绪:{url}\n请先启动 LM Studio / llama.app / llama-server。")
+                                .format(url=_lb["base_url"]))
+        else:
+            import ollama_agent
+            ok = ollama_agent.ensure_ollama()
+            if not ok:
+                import tkinter.messagebox as _mb
+                _mb.showwarning(_t("鸣鸟 · 本地 AI 助手"), _t("未能自动启动 ollama,请先手动运行 ollama serve。"))
     except Exception:
         pass
     if _HAVE_DND:

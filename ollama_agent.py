@@ -14,7 +14,11 @@
                     显式设置含 0 则按设置下发)
   AGENT_NUMPREDICT  输出上限(默认 8192)
   AGENT_THINK       思考三态:未设置=不带 think 字段(ollama 出厂默认,thinking
-                    模型默认开);1=显式开;0=显式关
+                    模型默认开);1=显式开;0=显式关(仅 Ollama 引擎;OpenAI 兼容
+                    引擎的思考由服务端 reasoning 解析器决定,v2.1.1)
+  本地引擎          config.json local_backend 段:{} 或 {"type":"ollama"}=默认;
+                    {"type":"openai","base_url":...}=LM Studio/llama.app/
+                    llama-server/Jan/vLLM 等 OpenAI 兼容本地服务(v2.1.1)
   AGENT_SYSTEM_FILE 自定义系统提示文件路径
 
 用法:
@@ -1923,7 +1927,10 @@ _THINK_CAP_CACHE = {}   # model -> True/False/None(探测失败);进程内缓存
 
 def _model_can_think(model):
     """查模型是否具备 thinking 能力(/api/show capabilities)。探测失败返回 None(未知)。
-    v1.7.0 起不再参与载荷构造(三态思考显式下发 + 400 去参重试兜底),保留供诊断/测试。"""
+    v1.7.0 起不再参与载荷构造(三态思考显式下发 + 400 去参重试兜底),保留供诊断/测试。
+    v2.1.1:OpenAI 兼容引擎无 /api/show,思考能力由服务端决定 → 直接未知。"""
+    if appconfig.backend_openai():
+        return None
     if model not in _THINK_CAP_CACHE:
         try:
             req = urllib.request.Request(f"{appconfig.ollama_host()}/api/show",
@@ -2022,6 +2029,219 @@ def _call_cloud(cloud, model, messages, tools, stream, on_token, on_think):
             on_think(rc)
     return res
 
+# ---------------- v2.1.1 OpenAI 兼容本地引擎(LM Studio / llama.app / llama-server / Jan / vLLM) ----------------
+# llama.app(llama.cpp 官方桌面应用)本地服务在 :9931/v1、LM Studio 在 :1234/v1、
+# llama-server 在 :8080/v1,全部说 OpenAI 协议 → 一个自定义 base_url 全覆盖。
+_THINK_TAG_RE = re.compile(r"<think>(.*?)</think>", re.S)
+
+def _split_inline_thinking(content):
+    """非流式:把混在 content 里的 <think>...</think> 剥出来。服务端没配 reasoning
+    解析器时 Qwen 系就这样吐。返回 (正文, 思考)。未闭合的尾随 <think> 整段算思考
+    (输出被 max_tokens 截断时的形态)。"""
+    if not content or "<think>" not in content:
+        return content or "", ""
+    thinks = _THINK_TAG_RE.findall(content)
+    body = _THINK_TAG_RE.sub("", content)
+    if "<think>" in body:                       # 残留 = 未闭合的开标签
+        _pre, _, _post = body.partition("<think>")
+        thinks.append(_post)
+        body = _pre
+    return body.strip(), "".join(thinks).strip()
+
+class _InlineThinkSplitter:
+    """流式版行内 <think> 分流器。开标签未闭合期间扣住正文回调,闭合后整段转
+    思考通道,保证 GUI 正文流不闪现思考文本;跨 chunk 撕裂的半个标签
+    ("<th"+"ink>")扣在缓冲里等下一个 chunk 再判。"""
+    def __init__(self):
+        self._buf = ""
+        self._in_think = False
+
+    @staticmethod
+    def _hold(buf, tag):
+        """buf 尾部有多少字符可能是撕裂标签的前缀(须扣住不下发)。"""
+        for k in range(min(len(tag) - 1, len(buf)), 0, -1):
+            if tag.startswith(buf[-k:]):
+                return k
+        return 0
+
+    def feed(self, s):
+        """吃一个增量,返回 (正文增量, 思考增量)。"""
+        self._buf += s
+        body, think = [], []
+        while True:
+            tag = "</think>" if self._in_think else "<think>"
+            i = self._buf.find(tag)
+            if i >= 0:
+                (think if self._in_think else body).append(self._buf[:i])
+                self._buf = self._buf[i + len(tag):]
+                self._in_think = not self._in_think
+                continue
+            h = self._hold(self._buf, tag)
+            (think if self._in_think else body).append(self._buf[:len(self._buf) - h])
+            self._buf = self._buf[len(self._buf) - h:] if h else ""
+            return "".join(body), "".join(think)
+
+    def finish(self):
+        """流结束:剩余缓冲归位(未闭合的思考整段算思考;疑似半个标签的尾巴按
+        原文归正文——它本来就不是标签)。"""
+        rest, self._buf = self._buf, ""
+        if self._in_think:
+            self._in_think = False
+            return "", rest
+        return rest, ""
+
+def _openai_normalize_message(msg):
+    """OpenAI chat.completions message → ollama /api/chat 同构形态。
+    工具参数兼容 str/dict 两种回传(标准是 JSON 字符串,LM Studio 偶发已解析对象);
+    解析不了的字符串包成 {"_raw": ...} 保住现场,让工具侧给可纠正的报错。"""
+    om = {"role": "assistant", "content": msg.get("content") or ""}
+    rc = msg.get("reasoning_content") or msg.get("reasoning") or ""
+    body, inline = _split_inline_thinking(om["content"])
+    om["content"] = body
+    _th = ((rc or "") + (inline or "")).strip()
+    if _th:
+        om["thinking"] = _th                # 与本地流式分支同字段名,主循环 3454 行同款读取
+    if msg.get("tool_calls"):
+        tcs = []
+        for tc in msg["tool_calls"]:
+            fn = tc.get("function") or {}
+            _a = fn.get("arguments")
+            if isinstance(_a, str):
+                try:
+                    _a = json.loads(_a) if _a.strip() else {}
+                except Exception:
+                    _a = {"_raw": _a}
+            elif not isinstance(_a, dict):
+                _a = {}
+            tcs.append({"id": tc.get("id"), "type": "function",
+                        "function": {"name": fn.get("name"), "arguments": _a}})
+        om["tool_calls"] = tcs
+    return om
+
+def _openai_tc_args_from_str(s):
+    """流式拼装完成的工具参数字符串 → dict(口径与 _openai_normalize_message 一致)。"""
+    try:
+        return json.loads(s) if s.strip() else {}
+    except Exception:
+        return {"_raw": s}
+
+def _call_openai_local(lb, model, messages, tools, stream, on_token, on_think):
+    """v2.1.1 OpenAI 兼容本地引擎调用;返回结构与 call_chat 本地路径一致。
+    与云端 _call_cloud 的差异(均为实测口径差异,勿"统一"):
+    - api_key 可空:本地服务普遍无鉴权,空 Bearer 头反而会被严格服务判 401;
+    - 不发 enable_thinking:思考由服务端 reasoning 解析器决定,行内 <think> 由
+      分流器兜底剥离;
+    - 真流式 SSE:本地模型首 token 秒级,憋到结尾再吐会退化体验;工具增量按
+      index 拼装(OpenAI 流式口径,参数字符串跨 delta 撕裂)。
+    ollama 专属字段(keep_alive/num_ctx/think 三态)不适用,本路径一律不下发;
+    上下文预算仍按 AGENT_CTX 在 harness 侧裁剪(与引擎无关)。"""
+    req = {"model": model,
+           "messages": _cloud_to_openai_messages(messages),
+           "stream": bool(stream)}
+    if NUM_PREDICT and NUM_PREDICT > 0:
+        req["max_tokens"] = NUM_PREDICT       # -1=不限:省略字段用服务端默认
+    if TEMP is not None:
+        req["temperature"] = TEMP
+    if tools:
+        req["tools"] = tools
+        req["tool_choice"] = "auto"
+    headers = {"Content-Type": "application/json"}
+    if lb.get("api_key"):
+        headers["Authorization"] = "Bearer " + lb["api_key"]
+    r = urllib.request.Request(lb["base_url"] + "/chat/completions",
+                               data=json.dumps(req).encode(), headers=headers)
+    if not stream:
+        with urllib.request.urlopen(r, timeout=900) as resp:
+            d = json.loads(resp.read())
+        ch0 = (d.get("choices") or [{}])[0]
+        om = _openai_normalize_message(ch0.get("message") or {})
+        usage = d.get("usage") or {}
+        res = {"model": model,
+               "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+               "message": om, "done": True,
+               "done_reason": ch0.get("finish_reason")
+                              or ("tool_calls" if om.get("tool_calls") else "stop"),
+               "prompt_eval_count": usage.get("prompt_tokens"),
+               "eval_count": usage.get("completion_tokens")}
+        if om["content"] and on_token:
+            on_token(om["content"])
+        if om.get("thinking") and on_think:
+            on_think(om["thinking"])
+        return res
+    # 流式:SSE data: 行
+    parts, thinks = [], []
+    splitter = _InlineThinkSplitter()
+    tc_acc = {}                               # index -> {"id","name","args"}
+    usage = {}
+    with urllib.request.urlopen(r, timeout=API_TIMEOUT_OPEN) as resp:
+        for raw in resp:
+            line = raw.decode("utf-8", "replace").strip()
+            if not line.startswith("data:"):
+                continue
+            payload = line[5:].strip()
+            if payload == "[DONE]":
+                break
+            try:
+                chunk = json.loads(payload)
+            except Exception:
+                continue
+            if chunk.get("usage"):
+                usage.update(chunk["usage"])
+            for ch in chunk.get("choices") or []:
+                delta = ch.get("delta") or {}
+                c = delta.get("content")
+                if c:
+                    b_inc, t_inc = splitter.feed(c)
+                    if b_inc:
+                        if on_token: on_token(b_inc)
+                        parts.append(b_inc)
+                    if t_inc:
+                        if on_think: on_think(t_inc)
+                        thinks.append(t_inc)
+                rc = delta.get("reasoning_content") or delta.get("reasoning")
+                if rc:
+                    if on_think: on_think(rc)
+                    thinks.append(rc)
+                for dtc in delta.get("tool_calls") or []:
+                    a = tc_acc.setdefault(dtc.get("index", 0),
+                                          {"id": None, "name": "", "args": ""})
+                    if dtc.get("id"):
+                        a["id"] = dtc["id"]
+                    fn = dtc.get("function") or {}
+                    if fn.get("name"):
+                        a["name"] += fn["name"]
+                    if fn.get("arguments"):
+                        a["args"] += fn["arguments"]
+    b_fin, t_fin = splitter.finish()
+    if b_fin:
+        parts.append(b_fin)
+    if t_fin:
+        thinks.append(t_fin)
+    m = {"role": "assistant", "content": "".join(parts)}
+    if thinks:
+        m["thinking"] = "".join(thinks)
+    if tc_acc:
+        m["tool_calls"] = [
+            {"id": tc_acc[i]["id"], "type": "function",
+             "function": {"name": tc_acc[i]["name"],
+                          "arguments": _openai_tc_args_from_str(tc_acc[i]["args"])}}
+            for i in sorted(tc_acc)]
+    return {"model": model, "message": m,
+            "prompt_eval_count": usage.get("prompt_tokens"),
+            "eval_count": usage.get("completion_tokens")}
+
+def probe_openai_backend(lb=None, timeout=3):
+    """探测 OpenAI 兼容引擎是否就绪(GET /models)。启动自检/报错文案用。"""
+    import urllib.request as _ur
+    lb = lb or appconfig.backend_openai()
+    if not lb:
+        return False
+    try:
+        _ur.urlopen(lb["base_url"] + "/models", timeout=timeout)
+        return True
+    except Exception:
+        return False
+
 def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None, on_think=None):
     """调用 ollama /api/chat。stream=True 时逐 token 回调(on_token=回答, on_think=思考),
     返回结构与非流式一致(message.content / tool_calls / prompt_eval_count / eval_count)。
@@ -2030,6 +2250,9 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
     _cloud = appconfig.cloud_provider()
     if _cloud:
         return _call_cloud(_cloud, model, messages, tools, stream, on_token, on_think)
+    _lb = appconfig.backend_openai()
+    if _lb:
+        return _call_openai_local(_lb, model, messages, tools, stream, on_token, on_think)
     # 三态温度:未设置 → options 完全不带 temperature 字段(ollama 用模型 manifest
     # 烤入值/默认);显式设置(含 0)→ 按设置下发。
     _opts = {"num_ctx":ctx,"num_predict":NUM_PREDICT}
@@ -2319,7 +2542,13 @@ def main():
     _extra = os.environ.get("AGENT_ALLOW_DIRS", "")
     if _extra:
         _allow_dirs = set(os.path.abspath(d.strip()) for d in _extra.split(";") if d.strip())
-    if not ensure_ollama():
+    if appconfig.backend_openai():
+        # v2.1.1 OpenAI 兼容引擎:拉不起别人的服务,只做就绪探测+人话报错
+        if not probe_openai_backend():
+            _lb = appconfig.backend_openai()
+            print(f"⚠️ OpenAI 兼容引擎未就绪: {_lb['base_url']} — "
+                  f"请先启动 LM Studio / llama.app / llama-server 后重试。", flush=True)
+    elif not ensure_ollama():
         print("⚠️ 未能自动启动 ollama,请手动运行 ollama serve 后重试。", flush=True)
     session = None; interactive = False
     if "--session" in args: session = args[args.index("--session")+1]
@@ -3384,9 +3613,10 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
             except Exception:
                 pass
             fails += 1
-            if _is_500 and fails >= 4 and _restarts < 3:
+            if _is_500 and fails >= 4 and _restarts < 3 and not appconfig.backend_openai():
                 # ★ 治本:连续 ≥4 次 500 = ollama 进程级退化(temp=0 下同消息重走同坏路径,
                 # 压缩/等待都无法逃逸)。重启 ollama 即恢复;检查点机制保证任务不丢。
+                # v2.1.1:OpenAI 兼容引擎(LM Studio 等)我们无权重启,只走常规重试。
                 _restarts += 1
                 print(f"[{i}] 连续 {fails} 次 500 → 判定 ollama 进程退化,自动重启(第 {_restarts}/3 次)...", flush=True)
                 try:

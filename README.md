@@ -33,7 +33,7 @@ Every mechanism comes from "small models can't do X, so the harness does it for 
 | …stay on target in long tasks | delivery self-check gate: before claiming done, it re-reads the original task and verifies its work |
 | …resist destructive impulses | a five-ring safety net catches them (see [Safety](#safety)) |
 
-Nothing is hardcoded: the Ollama address, executable, GPU environment variables, and model aliases are detected at runtime or configured in `~/.ollama_agent/config.json` (see [AGENTS.md](AGENTS.md)). The quality floor is held up by a 482-test regression suite — 435 unit + 26 integration + 21 cases added across v1.9.1/v1.9.2, the prefill zero-growth assertion among them. The suite contains **no live-Ollama end-to-end test**: nothing in it needs a running backend or a network. The benchmark runners under `bench/` and `benchmarks/` are separate programs and are not part of the pytest suite.
+Nothing is hardcoded: the engine, endpoint, GPU environment variables, and model aliases are detected at runtime or configured in `~/.ollama_agent/config.json` (see [AGENTS.md](AGENTS.md)); since v2.1.1 the engine can be Ollama or any OpenAI-compatible local server (LM Studio, llama.app, llama-server, Jan, vLLM). The quality floor is held up by a 539-test regression suite — 435 unit + 26 integration + 78 added since v1.9.1, the prefill zero-growth assertion among them. The suite contains **no live-Ollama end-to-end test**: nothing in it needs a running backend or a network. The benchmark runners under `bench/` and `benchmarks/` are separate programs and are not part of the pytest suite.
 
 ## The problem we set out to solve
 
@@ -50,7 +50,8 @@ This is not a lonely observation. Recent public work points the same way — gua
 - **Voice input out of the box, Chinese & English** — the installer bundles two local STT models (pure CPU, ~20× real time); a 中/EN toggle by the mic; it stops automatically when you stop talking.
 - **Task time-box (off by default)** — type `40` / `1.5h` / `half an hour` into the box, or write "限时 40 分钟" (or "timebox 40 minutes") right in the task description (auto-detected, highest priority); the harness nudges the run to wind down as the deadline approaches. Local-model users care about wall-clock time.
 - **Session memory** — history persists locally; searchable and replayable.
-- **Model auto-detection** — whatever you pulled in Ollama is what you use, up to 256K context.
+- **Multiple local engines** — Ollama is the default (auto-started, keep-alive, thinking tri-state), and any OpenAI-compatible local server works too: pick **LM Studio** (`:1234/v1`), **llama.app** — the official llama.cpp desktop app (`:9931/v1`), **llama-server** (`:8080/v1`) or a custom endpoint in Settings. Streaming, thinking-channel separation (inline `<think>` tags are stripped live, even torn across stream chunks) and tool calls work across engines.
+- **Model auto-detection** — whatever your engine has loaded is what you use, up to 256K context.
 - **Skills & MCP** — 17 built-in skills (11 coding + 6 universal: files, web research, doc digest, Word/Excel, images) load on demand; drop your own .md into `~/.ollama_agent/skills/`; MCP servers are plain JSON config. The bundled Python runtime (`run_python`) backs the office/image skills — no Python or Office install needed.
 - Bilingual UI (English / 中文).
 - **Web UI (experimental)** — the same agent in your browser, local-only, 127.0.0.1 only ([guide](docs/webui.md)).
@@ -92,7 +93,7 @@ Measured on real machines, not estimated:
 | Entry | any iGPU · 16 GB RAM | 2–4B | streaming, near raw-Ollama speed |
 | Base | iGPU or entry-level dGPU · 32 GB RAM | 2–35B | 35B long tasks run end-to-end |
 
-If it runs Ollama, it runs Mingbird. The only thing Mingbird adds to the model is its own static prefill text. And local is not just a speed or cost choice — it is what decides whether your working directory can ever leave this machine.
+If it runs Ollama — or any OpenAI-compatible local server — it runs Mingbird. The only thing Mingbird adds to the model is its own static prefill text. And local is not just a speed or cost choice — it is what decides whether your working directory can ever leave this machine.
 
 ## Getting started
 
@@ -112,11 +113,12 @@ All of them share sessions, skills, MCP servers and settings.
    ollama pull gemma4:e2b      # small and fast
    ollama pull qwen3.5:4b      # 4B, the benchmark workhorse
    ```
+   Already running LM Studio, llama.app or llama-server? Skip Ollama — open Settings (⚙) and pick your engine instead.
 2. Grab the `-EN-Setup.exe` (or `-CN` for the Chinese UI) from the [latest release](https://github.com/Mingbird/Mingbird-agent/releases/latest), install → desktop shortcut.
    Windows may show SmartScreen for an unsigned installer — "More info" → "Run anyway".
 3. Launch, pick a model, hand it work.
 
-Linux & macOS (experimental, CI-built): download the `linux-x64` / `macos-arm64` tarball from [Releases](https://github.com/Mingbird/Mingbird-agent/releases/latest), extract, run `sh install-unix.sh`, launch `~/.local/share/Mingbird/LocalAgent`. Ollama must be installed on that machine.
+Linux & macOS (experimental, CI-built): download the `linux-x64` / `macos-arm64` tarball from [Releases](https://github.com/Mingbird/Mingbird-agent/releases/latest), extract, run `sh install-unix.sh`, launch `~/.local/share/Mingbird/LocalAgent`. Ollama — or any OpenAI-compatible local server — must be installed on that machine.
 
 From source: `python agent_gui.py` (GUI) or `python ollama_agent.py --help` (CLI). Python 3.12 recommended.
 

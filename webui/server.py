@@ -238,9 +238,15 @@ class Handler(BaseHTTPRequestHandler):
             entries = []
             ollama_ok = False
             try:
-                host = appconfig.ollama_host().rstrip("/")
-                r = json.loads(_ur.urlopen(host + "/api/tags", timeout=3).read())
-                entries = r.get("models", [])
+                _lb = appconfig.backend_openai()
+                if _lb:
+                    # v2.1.1 OpenAI 兼容引擎:GET /models(OpenAI 形态)→ 归一成 tags 形态
+                    r = json.loads(_ur.urlopen(_lb["base_url"] + "/models", timeout=3).read())
+                    entries = [{"name": x.get("id")} for x in (r.get("data") or []) if x.get("id")]
+                else:
+                    host = appconfig.ollama_host().rstrip("/")
+                    r = json.loads(_ur.urlopen(host + "/api/tags", timeout=3).read())
+                    entries = r.get("models", [])
                 ollama_ok = True
             except Exception:
                 entries = []

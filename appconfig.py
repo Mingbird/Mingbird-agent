@@ -20,6 +20,12 @@ DEFAULTS = {
     "offline_mode": False,                     # v1.8.0 一键断网:仅本地模型+禁联网工具
     "cloud": {},                               # v1.8.0 云端 provider(OpenAI 兼容):
                                                # {"base_url","api_key","model","enabled"}
+    "local_backend": {},                       # v2.1.1 本地推理引擎:{} 或 {"type":"ollama"}
+                                               # = Ollama(默认,自动拉起/keep_alive/思考三态);
+                                               # {"type":"openai","base_url":...,"api_key":...}
+                                               # = OpenAI 兼容本地服务(LM Studio :1234/v1、
+                                               #   llama.app :9931/v1、llama-server :8080/v1、
+                                               #   Jan/vLLM 等),api_key 可空
 }
 
 _cache = None
@@ -75,6 +81,27 @@ def cloud_provider():
     if not (cfg.get("enabled") and cfg.get("base_url") and cfg.get("model")):
         return {}
     return cfg
+
+def local_backend():
+    """v2.1.1 本地推理引擎配置,归一化后返回:
+    {"type": "ollama"} 或 {"type": "openai", "base_url": ..., "api_key": ...}。
+    openai 型缺/空 base_url → 回落 ollama(不拿残缺配置冒充可用引擎)。"""
+    cfg = load_config().get("local_backend") or {}
+    if isinstance(cfg, dict) and cfg.get("type") == "openai" \
+            and str(cfg.get("base_url") or "").strip():
+        return {"type": "openai",
+                "base_url": str(cfg["base_url"]).strip().rstrip("/"),
+                "api_key": str(cfg.get("api_key") or "")}
+    return {"type": "ollama"}
+
+def backend_openai():
+    """语法糖:当前本地引擎是 OpenAI 兼容服务 → 返回其配置 dict;否则 None。"""
+    lb = local_backend()
+    return lb if lb.get("type") == "openai" else None
+
+def engine_display_name():
+    """状态灯/日志里显示的引擎名(用户可见,不区分 i18n——全是产品名)。"""
+    return "OpenAI 兼容" if backend_openai() else "Ollama"
 
 def ollama_exe():
     """ollama 可执行文件:环境变量 OLLAMA_BIN > config.json > 自动检测。"""

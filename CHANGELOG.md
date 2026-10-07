@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.1 (2026-10-07)
+
+First multi-engine release. Tests: **539 green** (514 + 25 new).
+
+### ✨ New
+- **Local engines beyond Ollama** — any OpenAI-compatible local server can now be the backend: pick **LM Studio** (`:1234/v1`), **llama.app** — the official llama.cpp desktop app (`:9931/v1`), **llama-server** (`:8080/v1`) or a custom endpoint in Settings, with an optional API key. The OpenAI path does true SSE streaming, separates the thinking channel on servers without a reasoning parser (inline `<think>` tags are stripped live, even when torn across stream chunks), and assembles streamed tool calls incrementally. Model listing, the status light, self-healing and the WebUI follow the engine automatically. Ollama stays the default and keeps its exclusive extras (auto-start, keep-alive, the thinking tri-state); the consecutive-500 auto-restart remains Ollama-only, since we can't restart someone else's server from inside the agent.
+- **Syntax leniency, widened to the documented repair set of small-model harnesses** — fenced ` ```json `/` ```tool ` blocks and `<tool_call>` tag shells wrapped around text-form tool calls are now stripped before the existing salvage chain parses them (bare JSON, function expressions and tokenizer placeholder quotes were already covered).
+- **Output limit: 16K, 32K and Unlimited** join the settings dropdown. On Ollama, Unlimited maps to `num_predict: -1`; on OpenAI-compatible endpoints the `max_tokens` field is omitted entirely (negative values have no meaning there, so the server default applies).
+
 ## v2.0.3 (2026-10-07)
 
 Fixes from the first external deep-dive bug report (issue #3 — Fedora/Podman, qwen3.5 2B/4B/9B; reported by @kinosho-ichigo). Tests: 508 green.
