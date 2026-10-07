@@ -115,6 +115,7 @@ def test_finish_visibility_pinned():
     assert "向用户总结成果" in SRC_OA        # 门禁拒绝词要求 summary 总结成果
 
 
+@ pytest_skip_ci
 def test_gui_feed_renders_real_agent_lines():
     """行为级:feed_transcript 吃 agent 实际打印格式([i|+Ns] ⚙ / ✍)必须渲染成
     卡片/气泡——旧正则在这些行上全部失配,finish 完成卡从不出现。"""
@@ -164,6 +165,13 @@ def test_gui_feed_renders_real_agent_lines():
 
 # ================= ③ 思考块按块存档 =================
 
+# v2.0.3:以下两个测试在进程内创建真实 Tk 窗口——GitHub runner 的服务级会话上
+# 原生控件不稳定(曾致 pytest 无 FAILED 行即崩);CI 显式跳过,本地与发版前全量照跑。
+pytest_skip_ci = pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS") == "true",
+                                    reason="真实 Tk 窗口测试不在 CI runner 上跑")
+
+
+@ pytest_skip_ci
 def test_think_blocks_independent_toggle():
     tk = pytest.importorskip("tkinter")
     import agent_gui as G

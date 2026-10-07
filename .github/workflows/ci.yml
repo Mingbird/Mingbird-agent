@@ -40,11 +40,18 @@ jobs:
             cat pytest_out.txt
             echo '</pre>'
           } >> "$GITHUB_STEP_SUMMARY"
-          # 失败行转 ::error 注释:check-runs annotations 走 API 就能读,定位失败
-          # 不再依赖网页日志权限(2026-10-07 v2.0.3 CI 排障实测 GCM token 拉不到日志)
-          grep -E "^(FAILED|ERROR)" pytest_out.txt | head -20 | while IFS= read -r line; do
-            echo "::error title=pytest ${{ matrix.python-version }}::${line}"
-          done
+          # 失败输出转 ::error 注释:check-runs annotations 走 API 就能读,定位失败
+          # 不再依赖网页日志权限。断言失败抓 FAILED/ERROR 行;进程内崩溃(无 FAILED
+          # 行)兜底吐出尾部 15 行——两类死法都能一次定位。
+          if [ "$rc" -ne 0 ]; then
+            {
+              grep -E "^(FAILED|ERROR)|INTERNALERROR|fatal|Windows fatal" pytest_out.txt | head -10
+              echo "--- tail ---"
+              tail -n 15 pytest_out.txt
+            } | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+          fi
           exit $rc
       - name: Syntax check core modules
         run: |
