@@ -54,11 +54,13 @@ def test_probe_stdio_timeout_kills_tree(oa, tmp_path):
     srv.write_text(FAKE_MCP_HANG, encoding="utf-8")
     pidfile = tmp_path / "pid.txt"
     t0 = time.time()
-    # timeout=6:给解释器冷启动(AV 扫描新脚本等)留余量,防杀在 pidfile 写入前
+    # timeout=20:给解释器冷启动留足余量(CI 全新 runner 上首启扫描可达十几秒,
+    # timeout=6 曾出现在杀进程时 pidfile 还没写出来→断言误炸;本测试验证的是
+    # "超时→进程树硬杀",放宽冷启动窗口不改变验证强度)
     r = oa._probe_stdio({"command": sys.executable,
-                         "args": [str(srv), str(pidfile)]}, timeout=6)
+                         "args": [str(srv), str(pidfile)]}, timeout=20)
     assert r is None
-    assert time.time() - t0 < 20
+    assert time.time() - t0 < 35
     # 进程树必须被硬杀:pid 不再存活。
     # (注意:中文 Windows 的 tasklist 输出 GBK,text=True 按 utf-8 解码会让读取
     # 线程崩溃、stdout 变 None——这里用 ctypes OpenProcess 探活,绕开编码坑。)
