@@ -2,7 +2,7 @@
 
 ## v2.0.3 (2026-10-07)
 
-Fixes from the first external deep-dive bug report (issue #3 — Fedora/Podman, qwen3.5 2B/4B/9B). Tests: 508 green.
+Fixes from the first external deep-dive bug report (issue #3 — Fedora/Podman, qwen3.5 2B/4B/9B; reported by @kinosho-ichigo). Tests: 508 green.
 
 ### 🔧 Fixes
 - **Finish gates now tell the agent where the workspace is**: models guessed "the workspace" was the home directory or a hallucinated `/workspace`, wrote artifacts there, and looped forever against the artifact gate. Every finish-gate rejection now includes the absolute workspace path and a relative-path template.
