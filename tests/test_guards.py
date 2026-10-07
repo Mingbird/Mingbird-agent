@@ -727,6 +727,27 @@ def test_parse_placeholder_quote_finish(oa):
         ("finish", {"summary": "Task aborted: source file missing."})]
 
 
+# ---- 围栏/标签壳剥离(2026-10-07 补,社区问 little-coder 语法宽容时对齐) ----
+
+def test_parse_fenced_json_shell(oa):
+    # 调用被包进 ```json 围栏:剥壳后按裸 JSON 解析
+    raw = '```json\n{"name": "create_file", "arguments": {"path": "a.py", "content": "x"}}\n```'
+    assert oa.try_parse_tool_calls(raw) == [
+        ("create_file", {"path": "a.py", "content": "x"})]
+
+
+def test_parse_tool_call_tag_shell(oa):
+    # HuggingFace 风格 <tool_call> 标签壳:剥壳后按裸 JSON 解析
+    raw = '<tool_call>\n{"create_file": {"path": "b.md", "content": "y"}}\n</tool_call>'
+    assert oa.try_parse_tool_calls(raw) == [
+        ("create_file", {"path": "b.md", "content": "y"})]
+
+
+def test_parse_plain_prose_not_salvaged(oa):
+    # 普通正文不许被误抢救:没有壳、没有 JSON、没有函数式 → None
+    assert oa.try_parse_tool_calls("我先看一下目录结构再继续。") is None
+
+
 def test_parse_placeholder_quote_with_prose_prefix(oa):
     raw = ('I have already completed the task.\n\n'
            'finish(summary:<|"|>Task already completed: no input.<|"|>)')

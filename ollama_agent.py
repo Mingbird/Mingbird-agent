@@ -2662,8 +2662,20 @@ def try_parse_tool_calls(content):
           整段函数调用表达式: finish(summary="0")——普通/单引号形态,见
           _parse_func_call_expr(e2b GAIA L1-05 实锤)。归一化成真实调用,走常规门禁
           (假完成/产物核对)给纠正反馈。
+          围栏/标签壳(2026-10-07 补,社区问 little-coder 语法宽容时对齐):调用被
+          包进 ```json 围栏或 <tool_call> 标签时先剥壳再解析(多块围栏取首个——
+          多块泄漏在本地 288 格未观测到,不扩展)。
     返回 [(name, args), ...] 或 None。"""
     c = content.strip()
+    if not c.startswith(("{", "[")):
+        if "<tool_call>" in c:
+            _t = re.search(r"<tool_call>\s*(.*?)\s*</tool_call>", c, re.S)
+            if _t:
+                c = _t.group(1).strip()
+        elif "```" in c:
+            _f = re.search(r"```(?:json|tool)?\s*(.*?)\s*```", c, re.S)
+            if _f:
+                c = _f.group(1).strip()
     if c.startswith(("{", "[")):
         try:
             data = json.loads(c)
