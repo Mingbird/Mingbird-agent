@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.1.2 (2026-10-07)
+
+Fixes from issue #4 (Windows installer, no pytest installed; reported by @teaorcoffee96). Tests: **552 green** (540 + 12 new).
+
+### 🔧 Fixes
+- **The test guard no longer assumes pytest exists**: the finish gate runs the suite itself when `test_*.py` is present; the old code ran `python -m pytest -q` unconditionally — on machines without pytest, `No module named pytest` (exit 1) was treated as "tests failed", and the hardcoded rejection sent small models into a spin trying to make pytest work. Now a three-step degradation: pytest → if the output/exit code shows the environment lacks it, fall back to `python -m unittest discover` (stdlib) → if even python is unavailable, skip the guard (cannot-verify ≠ tests-failed; the other gates still apply).
+- **Verdicts read stdout + stderr merged** — the missing-module error goes to stderr, so the "precise failure" line was always empty.
+- **The rejection names environment-appropriate alternatives and discloses the strike counter** ("no pytest? use `python -m unittest` or `python test_xxx.py`; rejection X of 3 — finish passes after the third"). The counter now only increments on an actual failed verdict.
+- **A pytest timeout no longer crashes the harness** — the old code dereferenced the result object after a timeout (a fourth latent bug the report surfaced).
+- **GUI think-marker click crash made argument-tolerant** (`_think_freeze` lambda raising `missing 1 required positional argument: 'e'`).
+
 ## v2.1.1 (2026-10-07)
 
 First multi-engine release. Tests: **540 green** (514 + 26 new, incl. a release-face consistency pin that keeps the README version line honest).

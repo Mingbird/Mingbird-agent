@@ -1,5 +1,16 @@
 # 变更日志 (CHANGELOG)
 
+## v2.1.2 (2026-10-07)
+
+来自 issue #4 的修复(Windows 安装包、无 pytest 环境;报告人 @teaorcoffee96)。测试 **552 项全绿**(540 + 12 新增)。
+
+### 🔧 修复
+- **测试守护不再假定环境有 pytest**:finish 门在目录有 test_*.py 时会亲自跑测试,旧版直接 `python -m pytest -q`——没装 pytest 的机器上 `No module named pytest`(exit 1)被当成"测试未通过"拒绝 finish,拒绝词又把路指死在 pytest,小模型为"让 pytest 可用"烧光预算。现在三段降级:pytest → 输出/退出码表明缺件时回退 `python -m unittest discover`(标准库)→ 连 python 都不可用则跳过守护(不可验证 ≠ 测试失败,其余门禁照常)。
+- **判定读 stdout+stderr 合流**:缺件报错走 stderr,旧版只读 stdout 导致"精确失败"恒为空,模型拿不到任何线索。
+- **拒绝词给出环境可用的替代路径并披露次数上限**:"环境没有 pytest 就用 python -m unittest 或直接 python test_xxx.py;第 X/3 次拒绝,满 3 次后 finish 将放行"。计数也改为只在真失败时消耗(旧版验证通过也烧预算)。
+- **守护内 pytest 超时不再崩 harness**:旧版超时后仍取返回码对象,AttributeError 直接崩;现在按"超时"口径如实报告(报告人未踩到的第四处隐患)。
+- **GUI 思考标记点击崩溃容错**:`_think_freeze` 的点击 lambda 被零参调用时报 `missing 1 required positional argument: 'e'`,已做参数容错。
+
 ## v2.1.1 (2026-10-07)
 
 首个多引擎版本。测试 **540 项全绿**（514 + 26 新增,含一条"README 版本行与 VERSION 文件一致"的发布面钉子,防止再漏改）。
