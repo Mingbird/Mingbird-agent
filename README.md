@@ -8,7 +8,7 @@
 >
 > You've been told local models need a big discrete GPU. On an ordinary laptop — integrated graphics, 16–32 GB of RAM — the same 2–9B models that stall in cloud-style frameworks deliver finished artifacts here, because the failures you have seen are harness defects, not model defects. Measured end to end; all 288 cells public.
 
-Current release **v2.0.2** · 📄 Paper: [Mingbird: A Local-First Agent Harness Enabling Small Open Models to Complete Real Tasks](https://doi.org/10.48550/arXiv.2610.02001) · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 498 tests
+Current release **v2.0.3** · 📄 Paper: [Mingbird: A Local-First Agent Harness Enabling Small Open Models to Complete Real Tasks](https://doi.org/10.48550/arXiv.2610.02001) · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 508 tests
 
 **English UI (dark theme)**
 
@@ -25,7 +25,7 @@ Every mechanism comes from "small models can't do X, so the harness does it for 
 | Small models can't… | Mingbird does it for them |
 |---|---|
 | …self-debug | the harness runs the tests itself and feeds back exact failures (`file:line` + the original error text) |
-| …edit code safely | every change is auto-backed up (`.bak`); rollback is one command |
+| …edit code safely | every change is auto-backed up (`.bak`, including in-place shell edits like `sed -i`); rollback is one command |
 | …escape tool-demo loops | Q&A/task layering (chat answers once and stops) + signature-level anti-loop with an escalating ladder: nudge → hard reset → graceful exit |
 | …fit all tools in context | flat prefill loads by category; factory prefill is exactly 797 tokens, and CI fails any change that grows it by a single byte |
 | …emit a large file in one call | per-call output cap is 8192 (was 2048); when truncation still bites, the model gets "write the skeleton, then append" chunked feedback instead of an empty-turn spiral |
@@ -197,7 +197,7 @@ Mingbird ships a five-ring safety net, because impulsive uninstalls and blanket 
 | 1 · Irreversible ops refused | `format`, `diskpart`, `vssadmin delete shadows`, `dd` to raw devices, `wsl --unregister`, `dism`, driver uninstall, `userdel` — refused outright |
 | 2 · Behavior tiering | software uninstalls / system environment changes: confirm each while attended, deny by default when unattended (`AGENT_ALLOW_ENV_MUTATION=1` to opt in) |
 | 3 · Boundary confirmation | recursive deletes stay inside the working directory; out-of-bounds refusals come with a per-file way out |
-| 4 · Rollback everywhere | `.bak` before writes; `delete_file` lands in `.mingbird_trash/`; overwriting a large existing file with much shorter content needs an explicit `replace=true` |
+| 4 · Rollback everywhere | `.bak` before writes (built-in tools and in-place shell edits alike); `delete_file` lands in `.mingbird_trash/`; overwriting a large existing file with much shorter content needs an explicit `replace=true` |
 
 Escape hatch: `AGENT_UNSAFE=1` turns the whole net off — at your own risk.
 

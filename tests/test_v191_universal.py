@@ -24,7 +24,7 @@ class TestRunPythonTool(unittest.TestCase):
 
     def test_prefill_budget_unchanged(self):
         msgs = [{"role": "system", "content": A.SYSTEM}]
-        self.assertEqual(A._estimate_messages_tokens(msgs, A.CORE_TOOLS), 846)  # v2.0.0: 797+49(用户主目录注入)
+        self.assertEqual(A._estimate_messages_tokens(msgs, A.CORE_TOOLS), 851)  # v2.0.3: 846+5(todo schema 标 1-based)
 
     def test_hook_cmd_shape(self):
         cmd = A._python_hook_cmd("x.py")

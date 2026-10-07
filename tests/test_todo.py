@@ -132,10 +132,12 @@ class TestTodoTool:
         assert (done, total) == (1, 2)
 
     def test_schema_stays_within_prefill_budget(self):
-        """prefill 硬约束:todo 工具描述 ≤20 token、schema 字段不增(出厂 prefill 净增 0)。
-        all=true / index 数组属于运行时宽容,由 harness 动态消息教,不进 schema。"""
+        """prefill 硬约束:todo 工具描述 ≤22 token、schema 字段不增。
+        v2.0.3 有意放宽 20→22:补 "index is 1-based"(issue #3 实测,三个尺寸的
+        Qwen 都先猜 0-based 烧 5-10 轮;运行时消息教过仍不够,schema 提前一句)。
+        all=true / index 数组仍属运行时宽容,不进 schema。"""
         todo = next(t for t in A.CORE_TOOLS if t["function"]["name"] == "todo")["function"]
-        assert A._estimate_tokens(todo["description"]) <= 20
+        assert A._estimate_tokens(todo["description"]) <= 22
         assert set(todo["parameters"]["properties"]) == {"action", "items", "index", "done"}
         assert todo["parameters"]["properties"]["index"] == {"type": "number"}
 

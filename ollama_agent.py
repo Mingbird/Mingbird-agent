@@ -120,6 +120,9 @@ BASH_TIMEOUT = int(os.environ.get("AGENT_BASH_TIMEOUT", "120"))
 # 新开一个终端框再关闭,任务运行期"一次闪几十个黑框"(2026-10-07 实测反馈)。
 # 所有 spawn 位点必须带 creationflags=NOWIN;POSIX 上 getattr 回退为 0,零影响。
 NOWIN = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+# v2.0.3(issue #3):长会话 20+ 轮后个别环境 ollama 响应极慢,流式打开 240s 不够用;
+# 可用 AGENT_APITIMEOUT 调大(单位秒,默认 240;非流式本就 900s 不动)。
+API_TIMEOUT_OPEN = int(os.environ.get("AGENT_APITIMEOUT", "240"))
 SYSTEM_FILE = os.environ.get("AGENT_SYSTEM_FILE", "")
 STREAM = os.environ.get("AGENT_STREAM") == "1"   # GUI 开流式时置 1
 # 时间预算(秒)。>0 启用"预算节奏提示"(50%/75%/90% 各注入一次收尾导向提示)。
@@ -356,7 +359,7 @@ CORE_TOOLS = [
  _f("edit_file","Find-and-replace text in a file", P(path={"type":"string"},old={"type":"string"},new={"type":"string"}),["path","old","new"]),
  _f("list_dir","List files in a directory", P(path={"type":"string"}),["path"]),
  _f("run_bash","Run a command (cwd=workspace, no cd /workspace)", P(command={"type":"string"}),["command"]),
- _f("todo","Manage the task plan. action: create(plan), update(item done), list", P(action={"type":"string","enum":["create","update","list"]},items={"type":"array","items":{"type":"string"}},index={"type":"number"},done={"type":"boolean"}),["action"]),
+ _f("todo","Manage the task plan. action: create(plan), update(item done; index is 1-based), list", P(action={"type":"string","enum":["create","update","list"]},items={"type":"array","items":{"type":"string"}},index={"type":"number"},done={"type":"boolean"}),["action"]),
  _f("skills","List available skills, or load one by name to follow its instructions", P(action={"type":"string","enum":["list","load"]},name={"type":"string"}),["action"]),
  _f("enable_tools","Enable advanced tools on demand: append_file, delete_file, search_files, web_search, web_fetch, memory_store, memory_recall, mcp_call", P(tools={"type":"array","items":{"type":"string"}}),["tools"]),
  _f("finish","Declare the task complete with a short summary", P(summary={"type":"string"}),["summary"]),
@@ -403,6 +406,11 @@ SYSTEM = SYSTEM.replace(
 # 流程放行。代码里只有占位符,不含任何具体路径。
 SYSTEM = SYSTEM.replace("{USER_HOME}", os.path.expanduser("~") or "~")
 
+# v2.0.3 语言跟随(issue #3):中文系统提示会让 Qwen 系模型在英文任务里跟风输出
+# 中文。AGENT_LANG=en(英文 GUI/CLI 用户)时追加一句强制英文;默认不设=行为不变。
+if os.environ.get("AGENT_LANG", "") == "en":
+    SYSTEM += "\nAlways respond in English — user-facing text, todo items, and summaries."
+
 # 问答模式:聊天级 prefill(根治小模型"加戏"死循环)。
 # 根因:任务向系统提示+全量工具+Continue 注入,把"你好"逼成工具演示死循环。
 # 问答 → 换聊天提示+只读工具,答完即停。
@@ -411,6 +419,9 @@ CHAT_SYSTEM = """你是鸣鸟(Mingbird),本地 AI 助手,正在和用户对话�
 - 普通寒暄/问句,直接回答即可,一句话或几句话都行,不要长篇大论。
 - 只有需要查资料/读文件/搜索时才用工具,其余情况纯粹用文字回答。
 - 回答完就结束,不要重复,不要自我展示,不要说"我能帮你做什么"这类套话。"""
+# v2.0.3 问答模式同款:AGENT_LANG=en 时问答也强制英文(与任务模式 SYSTEM 同步)
+if os.environ.get("AGENT_LANG", "") == "en":
+    CHAT_SYSTEM += "\nAlways respond in English."
 
 # 问答模式可用工具:只读,绝不包含写文件/跑命令(防加戏)
 def _chat_tool_defs():
@@ -1782,6 +1793,9 @@ def run_tool(name, args, workdir, crawl_state=None):
             cmd = re.sub(r"\\+t", "\t", cmd)
             cmd = re.sub(r'\\+"', '"', cmd)
             cmd = re.sub(r"\\+'", "'", cmd)
+            # v2.0.3 shell 改写前置快照(issue #3):sed -i/> 重定向等就地改写
+            # 此前完全绕开 .bak 安全网,执行前把命令点名的既有文件各备一份。
+            _snapped = _bash_snapshot(cmd, workdir)
             # 子进程 UTF-8 内建(GBK 修复):交付版不依赖机器全局 hack(如 sitecustomize),
             # python 子进程的 stdout 编码由这里统一保证,否则含非 ASCII 输出的脚本在
             # GBK 控制台下 UnicodeEncodeError(批次 1 agent-mini 同型环境税的前车之鉴)
@@ -1821,6 +1835,8 @@ def run_tool(name, args, workdir, crawl_state=None):
             rc = proc.returncode
             out = _format_bash_out(rc, out_s or "", err_s or "",
                                    small_model=_SMALL_MODEL_MODE)
+            if _snapped:
+                out += f"\n[已自动备份可回滚: {'、'.join(_snapped)} → 同名.bak]"
             # 常见 Linux 绝对路径幻觉(/workspace /data /tmp 等),给提示
             # 常见 Linux 绝对路径幻觉(/workspace /data /tmp 等),给提示。
             # 仅 Windows 注入:POSIX 上 ls /usr、cat /etc/hosts 是正常命令,
@@ -2038,7 +2054,7 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
     req = _build_request(payload)
     try:
         if stream:
-            resp = urllib.request.urlopen(req, timeout=240)
+            resp = urllib.request.urlopen(req, timeout=API_TIMEOUT_OPEN)
         else:
             return json.loads(urllib.request.urlopen(req, timeout=900).read())
     except Exception as e:
@@ -2049,7 +2065,7 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
         payload.pop("think", None)
         req = _build_request(payload)
         if stream:
-            resp = urllib.request.urlopen(req, timeout=240)
+            resp = urllib.request.urlopen(req, timeout=API_TIMEOUT_OPEN)
         else:
             return json.loads(urllib.request.urlopen(req, timeout=900).read())
     if stream:
@@ -2719,6 +2735,49 @@ def _missing_files_in_text(text, workdir):
 def _claimed_missing_files(summary, workdir):
     """finish 产物核对:summary 声称的文件逐一对照 workdir,返回不存在的。"""
     return _missing_files_in_text(summary, workdir)
+
+
+def _ws_note(workdir):
+    """v2.0.3(issue #3 Critical-1):小模型把"工作区"猜成用户主目录或不存在的
+    /workspace,产物写错地方后 finish 门只说"文件缺失"、不说工作区在哪——模型
+    无处可问,三档模型全部原地打转。拒绝词必须直接给出真实绝对路径。"""
+    return (f"你的工作目录(绝对路径)是 {os.path.abspath(workdir)};"
+            f"所有产物必须写在这个目录内,优先用相对路径(如 create_file(path=\"options.md\"))。")
+
+
+def _bash_snapshot(cmd, workdir):
+    """v2.0.3(issue #3 Critical-2)shell 改写前置快照:edit_file/create_file 自带
+    .bak,但 sed -i / > 重定向 / cp 覆盖等就地改写完全绕开它。命令疑似改写且点名
+    了工作区内既有文件时,先各复制一份 <file>.bak。误报代价=一次多余复制;漏报
+    兜底=delete_file 的 .mingbird_trash 与全程日志。返回备份成功的文件名列表。"""
+    try:
+        low = " " + str(cmd) + " "
+        suspects = ("sed -i", "sed --in-place", ">", ">>", " tee ", "cp ", "mv ",
+                    "truncate ", "dd ", "perl -pi", "python -m fileinput")
+        if not any(s in low for s in suspects):
+            return []
+        import shutil
+        wd_rp = os.path.realpath(workdir)
+        out = []
+        for tok in re.findall(r'[A-Za-z0-9_\-./\\]+\.[A-Za-z0-9]{1,8}', str(cmd)):
+            base = os.path.basename(tok)
+            if base.endswith(".bak") or base.startswith("."):
+                continue
+            try:
+                p = tok if os.path.isabs(tok) else os.path.join(workdir, tok)
+                rp = os.path.realpath(p)
+                if not rp.startswith(wd_rp + os.sep) or not os.path.isfile(rp):
+                    continue
+                shutil.copy2(rp, rp + ".bak")
+                if base not in out:
+                    out.append(base)
+                if len(out) >= 20:
+                    break
+            except Exception:
+                continue
+        return out
+    except Exception:
+        return []
 
 
 def _plan_named_missing(workdir):
@@ -3488,8 +3547,11 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     todo_stale = 0
                 print(f"[{i}|+{int(time.time()-_t0)}s] ⚙ {name} {json.dumps(args,ensure_ascii=False)[:60]} -> {res[:90]}", flush=True)
                 if name=="finish":
-                    # 假完成守护:没做任何实际工作就 finish → 拒绝并强制继续
-                    if not _FG_OFF and not productive_used and fake_finish_warns < 2:
+                    # 假完成守护:没做任何实际工作就 finish → 拒绝并强制继续。
+                    # v2.0.3(issue #3 Medium):正文非空的 finish 不算假完成——分析/
+                    # 问答类任务(读文件→讲解)的交付就是正文本身,产物门槛不该拦它。
+                    if (not _FG_OFF and not productive_used and _semantically_empty(content)
+                            and fake_finish_warns < 2):
                         fake_finish_warns += 1
                         print(f"[{i}] ⚠️ 拒绝假 finish:未使用任何产出型工具(create_file/edit_file/run_bash)", flush=True)
                         # 拒绝消息必须给下一步可执行动作(LH-01 教训):只说"为什么拒"不给
@@ -3497,12 +3559,15 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         # (e2b GAIA L1-05 实锤:两次被拒后 finish(summary="0") 三连撞强收尾)。
                         messages.append({"role":"user","content":
                             "⚠️ 你的 finish 被拒绝:你还没有做任何实际工作(未创建/修改文件或运行命令)。"
-                            "下一步二选一:\n"
+                            "下一步三选一:\n"
                             "1. 若最终答案/交付内容已确定:先用 create_file 把它写成文件"
                             "(任务要求写 answer.txt 时就是: create_file(path=\"answer.txt\", "
                             "content=\"<你的最终答案>\")),然后重新 finish。\n"
                             "2. 若工作尚未完成:继续用工具推进(读写文件、运行命令、搜索),"
-                            "完成后再调用 finish。"})
+                            "完成后再调用 finish。\n"
+                            "3. 若这是分析/讲解类任务、本就不该产出文件:把结论直接作为正文"
+                            "输出给用户(不是放在 summary 里),然后重新 finish。"
+                            + _ws_note(workdir)})
                         messages.append({"role":"tool","content":res})
                         continue
                     # 测试验证守护:目录有 test_*.py 时,harness 亲自跑 pytest,不过则拒绝 finish
@@ -3545,7 +3610,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                 "⚠️ 你的 finish 被拒绝:summary 声称的以下产物在工作目录中不存在:\n"
                                 + "\n".join("- " + f for f in _missing)
                                 + "\n请用 create_file/run_bash 真正生成它们;"
-                                "或修改 summary 只声称确实存在的文件,然后重新 finish。"})
+                                "或修改 summary 只声称确实存在的文件,然后重新 finish。"
+                                + _ws_note(workdir)})
                             messages.append({"role":"tool","content":res})
                             continue
                     # 计划完成度门禁:模型自建计划(todo)里点名要产出的文件,finish 时必须
@@ -3563,7 +3629,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                 + "\n".join("- " + f for f in _p_missing)
                                 + "\n两条路二选一:"
                                 "①用 create_file 真正生成它们;②若计划已不符合实际,"
-                                "用 todo(action=create, items=[与实际一致的新计划]) 重建计划后重新 finish。"})
+                                "用 todo(action=create, items=[与实际一致的新计划]) 重建计划后重新 finish。"
+                                + _ws_note(workdir)})
                             messages.append({"role":"tool","content":res})
                             continue
                     # 计划同步门禁:任务结束前必须把计划与实际进度对齐。否则 UI 的计划面板

@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.0.3 (2026-10-07)
+
+Fixes from the first external deep-dive bug report (issue #3 — Fedora/Podman, qwen3.5 2B/4B/9B). Tests: 508 green.
+
+### 🔧 Fixes
+- **Finish gates now tell the agent where the workspace is**: models guessed "the workspace" was the home directory or a hallucinated `/workspace`, wrote artifacts there, and looped forever against the artifact gate. Every finish-gate rejection now includes the absolute workspace path and a relative-path template.
+- **The `.bak` safety net now covers in-place shell edits**: `sed -i`, `>`/`>>` redirection, `tee`, `cp`/`mv` etc. previously bypassed the backup entirely (only built-in edit tools backed up). Before a mutating command runs, every existing workspace file it names is snapshotted to `<file>.bak`, and the output notes the backup. README wording updated to match reality.
+- **Read-only tasks can finish on their text**: a finish carrying a substantive answer no longer trips the no-artifact guard — analysis/explanation tasks (read → explain) complete on their content. Bare no-work finishes are still rejected, and the rejection now offers the text-delivery path.
+- **`AGENT_LANG=en` forces English responses** (set automatically by the English GUI): the Chinese-first system prompt was causing Qwen models to mirror Chinese in English sessions. Default behavior unchanged.
+
+### ✨ New
+- **`AGENT_APITIMEOUT`** env knob (seconds, default 240) for the streaming-open timeout — heavily loaded boxes with large contexts could exceed it; non-stream calls already had 900 s.
+- **Todo schema declares `index is 1-based`** (+5 prefill tokens, deliberately pinned): all three model sizes guessed 0-based first and burned turns.
+
 ## v2.0.2 (2026-10-07)
 
 Two fixes from v2.0.1 feedback. Tests: 498 green.

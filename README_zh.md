@@ -8,7 +8,7 @@
 >
 > 都说本地模型得配大独显。其实一台普通笔记本——核显、16–32 GB 内存——就够了：那些在云风格框架里跑不动的 2–9B 小模型，在这里能交付完整产物，因为你见过的那些失败是 harness 缺陷，不是模型缺陷。端到端实测，288 格数据全部公开。
 
-当前版本 **v2.0.2** · 📄 论文：[Mingbird: A Local-First Agent Harness Enabling Small Open Models to Complete Real Tasks](https://doi.org/10.48550/arXiv.2610.02001) · 持续维护中（[CHANGELOG](CHANGELOG_zh.md)）· 一键断网模式 · CI 构建 Linux/macOS 产物 · 498 项测试
+当前版本 **v2.0.3** · 📄 论文：[Mingbird: A Local-First Agent Harness Enabling Small Open Models to Complete Real Tasks](https://doi.org/10.48550/arXiv.2610.02001) · 持续维护中（[CHANGELOG](CHANGELOG_zh.md)）· 一键断网模式 · CI 构建 Linux/macOS 产物 · 508 项测试
 
 **中文界面（浅色主题）**
 
@@ -25,7 +25,7 @@
 | 小模型做不到… | 鸣鸟替它做 |
 |---|---|
 | …自我调试 | harness 亲自跑测试，回喂精确失败（`file:line` + 报错原文） |
-| …无风险地改代码 | 每次改动自动备份（`.bak`），一条命令回滚 |
+| …无风险地改代码 | 每次改动自动备份（`.bak`，含 `sed -i`/`>` 等 shell 就地改写），一条命令回滚 |
 | …跳出工具演示循环 | 问答/任务分层（聊天答完即停）+ 签名级反循环梯队：纠正 → 硬复位 → 优雅退出 |
 | …把工具塞进上下文 | 扁平 prefill 按类别装载：出厂 prefill 恰为 797 token，任何净增一个字节的改动都会让 CI 挂掉 |
 | …一次输出整个大文件 | 单次调用输出上限 8192（原 2048）；仍被截断时改给"先写骨架、再追加"的分块反馈，不再陷入空转循环 |
@@ -168,7 +168,7 @@ netstat -ano | findstr <pid>   # <pid> = agent 的 python 进程
 | 环1 · 不可逆操作直接拒绝 | `format`、`diskpart`、`vssadmin delete shadows`、`dd` 裸设备、`wsl --unregister`、`dism`、驱动卸载、`userdel`——无条件拒绝 |
 | 环2 · 行为分级 | 卸载软件/系统环境变更：有人值守逐条确认，无人值守默认拒绝（`AGENT_ALLOW_ENV_MUTATION=1` 放行） |
 | 环3 · 边界确认 | 递归删除限工作目录内；越界拒绝并给逐文件出路 |
-| 环4 · 可回滚 | 写前 `.bak`；`delete_file` 落 `.mingbird_trash/`；短内容覆盖既有大文件需显式 `replace=true` |
+| 环4 · 可回滚 | 写前 `.bak`（内置工具与 shell 就地改写都覆盖）；`delete_file` 落 `.mingbird_trash/`；短内容覆盖既有大文件需显式 `replace=true` |
 
 逃生口：`AGENT_UNSAFE=1` 全关——风险自担。
 

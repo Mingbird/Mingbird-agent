@@ -165,9 +165,10 @@ def test_shotgun_hint_is_actionable_not_disable(oa):
 # ---- agent_loop 接线:脚本化驱动(假 call_chat/run_tool,无网络无模型) ----
 
 def _scripted_loop(oa, workdir, calls, task="修复 m08.py 里的 bug,并运行测试验证。", model="gemma4:12b",
-                   budget_sec=None):
+                   budget_sec=None, finish_content="done"):
     """按脚本驱动 agent_loop。calls=[(name, args, result), ...],脚本用尽后回 finish。
-    返回最终 messages。MCP 探测被短路(不触网)。"""
+    返回最终 messages。MCP 探测被短路(不触网)。finish_content="" 模拟裸 finish
+    (v2.0.3:正文非空的 finish 视为文字交付,假完成门不再拦——测门必须用空正文)。"""
     saved = (oa.call_chat, oa.run_tool, oa.mcp_manifest, oa.mcp_tool_defs)
     saved_tools = (list(oa._active_tools), set(oa._disabled_tools))  # 模块级全局快照
     it = {"i": 0}
@@ -178,7 +179,7 @@ def _scripted_loop(oa, workdir, calls, task="修复 m08.py 里的 bug,并运行�
             name, args, _ = calls[k]
             return {"message": {"content": "", "tool_calls": [{"function": {"name": name, "arguments": args}}]},
                     "prompt_eval_count": 500}
-        return {"message": {"content": "done", "tool_calls": [
+        return {"message": {"content": finish_content, "tool_calls": [
                     {"function": {"name": "finish", "arguments": {"summary": "all done"}}}]},
                 "prompt_eval_count": 500}
 
@@ -928,15 +929,26 @@ def test_parse_placeholder_still_preferred_over_func_expr(oa):
 # ---- 假完成门禁拒绝消息带下一步可执行动作(LH-01 原则落实) ----
 
 def test_wiring_fake_finish_rejection_carries_next_action(oa, tmp_path):
-    # 脚本只发 finish(零实际工作)→ 被拒;拒绝消息必须给可执行的下一步
-    msgs = _scripted_loop(oa, str(tmp_path), [])
+    # 脚本只发裸 finish(零实际工作、无正文)→ 被拒;拒绝消息必须给可执行的下一步
+    # v2.0.3:正文非空的 finish 是合法文字交付不再拦,所以这里显式用空正文
+    msgs = _scripted_loop(oa, str(tmp_path), [], finish_content="")
     rejects = [m for m in msgs if m.get("role") == "user"
                and "finish 被拒绝" in str(m.get("content", ""))]
     assert len(rejects) >= 1
     c = rejects[0]["content"]
-    assert "下一步二选一" in c
+    assert "下一步三选一" in c
     assert "create_file" in c and "answer.txt" in c   # 具体交付路径模板
     assert "继续用工具推进" in c                        # 未完成时的出路
+    assert "分析/讲解类任务" in c                       # 只读任务的文字交付出路
+    assert str(tmp_path) in c                           # v2.0.3:拒绝词带绝对工作目录
+
+
+def test_wiring_fake_finish_allows_text_delivery(oa, tmp_path):
+    # v2.0.3(issue #3):读文件→讲解类任务零产出型工具,但正文写清了结论 → 放行
+    msgs = _scripted_loop(oa, str(tmp_path), [], finish_content="变量逐条解释如下:…")
+    rejects = [m for m in msgs if m.get("role") == "user"
+               and "finish 被拒绝" in str(m.get("content", ""))]
+    assert not rejects
 
 
 # ---- research_streak 签名级化(GAIA L1-04 误伤修复):新查询=推进,重复指纹才计数 ----
