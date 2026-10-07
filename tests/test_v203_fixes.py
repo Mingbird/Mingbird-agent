@@ -5,6 +5,7 @@
   绕开 .bak 安全网的大洞) ③todo schema 标注 index 1-based ④AGENT_LANG=en →
   强制英文应答(中文系统提示会让 Qwen 跟风输出中文) ⑤只读分析任务正文即交付
   (假 finish 门不再拦) ⑥AGENT_APITIMEOUT 超时旋钮。不联网、不调 ollama。"""
+import json
 import os
 import subprocess
 import sys
@@ -16,6 +17,7 @@ import ollama_agent as A
 
 _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC_OA = open(os.path.join(_HERE, "ollama_agent.py"), encoding="utf-8").read()
+SRC_GUI = open(os.path.join(_HERE, "agent_gui.py"), encoding="utf-8").read()
 
 
 @pytest.fixture
