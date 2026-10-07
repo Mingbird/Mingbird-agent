@@ -22,6 +22,11 @@ _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC_OA = open(os.path.join(_HERE, "ollama_agent.py"), encoding="utf-8").read()
 SRC_GUI = open(os.path.join(_HERE, "agent_gui.py"), encoding="utf-8").read()
 
+# v2.0.3:以下两个测试在进程内创建真实 Tk 窗口——GitHub runner 的服务级会话上
+# 原生控件不稳定(曾致 pytest 无 FAILED 行即崩);CI 显式跳过,本地与发版前全量照跑。
+pytest_skip_ci = pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS") == "true",
+                                    reason="真实 Tk 窗口测试不在 CI runner 上跑")
+
 
 @pytest.fixture
 def oa():
@@ -164,12 +169,6 @@ def test_gui_feed_renders_real_agent_lines():
 
 
 # ================= ③ 思考块按块存档 =================
-
-# v2.0.3:以下两个测试在进程内创建真实 Tk 窗口——GitHub runner 的服务级会话上
-# 原生控件不稳定(曾致 pytest 无 FAILED 行即崩);CI 显式跳过,本地与发版前全量照跑。
-pytest_skip_ci = pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS") == "true",
-                                    reason="真实 Tk 窗口测试不在 CI runner 上跑")
-
 
 @ pytest_skip_ci
 def test_think_blocks_independent_toggle():
