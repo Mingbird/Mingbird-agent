@@ -370,13 +370,17 @@ class TestChildModeInstall:
             assert kw not in blob, kw
 
     def test_prefill_budget_zero_delta(self):
-        """出厂 prefill 净增 token 必须为已知值(851 token = SYSTEM + CORE_TOOLS)。
+        """出厂 prefill 净增 token 必须为已知值(849 token = SYSTEM + CORE_TOOLS)。
         任何对 SYSTEM/CORE_TOOLS 的改动都会使此测试失败 —— 必须是有意为之。
-        851 = 846 + 5(v2.0.3 todo schema 标注 index 1-based,issue #3:三个尺寸的
+        计量口径:先把运行时注入的真实主目录还原成 {USER_HOME} 占位符再估算——
+        v2.0.0 起主目录写进 SYSTEM,各地机器路径长短不同曾让 CI 恒 854 本机 851
+        (2026-10-07 CI 排障实锤);还原后才量的是"出厂常量",跨机器可复现。
+        849 = 846 + 5(v2.0.3 todo schema 标注 index 1-based,issue #3:三个尺寸的
         Qwen 都先猜 0-based,5-10 轮才摸到合法区间;schema 里提前一句省掉这些轮次)。
-        846 = 797 + 49(v2.0.0 用户主目录注入(压缩措辞):小模型不知道真实主目录,用户说"存到桌面"
-        就在工作区里造假 Desktop/;注入 {USER_HOME} 运行时替换,工作区外指定路径全部
-        可拼真实绝对路径,越界确认放行)。"""
+        846 = 797 + 49(v2.0.0 用户主目录注入(压缩措辞):小模型不知道真实主目录,
+        用户说"存到桌面"就在工作区里造假 Desktop/;运行时替换,越界确认放行)。"""
         import ollama_agent as A
-        msgs = [{"role": "system", "content": A.SYSTEM}]
-        assert A._estimate_messages_tokens(msgs, A.CORE_TOOLS) == 851
+        _home = os.path.expanduser("~") or "~"
+        msgs = [{"role": "system",
+                 "content": A.SYSTEM.replace(_home, "{USER_HOME}")}]
+        assert A._estimate_messages_tokens(msgs, A.CORE_TOOLS) == 849

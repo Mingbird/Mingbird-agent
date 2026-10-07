@@ -23,8 +23,11 @@ class TestRunPythonTool(unittest.TestCase):
         self.assertNotIn("run_python", A._BASE_TOOLS)
 
     def test_prefill_budget_unchanged(self):
-        msgs = [{"role": "system", "content": A.SYSTEM}]
-        self.assertEqual(A._estimate_messages_tokens(msgs, A.CORE_TOOLS), 851)  # v2.0.3: 846+5(todo schema 标 1-based)
+        # 还原运行时注入的真实主目录再估算(占位符口径=出厂常量,跨机器可复现;
+        # v2.0.0 起主目录在 SYSTEM 里,CI runner 的长路径曾让钉子恒差 3 token)
+        _home = os.path.expanduser("~") or "~"
+        msgs = [{"role": "system", "content": A.SYSTEM.replace(_home, "{USER_HOME}")}]
+        self.assertEqual(A._estimate_messages_tokens(msgs, A.CORE_TOOLS), 849)  # v2.0.3: 844+5(todo schema 标 1-based)
 
     def test_hook_cmd_shape(self):
         cmd = A._python_hook_cmd("x.py")
