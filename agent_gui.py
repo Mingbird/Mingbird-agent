@@ -2185,7 +2185,10 @@ class AgentGUI:
             _t("🤔 思考过程 ({n} 字) — 点击展开/折叠").format(n=len(text)) + "\n",
             ("think_marker", uid))
         self.transcript.tag_bind(uid, "<Button-1>",
-                                 lambda e, u=uid: self._toggle_think(u))
+                                 lambda e=None, u=uid: self._toggle_think(u))
+        # e=None 兜底(issue #4 附报的 GUI 崩溃):有零参调用路径会触发
+        # "missing 1 required positional argument: 'e'"——tag 绑定本身总是
+        # 传 event,但任何其他 dispatch 形态都应无代价容忍。
         return uid
 
     def _collapse_think(self):

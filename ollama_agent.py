@@ -2831,6 +2831,56 @@ def _pytest_hint(output):
         return " | ".join(hint)
     return (lines[-1] if lines else "").strip()[:120]
 
+# ---------------- v2.1.2 测试守护(issue #4:无 pytest 环境误判+空转) ----------------
+_TEST_ENV_ERR_MARKS = (
+    "no module named pytest",      # python 在、pytest 不在(stderr)
+    "is not recognized as",        # Windows cmd:python 不在(exit 9009)
+    "command not found",           # posix sh:python 不在(exit 127)
+)
+
+def _test_env_broken(pr, out):
+    """判定测试运行失败是"环境缺件"还是"测试真没过"。缺件=不可验证,不是失败;
+    pr=None(超时)不算缺件(可能是死循环测试,按失败口径处理)。"""
+    if pr is None:
+        return False
+    if pr.returncode in (127, 9009):
+        return True
+    low = (out or "").lower()
+    return any(m in low for m in _TEST_ENV_ERR_MARKS)
+
+def _run_test_guard(workdir):
+    """finish 门测试守护的执行体。返回 (verdict, hint):
+    verdict ∈ "pass" / "fail" / "skip"(环境不可验证,不拦)。
+    三段降级:python -m pytest → 输出表明缺 pytest/缺 python 时回退
+    python -m unittest(标准库;pytest 风格文件 discover 收 0 用例=exit 0 放行)
+    → 连 python 都不可用则 skip。判定读 stdout+stderr 合流(issue #4:
+    "No module named pytest" 走 stderr,旧版只读 stdout 导致精确失败恒空)。"""
+    def _run(cmd):
+        return subprocess.run(cmd, shell=True, capture_output=True, cwd=workdir,
+                              timeout=300, encoding="utf-8", errors="replace",
+                              creationflags=NOWIN)
+    def _out(pr):
+        return ((pr.stdout or "") + "\n" + (pr.stderr or "")) if pr is not None else ""
+    try:
+        pr = _run("python -m pytest -q")
+    except subprocess.TimeoutExpired:
+        return "fail", "pytest 超时(>300s,可能有死循环或等待输入的测试)"
+    out = _out(pr)
+    if _test_env_broken(pr, out):
+        try:
+            pr = _run('python -m unittest discover -p "test_*.py"')
+        except subprocess.TimeoutExpired:
+            return "fail", "unittest 超时(>300s)"
+        out = _out(pr)
+        if _test_env_broken(pr, out):
+            return "skip", ""            # python 本身不可用:不可验证,不拦
+        if pr.returncode == 0:
+            return "pass", ""
+        return "fail", _pytest_hint(out)
+    if pr.returncode == 0:
+        return "pass", ""
+    return "fail", _pytest_hint(out)
+
 def _is_tool_error(res):
     r = res[:200].lower()
     return any(m in r for m in _FAIL_MARKERS)
@@ -3814,33 +3864,33 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                             + _ws_note(workdir)})
                         messages.append({"role":"tool","content":res})
                         continue
-                    # 测试验证守护:目录有 test_*.py 时,harness 亲自跑 pytest,不过则拒绝 finish
+                    # 测试验证守护:目录有 test_*.py 时,harness 亲自跑测试,不过则拒绝 finish。
+                    # v2.1.2(issue #4):不再假定环境有 pytest——pytest → 缺件回退
+                    # python -m unittest(标准库) → 连 python 都缺则跳过不拦;
+                    # 判定读 stdout+stderr 合流;拒绝词不再把路指死在 pytest,
+                    # 并如实披露 3 次上限(防止小模型为"让 pytest 可用"烧光预算)。
                     if not _FG_OFF and glob.glob(os.path.join(workdir, "test_*.py")) and test_guard_warns < 3:
-                        test_guard_warns += 1
-                        try:
-                            pr = subprocess.run("python -m pytest -q", shell=True,
-                                                capture_output=True, cwd=workdir, timeout=300,
-                                                encoding="utf-8", errors="replace",
-                                                creationflags=NOWIN)
-                        except subprocess.TimeoutExpired:
-                            pr = None
-                        ok = (pr is not None and pr.returncode == 0)
-                        tail = ((pr.stdout or "").strip().splitlines() or [""])[-1][:120]
-                        if not ok:
-                            h = ("pytest 输出末行" if 'verify_feedback' in _ABLATION else _pytest_hint((pr.stdout if pr is not None else "") or ""))
+                        verdict, thint = _run_test_guard(workdir)
+                        if verdict == "skip":
+                            print(f"[{i}] 测试守护跳过:环境无 pytest/python,无法自动验证测试", flush=True)
+                        elif verdict == "fail":
+                            test_guard_warns += 1
+                            h = ("pytest 输出末行" if 'verify_feedback' in _ABLATION else thint)
                             bak_hint = ""
                             if "SyntaxError" in h or "IndentationError" in h:
                                 baks = glob.glob(os.path.join(workdir, "*.py.bak"))
                                 if baks:
                                     bak_hint = (f"检测到语法错误。可用备份回滚:先把对应 .bak 内容恢复"
                                                 f"(如 copy {os.path.basename(baks[0])} 覆盖原文件),或重建文件。\n")
-                            print(f"[{i}] ⚠️ 测试未通过({pr.returncode}),拒绝 finish", flush=True)
+                            print(f"[{i}] ⚠️ 测试未通过,拒绝 finish(第 {test_guard_warns}/3 次,满 3 次后放行)", flush=True)
                             messages.append({"role":"user","content":
-                                f"⚠️ 你的 finish 被拒绝:测试未通过(pytest exit {pr.returncode})。\n"
+                                f"⚠️ 你的 finish 被拒绝:目录里的测试未通过。\n"
                                 f"精确失败: {h}\n"
                                 + bak_hint +
-                                f"请 read_file 查看失败处代码,修复测试与实现使其一致,"
-                                f"运行 python -m pytest -q 确认全绿后再 finish。"})
+                                f"请 read_file 查看失败处代码,修复测试与实现使其一致。"
+                                f"运行方式选环境可用的:python -m pytest -q;"
+                                f"环境没有 pytest 就用 python -m unittest 或直接 python test_xxx.py。"
+                                f"全绿后再 finish(第 {test_guard_warns}/3 次拒绝,满 3 次后 finish 将放行)。"})
                             messages.append({"role":"tool","content":res})
                             continue
                     # 产物核对门禁:finish summary 声称的产物逐一对照 workdir,缺失则拒绝。
