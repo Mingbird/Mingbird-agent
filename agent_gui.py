@@ -238,6 +238,7 @@ def _first_msg_title(msg, limit=15):
 # v1.8.0 一键断网/联网(offline mode):断网=仅本地模型+禁联网工具+禁 url 型 MCP,
 # 零出站(netstat 可验证);联网=本地+搜索+已配置的 MCP/云端 provider。
 _T["任务完成"] = "Task complete"
+_T["不限"] = "Unlimited"
 _T["🌐 联网"] = "🌐 Online"
 _T["🔒 断网"] = "🔒 Offline"
 _T["(本地)"] = "(local)"
@@ -1579,8 +1580,12 @@ class AgentGUI:
         temp.set("" if prefs.get("temp") is None else prefs["temp"]); temp.pack(side="left", padx=6)
         tb.Label(r1, text=_t("留空=用 Ollama 默认"), bootstyle="secondary").pack(side="left")
         tb.Label(r1, text=_t("输出上限:")).pack(side="left")
-        np = tb.Combobox(r1, values=[512, 1024, 2048, 4096, 8192], width=8, state="readonly")
-        np.set(prefs["num_predict"]); np.pack(side="left", padx=6)
+        # v2.0.4:8k 之上补 16k/32k/不限(-1=ollama 无限生成,直到上下文装满;
+        # 云端 provider 无负值语义,发请求时省略 max_tokens 字段)
+        np = tb.Combobox(r1, values=[512, 1024, 2048, 4096, 8192, 16384, 32768, _t("不限")],
+                         width=8, state="readonly")
+        np.set(_t("不限") if prefs["num_predict"] == -1 else prefs["num_predict"])
+        np.pack(side="left", padx=6)
         sys_en = tk.BooleanVar(value=prefs["sys_enable"])
         tb.Checkbutton(body, text=_t("启用自定义系统提示(替代内置,可大幅改造行为)"),
                        variable=sys_en, bootstyle="round-toggle").pack(anchor="w", pady=(8,2))
@@ -1603,7 +1608,10 @@ class AgentGUI:
                     prefs["temp"] = self.prefs.get("temp")
                     self.log_note(_t("温度输入无效,已保留原设置"))
             prefs["ctx"] = int(ctx.get())
-            prefs["num_predict"] = int(np.get()); prefs["sys_enable"] = sys_en.get()
+            # 输出上限:"不限" → -1(ollama 无限生成);数字形态走 int
+            _np_raw = np.get()
+            prefs["num_predict"] = -1 if _np_raw in (_t("不限"), "Unlimited", "-1") else int(_np_raw)
+            prefs["sys_enable"] = sys_en.get()
             prefs["sys_text"] = sys_txt.get("1.0", "end").strip()
             self.prefs.update(prefs)
             if prefs["sys_enable"] and prefs["sys_text"]:

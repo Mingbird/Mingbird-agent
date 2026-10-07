@@ -112,3 +112,63 @@ def test_readonly_finish_passes_fake_gate_condition():
     # 正文非空的 finish 不再被"假完成"门拦:分析/讲解类任务的交付就是正文
     assert "not productive_used and _semantically_empty(content)" in SRC_OA
     assert "分析/讲解类任务" in SRC_OA
+
+
+# ================= ⑦ 输出上限:16k/32k/不限(v2.0.4) =================
+
+def test_output_limit_unlimited_local_payload(oa, monkeypatch):
+    captured = {}
+
+    class FakeResp:
+        def read(self):
+            return json.dumps({"message": {"content": "ok"},
+                               "prompt_eval_count": 1}).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake_urlopen(req, timeout=None):
+        captured["payload"] = json.loads(req.data.decode())
+        return FakeResp()
+
+    monkeypatch.setattr(oa.appconfig, "cloud_provider", lambda: None)
+    monkeypatch.setattr(oa, "NUM_PREDICT", -1)
+    monkeypatch.setattr(oa.urllib.request, "urlopen", fake_urlopen)
+    oa.call_chat("m", [{"role": "user", "content": "hi"}])
+    assert captured["payload"]["options"]["num_predict"] == -1   # ollama:无限生成
+
+
+def test_output_limit_unlimited_cloud_payload_omits_max_tokens(oa, monkeypatch):
+    captured = {}
+
+    class FakeResp:
+        def read(self):
+            return json.dumps({"choices": [{"message": {"content": "ok"}}],
+                               "usage": {}}).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake_urlopen(req, timeout=None):
+        captured["payload"] = json.loads(req.data.decode())
+        return FakeResp()
+
+    monkeypatch.setattr(oa.appconfig, "cloud_provider",
+                        lambda: {"base_url": "https://x/v1", "api_key": "k", "model": "m"})
+    monkeypatch.setattr(oa, "NUM_PREDICT", -1)
+    monkeypatch.setattr(oa.urllib.request, "urlopen", fake_urlopen)
+    oa.call_chat("m", [{"role": "user", "content": "hi"}])
+    # OpenAI 兼容端点无负值语义:"不限"=省略 max_tokens,用 provider 默认
+    assert "max_tokens" not in captured["payload"]
+
+
+def test_output_limit_settings_options_pinned():
+    # 设置面板输出上限:512..32k + 不限(-1)
+    assert "16384, 32768, _t(\"不限\")" in SRC_GUI
+    assert 'prefs["num_predict"] = -1 if _np_raw' in SRC_GUI

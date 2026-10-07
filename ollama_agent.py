@@ -1981,8 +1981,10 @@ def _call_cloud(cloud, model, messages, tools, stream, on_token, on_think):
     offline_mode 已在 appconfig.cloud_provider() 层拦截(断网=本地)。"""
     req = {"model": cloud["model"],
            "messages": _cloud_to_openai_messages(messages),
-           "max_tokens": NUM_PREDICT, "stream": False,
+           "stream": False,
            "enable_thinking": False}          # 云端默认关思考(与本地统一协议一致)
+    if NUM_PREDICT and NUM_PREDICT > 0:
+        req["max_tokens"] = NUM_PREDICT       # -1=不限:OpenAI 兼容端点无负值语义,省略字段用 provider 默认
     if TEMP is not None:
         req["temperature"] = TEMP
     if tools:
