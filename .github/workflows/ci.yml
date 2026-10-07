@@ -25,6 +25,9 @@ jobs:
         run: |
           pip install pytest
           pip install requests beautifulsoup4
+          # v2.0.x 测试面新增:GUI 逻辑测试 import agent_gui(必需 ttkbootstrap);
+          # run_python 环境测试要求 python-docx 可导入。缺这两味 = v2.0.0 起 CI 全红。
+          pip install ttkbootstrap python-docx
       - name: Run unit tests
         shell: bash
         run: |
