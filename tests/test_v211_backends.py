@@ -368,3 +368,24 @@ def test_gui_wiring_pins():
     assert gui.count('_lb["base_url"] + "/models"') >= 2
     wsr = open(os.path.join(here, "webui", "server.py"), encoding="utf-8").read()
     assert '_lb["base_url"] + "/models"' in wsr
+
+
+# ---------------- 发布面一致性钉子 ----------------
+
+def test_readme_release_line_matches_version_file():
+    """v2.1.1 事故:发版后 README 头部 "Current release vX · N tests" 漏改
+    (v2.0.3/508 挂了一天)。钉死:双语 README 的版本号必须与 VERSION 文件一致,
+    测试数与 CHANGELOG 头部口径一致。"""
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ver = open(os.path.join(here, "VERSION"), encoding="utf-8").read().strip()
+    en = open(os.path.join(here, "README.md"), encoding="utf-8").read()
+    zh = open(os.path.join(here, "README_zh.md"), encoding="utf-8").read()
+    assert f"Current release **{ver}**" in en
+    assert f"当前版本 **{ver}**" in zh
+    # 测试数口径:README 尾部数字 == CHANGELOG 最新条目里的数字 == 本套件规模档位
+    import re
+    m = re.search(r"## v[0-9.]+ \([^)]*\).*?(\d+) (?:green|项全绿|tests)",
+                  open(os.path.join(here, "CHANGELOG.md"), encoding="utf-8").read(), re.S)
+    assert m, "CHANGELOG 头部应含测试总数"
+    n = m.group(1)
+    assert f"{n} tests" in en and f"{n} 项测试" in zh

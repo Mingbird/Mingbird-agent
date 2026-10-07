@@ -2,7 +2,7 @@
 
 ## v2.1.1 (2026-10-07)
 
-First multi-engine release. Tests: **539 green** (514 + 25 new).
+First multi-engine release. Tests: **540 green** (514 + 26 new, incl. a release-face consistency pin that keeps the README version line honest).
 
 ### ✨ New
 - **Local engines beyond Ollama** — any OpenAI-compatible local server can now be the backend: pick **LM Studio** (`:1234/v1`), **llama.app** — the official llama.cpp desktop app (`:9931/v1`), **llama-server** (`:8080/v1`) or a custom endpoint in Settings, with an optional API key. The OpenAI path does true SSE streaming, separates the thinking channel on servers without a reasoning parser (inline `<think>` tags are stripped live, even when torn across stream chunks), and assembles streamed tool calls incrementally. Model listing, the status light, self-healing and the WebUI follow the engine automatically. Ollama stays the default and keeps its exclusive extras (auto-start, keep-alive, the thinking tri-state); the consecutive-500 auto-restart remains Ollama-only, since we can't restart someone else's server from inside the agent.
