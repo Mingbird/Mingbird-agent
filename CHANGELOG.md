@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.1.3 (2026-10-07)
+## v2.1.3 (2026-10-09)
 
 Fixes from a user field report (on another machine, an E-drive organizing task — the model kept repeating "working directory is C:\Users\…" and refused to touch E:). Tests: **560 green** (552 + 8 new).
 
