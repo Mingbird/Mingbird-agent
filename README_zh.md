@@ -8,7 +8,7 @@
 >
 > 都说本地模型得配大独显。其实一台普通笔记本——核显、16–32 GB 内存——就够了：那些在云风格框架里跑不动的 2–9B 小模型，在这里能交付完整产物，因为你见过的那些失败是 harness 缺陷，不是模型缺陷。端到端实测，288 格数据全部公开。
 
-当前版本 **v2.1.2** · 📄 论文：[Mingbird: A Local-First Agent Harness Enabling Small Open Models to Complete Real Tasks](https://doi.org/10.48550/arXiv.2610.02001) · 持续维护中（[CHANGELOG](CHANGELOG_zh.md)）· 一键断网模式 · CI 构建 Linux/macOS 产物 · 552 项测试
+当前版本 **v2.1.3** · 📄 论文：[Mingbird: A Local-First Agent Harness Enabling Small Open Models to Complete Real Tasks](https://doi.org/10.48550/arXiv.2610.02001) · 持续维护中（[CHANGELOG](CHANGELOG_zh.md)）· 一键断网模式 · CI 构建 Linux/macOS 产物 · 560 项测试
 
 **中文界面（浅色主题）**
 
@@ -33,7 +33,7 @@
 | …长任务不跑偏 | 交付自查门禁：宣称完成前回读任务原文核对 |
 | …抵住破坏性冲动 | 五环安全网兜住（见[安全](#安全)） |
 
-没有任何东西是写死的：本地引擎、端点、GPU 环境变量、模型别名，全部运行时识别或在 `~/.ollama_agent/config.json` 配置（见 [AGENTS.md](AGENTS.md)）；v2.1.1 起引擎可以是 Ollama 或任何 OpenAI 兼容本地服务（LM Studio、llama.app、llama-server、Jan、vLLM）。质量底线由 552 项回归测试守住——435 项单测 + 26 项集成 + v1.9.1 起新增 91 项，prefill 零增长断言也在其中。这套测试里**没有真调 Ollama 的端到端用例**：不需要任何后端或网络即可跑完。`bench/` 与 `benchmarks/` 下的基准运行器是独立程序，不属于 pytest 套件。
+没有任何东西是写死的：本地引擎、端点、GPU 环境变量、模型别名，全部运行时识别或在 `~/.ollama_agent/config.json` 配置（见 [AGENTS.md](AGENTS.md)）；v2.1.1 起引擎可以是 Ollama 或任何 OpenAI 兼容本地服务（LM Studio、llama.app、llama-server、Jan、vLLM）。质量底线由 560 项回归测试守住——435 项单测 + 26 项集成 + v1.9.1 起新增 99 项，prefill 零增长断言也在其中。这套测试里**没有真调 Ollama 的端到端用例**：不需要任何后端或网络即可跑完。`bench/` 与 `benchmarks/` 下的基准运行器是独立程序，不属于 pytest 套件。
 
 ## 我们要解决的问题
 

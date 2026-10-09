@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.3 (2026-10-07)
+
+Fixes from a user field report (on another machine, an E-drive organizing task — the model kept repeating "working directory is C:\Users\…" and refused to touch E:). Tests: **560 green** (552 + 8 new).
+
+### 🔧 Fixes
+- **The model is now told its actual workspace on every task**: the only absolute path in the static system prompt was the home directory (injected so models can save to Desktop etc.) — the workspace itself was never stated, so small models adopted the home directory as their workspace and refused to leave it. The system prompt now appends "current working directory (all commands and relative paths run under it): <abs path>" dynamically per task; chat mode too. The static prefill is untouched, byte for byte.
+- **The working directory is bound to the conversation**: session metadata records its workdir and the GUI restores it when you load a history conversation; a new chat still resets to the default directory (the workspace belongs to the conversation, not to global preferences).
+### ✨ New
+- **Context-window tiers up to 512K and 1M**: new local models ship native long context — the settings ladder is now 16K/32K/64K/128K/256K/512K/1M.
+
 ## v2.1.2 (2026-10-07)
 
 Fixes from issue #4 (Windows installer, no pytest installed; reported by @teaorcoffee96). Tests: **552 green** (540 + 12 new).
