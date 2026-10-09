@@ -51,7 +51,7 @@ This is not a lonely observation. Recent public work points the same way — gua
 - **Task time-box (off by default)** — type `40` / `1.5h` / `half an hour` into the box, or write "限时 40 分钟" (or "timebox 40 minutes") right in the task description (auto-detected, highest priority); the harness nudges the run to wind down as the deadline approaches. Local-model users care about wall-clock time.
 - **Session memory** — history persists locally; searchable and replayable.
 - **Multiple local engines** — Ollama is the default (auto-started, keep-alive, thinking tri-state), and any OpenAI-compatible local server works too: pick **LM Studio** (`:1234/v1`), **llama.app** — the official llama.cpp desktop app (`:9931/v1`), **llama-server** (`:8080/v1`) or a custom endpoint in Settings. Streaming, thinking-channel separation (inline `<think>` tags are stripped live, even torn across stream chunks) and tool calls work across engines.
-- **Model auto-detection** — whatever your engine has loaded is what you use, up to 256K context.
+- **Model auto-detection** — whatever your engine has loaded is what you use, up to 1M context.
 - **Skills & MCP** — 17 built-in skills (11 coding + 6 universal: files, web research, doc digest, Word/Excel, images) load on demand; drop your own .md into `~/.ollama_agent/skills/`; MCP servers are plain JSON config. The bundled Python runtime (`run_python`) backs the office/image skills — no Python or Office install needed.
 - Bilingual UI (English / 中文).
 - **Web UI (experimental)** — the same agent in your browser, local-only, 127.0.0.1 only ([guide](docs/webui.md)).

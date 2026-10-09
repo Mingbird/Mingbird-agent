@@ -86,3 +86,13 @@ def test_gui_restore_and_reset_pins():
     assert SRC_GUI.count("self.wd_var.set(os.path.join(DEFAULT_TASKS") == 1
     # 不做 GUI 级持久化(工作目录属于会话,不属于 GUI 偏好)
     assert 'self.prefs["workdir"]' not in SRC_GUI
+
+
+# ---------------- 上下文档位扩容(v2.1.3:512K / 1M) ----------------
+
+def test_ctx_tiers_cover_large_models():
+    """新本地模型原生 512K/1M 上下文,档位必须覆盖(v2.1.3 用户点名)。"""
+    assert "524288, 1048576" in SRC_GUI
+    for tier in ("16384", "32768", "65536", "131072", "262144",
+                 "524288", "1048576"):
+        assert tier in SRC_GUI

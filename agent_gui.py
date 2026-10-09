@@ -1626,7 +1626,10 @@ class AgentGUI:
         eng.bind("<<ComboboxSelected>>", _eng_picked)
         r1 = tb.Frame(body); r1.pack(fill="x", pady=2)
         tb.Label(r1, text=_t("上下文窗口:")).pack(side="left")
-        ctx = tb.Combobox(r1, values=[16384, 32768, 65536, 131072, 262144],
+        # v2.1.3:补 512K/1M 档——新本地模型(qwen3.6 等)原生支持更大上下文;
+        # 模型实际低于所选档位时由引擎侧按能力截断/告警,不挡用户选择。
+        ctx = tb.Combobox(r1, values=[16384, 32768, 65536, 131072, 262144,
+                                      524288, 1048576],
                           width=10, state="readonly")
         # v2.0.0 修复:tk 的 values 读回是字符串元组,int 与 str 比较恒不等,
         # 导致每次打开对话框显示值都被重置为 32768、保存时覆盖用户设置
