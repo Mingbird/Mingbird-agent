@@ -252,8 +252,8 @@ def system_prompt():
         base = SYSTEM
     # v2.1.3:任务级动态注入真实工作目录。静态 prefill 里唯一的绝对路径是主目录
     # ({USER_HOME}),而工作目录从未告知模型——小模型直接把主目录当工作区
-    # (2026-10-07 现场实锤:E 盘整理任务里模型复读"工作目录是 C:\Users\…"且拒绝
-    # 越界)。动态行不进 SYSTEM 常量,出厂 prefill 钉子不变。
+    # (2026-10-09 现场实锤:选定非默认工作目录后,模型仍复读主目录当工作区并
+    # 拒绝越界)。动态行不进 SYSTEM 常量,出厂 prefill 钉子不变。
     if _TASK_WORKDIR:
         base += f"\n当前工作目录(所有命令与相对路径都在它之下运行):{_TASK_WORKDIR}"
     return base
