@@ -252,6 +252,8 @@ _T["OpenAI 兼容引擎未就绪:{url}\n请先启动 LM Studio / llama.app / lla
 _T["{eng} ✓(无模型)"] = "{eng} ✓ (no models)"
 _T["{eng} ✗ 未启动"] = "{eng} ✗ not running"
 _T["[ {eng} 离线 — 启动后自动重试 ]"] = "[ {eng} offline — auto-retry once started ]"
+# v2.1.3 会话绑定工作目录
+_T["[已恢复该会话的工作目录: {d}]"] = "[Restored this conversation's workdir: {d}]"
 _T["🌐 联网"] = "🌐 Online"
 _T["🔒 断网"] = "🔒 Offline"
 _T["(本地)"] = "(local)"
@@ -1193,6 +1195,12 @@ class AgentGUI:
             _mt = json.load(open(os.path.join(SESSION_DIR, name + ".meta.json"), encoding="utf-8"))
         except Exception: pass
         self.session_title = str(_mt.get("title", "") or "")
+        # v2.1.3 会话绑定工作目录:载入历史会话时恢复它当时的工作目录
+        # (会话 meta 由 save_session 写入;旧会话无此字段则保持当前目录)。
+        _swd = str(_mt.get("workdir", "") or "")
+        if _swd and os.path.isdir(_swd) and _swd != self.wd_var.get():
+            self.wd_var.set(_swd)
+            self.log_note(_t("[已恢复该会话的工作目录: {d}]").format(d=_swd))
         self.sess_lbl.configure(text=_t("会话:") + (f"{self.session_title}·{name}" if self.session_title else name))
         p = os.path.join(SESSION_DIR, name + ".json")
         try: msgs = json.load(open(p, encoding="utf-8"))

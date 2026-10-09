@@ -239,14 +239,24 @@ def ensure_ollama(timeout=25):
             _t.sleep(0.5)
     return False
 
+_TASK_WORKDIR = None   # v2.1.3:main() 解析出工作目录后填充;system_prompt 据此动态注入
+
 def system_prompt():
     # 子 agent 模式:换最小系统提示(子 agent 会话的局部成本,小模型短任务)。
     # 主 agent 的 SYSTEM 不变 —— 并行派发功能对出厂 prefill 的净增 token = 0。
     if _child_sandbox is not None:
-        return _CHILD_SYSTEM
-    if SYSTEM_FILE and os.path.exists(SYSTEM_FILE):
-        return read_text(SYSTEM_FILE)
-    return SYSTEM
+        base = _CHILD_SYSTEM
+    elif SYSTEM_FILE and os.path.exists(SYSTEM_FILE):
+        base = read_text(SYSTEM_FILE)
+    else:
+        base = SYSTEM
+    # v2.1.3:任务级动态注入真实工作目录。静态 prefill 里唯一的绝对路径是主目录
+    # ({USER_HOME}),而工作目录从未告知模型——小模型直接把主目录当工作区
+    # (2026-10-07 现场实锤:E 盘整理任务里模型复读"工作目录是 C:\Users\…"且拒绝
+    # 越界)。动态行不进 SYSTEM 常量,出厂 prefill 钉子不变。
+    if _TASK_WORKDIR:
+        base += f"\n当前工作目录(所有命令与相对路径都在它之下运行):{_TASK_WORKDIR}"
+    return base
 
 def _decode_console(raw):
     """v2.0.0:子进程输出解码——utf-8 优先,失败回退 GBK(中文 Windows 控制台)。
@@ -2504,8 +2514,13 @@ def save_session(name, msgs, workdir=None):
                     status = "done"; break
             if status == "done": break
         meta = _load_session_meta(name)   # 合并写:外部写入的标题等旧字段不丢(v2.0.1)
-        meta.update({"updated": time.strftime("%Y-%m-%d %H:%M"), "task": task[:200],
-                "status": status, "msgs": len(msgs)})
+        _meta_upd = {"updated": time.strftime("%Y-%m-%d %H:%M"), "task": task[:200],
+                "status": status, "msgs": len(msgs)}
+        # v2.1.3:工作目录随会话保存——GUI 载入历史会话时恢复它(会话绑定工作目录;
+        # 新对话仍回默认目录)。旧会话无此字段,载入时保持当时的目录不动。
+        if workdir:
+            _meta_upd["workdir"] = os.path.abspath(workdir)
+        meta.update(_meta_upd)
         _atomic_write_json(os.path.join(SESSIONS_DIR, name + ".meta.json"), meta)
     except Exception:
         pass
@@ -2593,6 +2608,8 @@ def main():
         workdir = os.path.abspath(workdir)
         os.makedirs(workdir, exist_ok=True)
         os.chdir(workdir)
+        global _TASK_WORKDIR
+        _TASK_WORKDIR = os.path.abspath(workdir)   # v2.1.3:system_prompt/聊天提示动态注入
         # 并行派发的子进程:安装子 agent 安全模型(权限严格小于主 agent,default-deny)
         if os.environ.get("AGENT_CHILD_SANDBOX") == "1":
             install_child_mode(workdir)
@@ -3541,7 +3558,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     repeat_count = 0
     if qa:
         # 问答:换聊天级系统提示(根治:任务向 prefill 是"加戏"死循环的根源)
-        messages = [{"role": "system", "content": CHAT_SYSTEM}] + \
+        _cs = CHAT_SYSTEM + (f"\n当前工作目录:{_TASK_WORKDIR}" if _TASK_WORKDIR else "")
+        messages = [{"role": "system", "content": _cs}] + \
                    [m for m in messages if m.get("role") != "system"]
         cats = None
     else:
