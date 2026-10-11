@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.1.4 (2026-10-09)
+## v2.1.4 (2026-10-11)
 
 Makes history conversations truly resumable — resuming an old chat used to hit context-overflow errors with compaction never firing, and the history you got back was the compacted, mutilated version. Tests: **569 green** (560 + 9 new).
 
