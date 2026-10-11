@@ -2338,17 +2338,18 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
 
 # ---------------- 上下文事前估算 ----------------
 def _estimate_tokens(text):
-    """粗略估算文本 token 数(中文≈1字/token,英文≈4字符/token)。
-    用于 API 调用前判断是否超限,不等 ollama 返回(500 时拿不到用量)。"""
+    """粗略估算文本 token 数。
+    v2.1.4 校准:中文按 ~2 token/字(Qwen 系实测 1.5~2;宁可高估——高估只是提前
+    压缩,低估会放行超限请求→首调 500→错误路径只重试不压缩,续跑大会话直接
+    爆死,2026-10-09 实锤),其他按 ~3 字符/token。"""
     try:
         if not text:
             return 0
-        # 统计 CJK 字符数
         cjk = sum(1 for ch in text if '一' <= ch <= '鿿' or '㐀' <= ch <= '䶿')
         other = len(text) - cjk
-        return cjk + other // 4 + 1
+        return int(cjk * 2 + other / 3) + 1
     except Exception:
-        return len(str(text)) // 4
+        return len(str(text)) // 3
 
 def _estimate_messages_tokens(messages, tools=None):
     """估算消息+工具 schema 的总 token 数。"""
@@ -2422,6 +2423,7 @@ def compact_history(model, messages, level=3, todo_text=None, files_text=None):
                 summary += "\n\n[工作目录已有文件(已完成的产物,不要重复创建)]\n" + files_text
             out = [head, {"role":"user","content":"[先前上下文摘要] " + summary}, *tail]
             print(f"[上下文压缩 L2: {len(messages)} → {len(out)} 条消息]", flush=True)
+            _tl_mark_compacted()   # 转录层:缩短由压缩引起
             return out
         except Exception:
             return messages
@@ -2440,6 +2442,7 @@ def compact_history(model, messages, level=3, todo_text=None, files_text=None):
             summary += "\n\n[工作目录已有文件(已完成的产物,不要重复创建)]\n" + files_text
         out = [head, {"role":"user","content":"[先前上下文摘要] " + summary}, *tail]
         print(f"[上下文压缩 L3: {len(messages)} → {len(out)} 条消息]", flush=True)
+        _tl_mark_compacted()       # 转录层:缩短由压缩引起
         return out
     except Exception:
         return messages
@@ -2486,8 +2489,51 @@ def _merge_session_meta(name, extra):
     except Exception:
         pass
 
+# ---------------- v2.1.4 会话完整转录(与模型上下文解耦) ----------------
+# 压缩/硬复位此前就地改写 messages 且改写后被存盘——用户取回的历史是被截断/
+# 摘要过的残缺版。转录层把"每条消息发生时"原样追加到 <session>.transcript.jsonl,
+# 压缩只作用于模型上下文,GUI 历史从转录渲染。
+_TL_NEXT = 0          # 已写入转录的 messages 游标
+_TL_SESSION = None
+_TL_COMPACTED = False # 最近一次缩短由压缩/复位引起(区别于 dedupe 清理)
+
+def _transcript_flush(session, messages):
+    """把 messages 的新增段实时追加到会话转录文件。三类游标动作:
+    增长→追加新消息;压缩性缩短(带 _TL_COMPACTED 旗标)→补写新摘要(index 1)
+    后对齐;无旗标缩短(dedupe 清掉悬空 assistant)→静默对齐(内容已在转录中)。"""
+    global _TL_NEXT, _TL_SESSION, _TL_COMPACTED
+    if not session or messages is None:
+        return
+    p = os.path.join(SESSIONS_DIR, session + ".transcript.jsonl")
+    try:
+        if _TL_SESSION != session:
+            _TL_SESSION = session
+            # 续跑(转录已存在):已载入消息视为已在转录中;新会话/旧版会话:从零建账
+            _TL_NEXT = len(messages) if os.path.exists(p) else 0
+        if len(messages) > _TL_NEXT:
+            with open(p, "a", encoding="utf-8") as f:
+                for m in messages[_TL_NEXT:]:
+                    f.write(json.dumps(m, ensure_ascii=False) + "\n")
+            _TL_NEXT = len(messages)
+        elif len(messages) < _TL_NEXT:
+            if _TL_COMPACTED and len(messages) > 1:
+                with open(p, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(messages[1], ensure_ascii=False) + "\n")
+            _TL_COMPACTED = False
+            _TL_NEXT = len(messages)
+        else:
+            _TL_COMPACTED = False
+    except Exception:
+        pass
+
+def _tl_mark_compacted():
+    """硬复位/压缩外的一次性缩短标记(供转录层区分缩短原因)。"""
+    global _TL_COMPACTED
+    _TL_COMPACTED = True
+
 def save_session(name, msgs, workdir=None):
     if not name: return
+    _transcript_flush(name, msgs)   # 转录先落盘(上下文 json 与转录同点位保存)
     _atomic_write_json(os.path.join(SESSIONS_DIR, name + ".json"), msgs)
     # v2.0.0 todo 会话绑定:存会话时把当前计划快照到会话目录;GUI 续跑该会话
     # 时写回工作目录。旧版 todo.json 按工作目录共享,恢复老对话会串到别的任务
@@ -3608,6 +3654,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
         t = load_todo(workdir)
         return format_todo_lines(t) if t else None
     for i in range(200):
+        _transcript_flush(session, messages)   # v2.1.4:转录实时落盘(强杀也能取回完整历史)
         if casual_force:
             print("[收尾] 本轮已足够,强制结束(防问答重复/死循环)", flush=True)
             messages.append({"role":"tool","content":"[TASK_COMPLETE] 已回答,结束本轮"})
@@ -3672,6 +3719,23 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         sys.exit(1)
             except Exception:
                 pass
+            # v2.1.4:上下文超限类错误 → 立即强制 L3 压缩,不走退避重试。
+            # 根因链(2026-10-09 续跑大会话实锤):估算低估中文 → 超限请求被放行 →
+            # 首调 500("prompt is too long"类) → 错误路径只重试,pt 永远拿不到 →
+            # 压缩永不触发 → 重试到 8 次退出,用户看到"上下文爆炸且不压缩"。
+            _low = (str(e) + " " + (body or "")).lower()[:600]
+            if any(_k in _low for _k in ("prompt is too long", "too long",
+                                         "exceeds context", "context length",
+                                         "input is too long", "超过上下文",
+                                         "context window")):
+                print(f"[{i}] ⚠️ 上下文超限错误 → 强制 L3 压缩后重试", flush=True)
+                messages = compact_history(model, messages, level=3,
+                                           todo_text=_plan_note(),
+                                           files_text=_workdir_files_text(workdir))
+                _compact_lvl = 3
+                fails = 0
+                time.sleep(1)
+                continue
             # 500 降级重试:连续 500(ollama 资源紧张/超限)时,先触发压缩缩小上下文再重试,
             # 而非纯退避等待。这直接缓解 ollama 压力,减少 500 恢复时间。
             _is_500 = False
@@ -3731,6 +3795,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
         if pt:
             pct = pt * 100 // CTX_BUDGET
             print(f"[ctx: {pt}/{CTX_BUDGET} = {pct}%]", flush=True)
+            if pt < CTX_BUDGET * 0.60:
+                _compact_lvl = 0   # v2.1.4:上下文回落→级别重新武装(长对话二次增长仍可再压)
             # 分层压缩(context-rot:本地模型早退化,分级提前压缩)
             # 60% → L1 截断旧工具输出;75% → L2 摘要早轮次;90% → L3 全量重建
             if pt > CTX_BUDGET * 0.90 and _compact_lvl < 3:
@@ -3807,6 +3873,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                      + "\n请立即改用 create_file 写产出文件推进任务。"}]
                         disabled_recall[name] = 0
                         print(f"[{i}] ⚠️ {name} 被禁用后仍被调用 10 次,硬复位上下文", flush=True)
+                        _tl_mark_compacted()
                         continue
                     res = (f"[tool {name} 已被禁用(连续重复调用保护)。不要尝试用其他工具绕道读同一内容:"
                            f"直接用 create_file 写产出文件,或已有信息足够就调用 finish。]")
@@ -4189,6 +4256,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                  + "\n工作目录已有文件:\n" + _files
                                  + "\n请从第一个未完成的步骤继续,立即用工具推进,不要输出空文本。"}]
                     print(f"[{i}] ⚠️ 连续空轮×6,硬复位上下文(第 {empty_resets}/3 次,累计空轮 {empty_total})", flush=True)
+                    _tl_mark_compacted()
                     continue
                 if empty_turns >= 3 and empty_resets >= 3:
                     # 复位额度用尽仍空 = 模型已失去行动能力,保留检查点优雅退出(可续跑)。

@@ -254,6 +254,9 @@ _T["{eng} ✗ 未启动"] = "{eng} ✗ not running"
 _T["[ {eng} 离线 — 启动后自动重试 ]"] = "[ {eng} offline — auto-retry once started ]"
 # v2.1.3 会话绑定工作目录
 _T["[已恢复该会话的工作目录: {d}]"] = "[Restored this conversation's workdir: {d}]"
+# v2.1.4 会话切换防护
+_T["[任务运行中暂不能切换会话——请先停止或等它完成]"] = \
+    "[Can't switch conversations while a task is running — stop it or wait]";
 _T["🌐 联网"] = "🌐 Online"
 _T["🔒 断网"] = "🔒 Offline"
 _T["(本地)"] = "(local)"
@@ -1181,6 +1184,11 @@ class AgentGUI:
             self._sess_names.append(name)
             self.se_lb.insert("end", disp)
     def load_selected_session(self):
+        # v2.1.4 运行中防护:任务跑着时切走会话,运行中的任务会把进度存进切走的
+        # 会话(串档)。只看不切——先停止或等完成。
+        if self.proc and self.proc.poll() is None:
+            self.log_note(_t("[任务运行中暂不能切换会话——请先停止或等它完成]"))
+            return
         sel = self.se_lb.curselection()
         if not sel: return
         # 显示名可能带标题前缀,文件名从 _sess_names 取;列表异常陈旧时兜底反解
@@ -1202,9 +1210,19 @@ class AgentGUI:
             self.wd_var.set(_swd)
             self.log_note(_t("[已恢复该会话的工作目录: {d}]").format(d=_swd))
         self.sess_lbl.configure(text=_t("会话:") + (f"{self.session_title}·{name}" if self.session_title else name))
-        p = os.path.join(SESSION_DIR, name + ".json")
-        try: msgs = json.load(open(p, encoding="utf-8"))
-        except Exception: msgs = None
+        # v2.1.4 转录优先:完整历史从 transcript.jsonl 渲染(压缩只改模型上下文,
+        # 不再残缺化用户可见历史);旧版会话无转录 → 回退上下文 json
+        msgs = None
+        _tp = os.path.join(SESSION_DIR, name + ".transcript.jsonl")
+        if os.path.exists(_tp):
+            try:
+                msgs = [json.loads(_ln) for _ln in open(_tp, encoding="utf-8") if _ln.strip()]
+            except Exception:
+                msgs = None
+        if msgs is None:
+            p = os.path.join(SESSION_DIR, name + ".json")
+            try: msgs = json.load(open(p, encoding="utf-8"))
+            except Exception: msgs = None
         self.render_session(msgs, name)
         self.log_note(_t("[已载入会话: {name}]").format(name=name))
     def replay_selected_session(self):

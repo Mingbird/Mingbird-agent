@@ -383,4 +383,4 @@ class TestChildModeInstall:
         _home = os.path.expanduser("~") or "~"
         msgs = [{"role": "system",
                  "content": A.SYSTEM.replace(_home, "{USER_HOME}")}]
-        assert A._estimate_messages_tokens(msgs, A.CORE_TOOLS) == 849
+        assert A._estimate_messages_tokens(msgs, A.CORE_TOOLS) == 1250  # v2.1.4 估算器校准(中文 2/字):静态 prefill 未变,仅计量口径更新

@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.4 (2026-10-09)
+
+Makes history conversations truly resumable — resuming an old chat used to hit context-overflow errors with compaction never firing, and the history you got back was the compacted, mutilated version. Tests: **569 green** (560 + 9 new).
+
+### 🔧 Fixes
+- **Resume no longer "explodes the context"**: three stacked root causes fixed — ① the token estimator systematically under-counted Chinese (1 char = 1 token; real tokenizers use 1.5–2), letting oversized requests through; ② overflow errors ("prompt is too long") landed in a retry-only path that never compacted, retrying to death; ③ the compaction level only ratcheted up, so a context that regrew after shrinking was never compacted again. Now: the estimator counts Chinese at 2 tokens/char (over-estimating = compacting early, which is safe); overflow-class errors immediately force an L3 compaction and retry; and compaction levels re-arm once the context falls back below 60%.
+- **History restores completely**: compaction and hard resets used to rewrite the message list in place, and the rewritten (truncated/summarized) version was what got saved. A full transcript layer (`<session>.transcript.jsonl`) now appends every message as it happens — compaction only touches the model's working context; the GUI renders history from the transcript, and even a killed task leaves a complete record.
+- **Guard against switching conversations mid-run**: clicking another conversation while a task runs would make the running task save its progress into the conversation you switched to. Switching is now blocked while a task runs — stop it or wait.
+
 ## v2.1.3 (2026-10-09)
 
 Makes the model aware of its actual workspace — previously the only absolute path it could see was the home directory, which it often adopted as the workspace. Tests: **560 green** (552 + 8 new).
