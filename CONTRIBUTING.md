@@ -5,17 +5,21 @@ feature ideas. / 欢迎 issue：带转录的 bug 报告、基准问题、功能�
 
 For larger changes, please open an issue first so we can talk about the
 design before you write code. Mingbird's core constraint is the **prefill
-zero-growth rule** (the factory prefill is 797 tokens and CI fails any change
+zero-growth rule** (the factory prefill estimates at 1250 tokens under the
+v2.1.4 CJK-accurate estimator, and CI fails any change
 that grows it by a single byte) — anything that adds static text to the
 model's context needs to pay for itself elsewhere. / 大改动请先开 issue 讨论
-设计。鸣鸟的核心约束是 **prefill 零增长规则**（出厂 prefill 797 token，任何净增
-一个字节都会让 CI 挂掉）——任何给模型上下文加静态文本的改动必须在别处把成本省回来。
+设计。鸣鸟的核心约束是 **prefill 零增长规则**（出厂 prefill 按 v2.1.4 的中文精确
+估算器计量为 1250 token，任何净增一个字节都会让 CI 挂掉）——任何给模型上下文
+加静态文本的改动必须在别处把成本省回来。
 
 - Run the tests before submitting: `python -m pytest tests/ -q`
-  (489 tests — 435 unit + 26 integration + 11 v1.9.1 + 10 issue-#1 + 7 v2.0.0 cases, includes the prefill byte-level
+  (576 tests — 435 unit + 26 integration + 115 added since v1.9.1 across issue fixes (#1/#4/#6), multi-engine
+  backends, workspace & session systems, and the installer skills-path cases; includes the prefill byte-level
   assertion; the benchmark runners under `bench/` and `benchmarks/` are
   separate programs and are not collected by pytest). /
-  提交前请跑测试：`python -m pytest tests/ -q`（489 项——435 项单测 + 26 项集成 + 11 项 v1.9.1 + 10 项 issue #1 + 7 项 v2.0.0 修复覆盖，
+  提交前请跑测试：`python -m pytest tests/ -q`（576 项——435 项单测 + 26 项集成 + v1.9.1 起新增 115 项，
+  覆盖 issue 修复（#1/#4/#6）、多引擎后端、工作区与会话系统、安装版技能路径等，
   含 prefill 逐字节断言；`bench/` 与 `benchmarks/` 下的基准运行器是独立程序，
   不归 pytest 收集）。
 - Benchmark-related changes should keep the published protocol intact

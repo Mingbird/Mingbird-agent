@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.5 (2026-10-13)
+
+Fixes from issue #6 (bundled skills invisible in the Windows installer; reported by @LeftOwlRight). Tests: **576 green** (569 + 7 new).
+
+### 🔧 Fixes
+- **The skill list no longer shows 0 on the Windows installer**: PyInstaller's onedir layout puts bundled data under `_internal` (`sys._MEIPASS` at runtime), while the GUI scanned only the install-root `skills` folder and the user-home one — so the 17 bundled skills were invisible in installed builds. The agent itself could still load them (it resolves resources by module path, which lands inside `_internal`); only the display was broken, and that had been true of every installer since the skill list shipped. Frozen builds now scan the packaged resource directory first; source runs are unchanged.
+- **Every directory the skill list shows is now actually loadable**: in installed builds the agent also honors a `skills` folder placed next to the EXE (priority: workspace > user home > EXE folder > built-in). The workaround of copying `_internal\skills` next to the EXE keeps working after the upgrade, and a skill dropped there is both displayed and loadable.
+- 7 new tests (`tests/test_v215_skills_path.py`), including one that simulates an installed build against a real PyInstaller output tree and asserts the bundled skills get listed — guarding against "works from source, broken in the installer" regressions.
+
 ## v2.1.4 (2026-10-11)
 
 Makes history conversations truly resumable — resuming an old chat used to hit context-overflow errors with compaction never firing, and the history you got back was the compacted, mutilated version. Tests: **569 green** (560 + 9 new).
