@@ -298,8 +298,16 @@ if __name__ == "__main__":
 
 AGENT_HOME = os.path.expanduser("~/.ollama_agent")
 SESSION_DIR = os.path.join(AGENT_HOME, "sessions")
-SKILL_DIRS = [os.path.join(AGENT_DIR, "skills"),
-              os.path.join(AGENT_HOME, "skills")]
+def _skill_scan_dirs():
+    """技能扫描目录。PyInstaller 6 onedir 把 datas 装进 _internal(=sys._MEIPASS),
+    安装版 EXE 根目录下没有 skills/,不扫打包资源目录就列不出内置技能(#6)。"""
+    dirs = []
+    if getattr(sys, "_MEIPASS", ""):
+        dirs.append(os.path.join(sys._MEIPASS, "skills"))
+    dirs += [os.path.join(AGENT_DIR, "skills"),
+             os.path.join(AGENT_HOME, "skills")]
+    return dirs
+SKILL_DIRS = _skill_scan_dirs()
 PREFS_FILE = os.path.join(AGENT_HOME, "gui_prefs.json")
 SYS_OVERRIDE_FILE = os.path.join(AGENT_HOME, "system_override.txt")
 THEMES = ["minty-light", "pulse-dark", "tokyo-night-dark", "dracula-dark",

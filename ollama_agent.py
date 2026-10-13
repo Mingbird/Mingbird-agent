@@ -708,8 +708,12 @@ def web_fetch(url, workdir=None):
 
 # ---------------- Skills(渐进式披露) ----------------
 def _skill_bases(workdir):
-    return [os.path.join(workdir,"skills"), SKILLS_DIR_HOME,
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "skills")]
+    bases = [os.path.join(workdir,"skills"), SKILLS_DIR_HOME,
+             os.path.join(os.path.dirname(os.path.abspath(__file__)), "skills")]
+    if getattr(sys, "frozen", False):
+        # 安装版也认 EXE 旁的 skills(GUI 技能列表列出的目录必须都能加载,#6)
+        bases.insert(2, os.path.join(os.path.dirname(sys.executable), "skills"))
+    return bases
 def find_skill(name, workdir):
     for base in _skill_bases(workdir):
         for ext in (".md", ".txt", ".py"):
