@@ -400,10 +400,8 @@ TOOLS = CORE_TOOLS  # 默认核心;enable_tools 后追加
 
 # ---------------- v3.0.0 工具参数类型校正(PydanticAI 式校验回喂) ----------------
 # 小模型常把 number/boolean 参数传成字符串(todo index="1"/done="true",Cline ollama
-# issue 群的同类坑),按内置 schema 静默校正;校正不了才返回结构化错误喂回模型
+# issue 群的同类坑),按内置 schema 静默校正;校正不了返回结构化错误喂回模型
 # (错误里带参数名+期望类型+收到的值,模型可自救)。MCP 工具 schema 动态,不在此列。
-_TYPE_OK = {"number": (int, float), "boolean": (bool,), "string": (str,),
-            "array": (list,), "object": (dict,)}
 _NUM_RE = re.compile(r"^-?\d+(\.\d+)?$")
 _ARG_TYPES = {d["function"]["name"]: {k: v.get("type")
                for k, v in d["function"].get("parameters", {}).get("properties", {}).items()}
@@ -411,28 +409,28 @@ _ARG_TYPES = {d["function"]["name"]: {k: v.get("type")
 
 def _coerce_args(name, args):
     """返回 (校正后的 args, 错误文本或 None)。只做字符串→数字/布尔的高频错型校正:
-    可解析 → 静默校正;字符串解析不了 number/boolean → 结构化错误喂回(带参数名+
-    期望类型,模型可自救);非标量(list/dict,如 todo 的 index 批量列表)与其余
-    形态一律放行,由工具自身校验兜底——schema 不表达运行时宽容特性。"""
+    可解析 → 静默校正;解析不了 → 结构化错误喂回(number/boolean 同一标准——
+    boolean 乱串若静默放行,工具侧会按字符串真值误判)。非字符串形态(list/dict,
+    如 todo 的 index 批量列表)一律放行,由工具自身校验兜底——schema 不表达运行时
+    宽容特性;string/array/object 参数无校正语义,直接跳过。"""
     types = _ARG_TYPES.get(name)
     if not types or not isinstance(args, dict):
         return args, None
     out = dict(args)
     for k, want in types.items():
-        if k not in out or want not in _TYPE_OK:
+        if k not in out or want not in ("number", "boolean"):
             continue
         v = out[k]
         if not isinstance(v, str):
-            continue   # 已对型(bool 是 int 子类的边界也被覆盖:非 str 即不折腾)
+            continue
         s = v.strip()
-        if want == "number":
-            if _NUM_RE.match(s):
-                out[k] = float(s) if "." in s else int(s)
-            else:
-                return args, (f"[tool error: {name} 参数 {k} 需要 {want} 类型"
-                              f"(收到字符串: {s[:40]}),请修正后重试。]")
+        if want == "number" and _NUM_RE.match(s):
+            out[k] = float(s) if "." in s else int(s)
         elif want == "boolean" and s.lower() in ("true", "false"):
             out[k] = s.lower() == "true"
+        else:
+            return args, (f"[tool error: {name} 参数 {k} 需要 {want} 类型"
+                          f"(收到字符串: {s[:40]}),请修正后重试。]")
     return out, None
 
 SYSTEM = """You are an autonomous AI agent in a workspace directory.
@@ -3596,8 +3594,8 @@ def _maybe_parallel_dispatch(model, messages, workdir, session):
 
 def agent_loop(model, messages, workdir, session, budget_sec=None):
     global _active_tools
-    global _SMALL_MODEL_MODE   # v3.0.0:命令输出精简(上下文紧张时只留末尾)在下方
-                               # 三条件并集;子 agent 派发覆盖为更严格值
+    global _SMALL_MODEL_MODE   # v3.0.0:命令输出精简在下方按"开关/档位"赋值;
+                               # 子 agent 派发路径不经此行(其自身走 agent_loop)
     _allow_all.clear()   # "允许全部(本轮)"以任务为界:新任务重新计数
     fails = 0
     fail_count = {}           # 工具名 -> 连续失败次数(同工具无成功则累计)
@@ -3666,12 +3664,11 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     # 直接持久禁用,一律用 create_file 重写;run_bash 报错附教学提示(见错误处理段)。
     # 模型名解析参数量: gemma4:e2b→2 / qwen3.5:4b→4 / ornith-1.5:35b→35;解析失败视为大模型。
     _small_model = (not qa) and ((_model_params_b(model) or 99.0) <= 4.0)
-    # v3.0.0:命令输出瘦身的真实触发条件=上下文紧张,而非"机器低配"——高配机跑
-    # 大模型但只能开小上下文档位的人(显存放不下大 ctx)恰恰最需要。三条件并集:
-    # ①≤4B 小模型自动;②上下文档位 ≤32K 自动;③用户手动开关(slim_output/
-    # AGENT_SLIM_OUTPUT)。run_tool 读取:run_bash/run_python 超长输出只留末尾。
-    _SMALL_MODEL_MODE = (bool(_small_model) or appconfig.slim_output_mode()
-                         or CTX_BUDGET <= 32768)
+    # v3.0.0 命令输出瘦身:自动条件=上下文档位 ≤32K,另有手动开关(slim_output/
+    # AGENT_SLIM_OUTPUT)。不按模型大小自动——小模型配长上下文/大模型配短上下文
+    # 都是常见搭配(10-21 用户定案:档位才反映真实预算);≤4B 的 edit_file 禁用等
+    # 协议降级仍由 _small_model 驱动,不受影响。run_tool 读取:超长输出只留末尾。
+    _SMALL_MODEL_MODE = (appconfig.slim_output_mode() or CTX_BUDGET <= 32768)
     if _small_model:
         _disabled_tools.add("edit_file")
     # Task #72:霰弹枪编辑守护(同文件连续成功编辑但不收敛 → 策略提示,不禁用)

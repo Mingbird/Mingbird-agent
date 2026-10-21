@@ -127,11 +127,12 @@ python ollama_agent.py <model> <taskfile> <workdir>
 |---|---|---|
 | `OLLAMA_HOST` | `http://127.0.0.1:11434` | Ollama API 地址(替代 config.json 的 ollama_host) |
 | `OLLAMA_BIN` | 自动检测 | ollama.exe 路径(替代 config.json 的 ollama_exe) |
-| `AGENT_CTX` | 32768 | 上下文窗口 |
+| `AGENT_CTX` | 131072 | 上下文窗口(token) |
 | `AGENT_TEMP` | 未设置 | 温度三态:未设置=请求不带 temperature 字段(用 ollama/模型默认);设置后(含 0)按设置下发 |
 | `AGENT_NUMPREDICT` | 2048 | 输出上限 |
 | `AGENT_THINK` | 未设置 | 思考三态:未设置=请求不带 think 字段(ollama 出厂默认,thinking 模型默认开);1=显式开;0=显式关 |
 | `AGENT_SYSTEM_FILE` | - | 自定义系统提示文件路径 |
+| `AGENT_SLIM_OUTPUT` | 未设置 | 命令输出精简(v3.0.0):1=超长命令输出只留末尾(省上下文)。上下文档位 ≤32K 时自动开启,无需设置 |
 
 ## 7. 命令行 agent 用法
 

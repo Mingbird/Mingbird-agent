@@ -214,14 +214,21 @@ class TestChildModeClassification:
         assert not any(m.get("role") == "system" and m.get("content") == A.CHAT_SYSTEM
                        for m in msgs)
 
-    def test_small_model_mode_from_child_model_params(self, wd, child_mode):
+    def test_small_model_mode_from_child_model_params(self, wd, child_mode, monkeypatch):
+        """v3.0.0(10-21 用户定案):输出瘦身不再按模型大小自动——小模型配长上下文/
+        大模型配短上下文都是常见搭配,上下文档位才反映真实预算。子模型 2B 在默认
+        档位(128K)下不自动瘦身;档位≤32K 时任何模型都瘦身。"""
         cap = {}
         _scripted_loop(wd, [], task=self.QA_LIKE_TASK, model="gemma4:e2b",
                        session=None, capture=cap)
-        assert cap["small_model_mode"] is True      # 子模型 2B → 瘦身生效
+        assert cap["small_model_mode"] is False     # 2B + 默认 128K 档 → 不自动瘦身
         _scripted_loop(wd, [], task=self.QA_LIKE_TASK, model="ornith-1.5:35b",
                        session=None, capture=cap)
-        assert cap["small_model_mode"] is False     # 子模型 35B → 不瘦身
+        assert cap["small_model_mode"] is False
+        monkeypatch.setattr(A, "CTX_BUDGET", 32768)
+        _scripted_loop(wd, [], task=self.QA_LIKE_TASK, model="ornith-1.5:35b",
+                       session=None, capture=cap)
+        assert cap["small_model_mode"] is True      # 35B + 32K 档 → 瘦身(档位才是信号)
 
     def test_small_model_mode_off_for_main_agent_big_model(self, wd):
         cap = {}

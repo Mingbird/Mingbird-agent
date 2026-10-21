@@ -8,7 +8,7 @@ shell 上(小模型在 Windows cmd 里写 ls/grep 是高频翻车点),GUI 的平
 - agent 侧:prompt_block() 注入系统提示(平台/Shell/命令对照/确认声明),
   动态行不进 SYSTEM 常量,出厂 prefill 钉子不动(v2.1.3 工作目录行先例);
 - 执行侧:exec_env() 统一子进程 UTF-8 环境(从 run_bash 内联收敛,行为不变);
-- GUI 侧:open_folder_cmd()/open_doc_cmd()/enable_dpi_awareness()。
+- GUI 侧:open_folder_cmd()/open_doc_cmd()(文件管理器/编辑器唤起)。
 
 对应 2026-10-21 调研报告 P0-1(aider 式平台块)/P0-2(执行层统一)/
 P1-4(平台 profile 数据化)。

@@ -1672,8 +1672,7 @@ class AgentGUI:
         np.set(_t("不限") if prefs["num_predict"] == -1 else prefs["num_predict"])
         np.pack(side="left", padx=6)
         # v3.0.0 命令输出精简:config 层手动开关(agent 子进程直接读 config.json)。
-        # 命名按效果不按机器:自动条件(≤4B 模型/上下文档位≤32K)在 agent 侧判,
-        # 手动开关服务"大模型+小上下文档位"这类上下文紧张的场景
+        # 自动条件(上下文档位≤32K)在 agent 侧判;开关服务其余场景
         slimout = tk.BooleanVar(value=appconfig.slim_output_mode())
         tb.Checkbutton(body, text=_t("命令输出精简(超长输出只留末尾,小上下文档位最受益)"),
                        variable=slimout, bootstyle="round-toggle").pack(anchor="w", pady=(4,0))

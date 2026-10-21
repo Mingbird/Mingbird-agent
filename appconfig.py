@@ -28,10 +28,9 @@ DEFAULTS = {
                                                #   Jan/vLLM 等),api_key 可空
     "slim_output": False,                      # v3.0.0 命令输出精简:超长命令输出只留
                                                # 末尾(run_bash/run_python,省上下文)。
-                                               # 命名按触发条件=上下文紧张,不是机器
-                                               # "低配"——高配机跑大模型开小上下文档位
-                                               # 恰恰是最需要的人群。自动条件(≤4B 模型
-                                               # /上下文档位≤32K)在 agent_loop,此项=手动开关
+                                               # 自动条件=上下文档位≤32K(agent_loop,
+                                               # 档位才反映真实预算,与模型大小无关);
+                                               # 此项=其余场景的手动开关,默认关
 }
 
 _cache = None
@@ -80,9 +79,9 @@ def offline_mode():
 
 def slim_output_mode():
     """v3.0.0 命令输出精简(手动开关):环境变量 AGENT_SLIM_OUTPUT > config.json slim_output。
-    开启时 run_bash/run_python 超长输出只保留末尾(与 ≤4B 自动瘦身同一通路)。
-    触发条件语义=上下文紧张而非机器低配:自动条件(≤4B 模型/上下文档位≤32K)在
-    agent_loop 判定,本开关供其余场景手动开启。默认关=行为与既有版本一致。"""
+    开启时 run_bash/run_python 超长输出只保留末尾。自动条件(上下文档位≤32K)在
+    agent_loop 判定——档位才反映真实预算,与模型大小无关(小模型配长上下文/
+    大模型配短上下文都常见);本开关供其余场景手动开启,默认关=行为与旧版一致。"""
     env = os.environ.get("AGENT_SLIM_OUTPUT", "").strip().lower()
     if env:
         return env in ("1", "true", "yes", "on")

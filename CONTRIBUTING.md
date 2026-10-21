@@ -14,12 +14,12 @@ model's context needs to pay for itself elsewhere. / 大改动请先开 issue �
 加静态文本的改动必须在别处把成本省回来。
 
 - Run the tests before submitting: `python -m pytest tests/ -q`
-  (600 tests — 435 unit + 26 integration + 139 added since v1.9.1 across issue fixes (#1/#4/#6), multi-engine
+  (602 tests — 435 unit + 26 integration + 141 added since v1.9.1 across issue fixes (#1/#4/#6), multi-engine
   backends, workspace & session systems, the installer skills-path cases, and the v3.0.0 platform-aware
   suite; includes the prefill byte-level
   assertion; the benchmark runners under `bench/` and `benchmarks/` are
   separate programs and are not collected by pytest). /
-  提交前请跑测试：`python -m pytest tests/ -q`（600 项——435 项单测 + 26 项集成 + v1.9.1 起新增 139 项，
+  提交前请跑测试：`python -m pytest tests/ -q`（602 项——435 项单测 + 26 项集成 + v1.9.1 起新增 141 项，
   覆盖 issue 修复（#1/#4/#6）、多引擎后端、工作区与会话系统、安装版技能路径、v3.0.0 平台感知套件等，
   含 prefill 逐字节断言；`bench/` 与 `benchmarks/` 下的基准运行器是独立程序，
   不归 pytest 收集）。

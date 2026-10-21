@@ -2,12 +2,12 @@
 
 ## v3.0.0 (2026-10-21)
 
-Platform-aware Mingbird — the model now knows which OS and shell it is working in, and every platform truth lives in one data-driven place. Tests: **600 green** (576 + 24 new).
+Platform-aware Mingbird — the model now knows which OS and shell it is working in, and every platform truth lives in one data-driven place. Tests: **602 green** (576 + 26 new).
 
 ### ✨ New
 - **Platform profile module** (`platform_profile.py`): platform differences — prompt fragments, command mappings, subprocess environment, folder/editor openers — converge into a single source of truth instead of scattered `os.name` branches.
 - **Platform block in the system prompt** (aider-style): every task now states the real platform, shell and command mapping — on Windows: cmd.exe, `dir`/`type`/`findstr`/`copy`, backslash paths; on macOS/Linux: `ls`/`cat`/`grep`, forward slashes. Small models writing `ls`/`grep` inside Windows cmd was a top failure class, and the platform truth was never stated before. Chat mode gets a one-line variant (platform + path separator). The static factory prompt is untouched, byte for byte — the prefill pin stays 1250.
-- **Compact command output** (automatic, with a manual switch): long command outputs are trimmed to the tail — the condition is *context pressure*, not the machine: it turns on automatically for ≤4B models and for context tiers ≤32K (a big model on a small context tier is exactly who needs it), plus a settings toggle or `AGENT_SLIM_OUTPUT=1` for anything else. Previously automatic only for ≤4B models and child agents.
+- **Compact command output** (automatic, with a manual switch): long command outputs are trimmed to the tail — the automatic trigger is the **context tier** (≤32K turns it on; the tier reflects the real budget, whatever the model size — a small model on a long context or a big model on a short one are both common pairings), plus a settings toggle or `AGENT_SLIM_OUTPUT=1`. Previously automatic only for ≤4B models and child agents.
 
 ### 🔧 Fixes
 - **Tool-argument type repair** (PydanticAI-style feedback): small models often pass numbers/booleans as strings (`index: "1"`, `done: "true"`) — now silently coerced per the tool schema; an unparseable string returns a structured error naming the parameter, the expected type and the received value so the model can self-correct. Non-scalar shapes pass through untouched (todo's batch `index` list keeps working).

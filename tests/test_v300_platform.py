@@ -158,6 +158,17 @@ def test_coerce_bad_type_structured_error():
     assert out == {"action": "update", "index": "第一名"}   # 出错时返回原 args 不动
 
 
+def test_coerce_boolean_garbage_errors_symmetrically():
+    """boolean 收到解析不了的字符串必须报错——静默放行会让工具侧按字符串真值
+    误判(审查发现的 number/boolean 不对称问题)。"""
+    import ollama_agent as A
+    out, err = A._coerce_args("todo", {"action": "update", "index": 1, "done": "完成"})
+    assert err and "done" in err and "boolean" in err
+    # 大小写宽容:"True"/"FALSE" 一样能校正
+    out2, err2 = A._coerce_args("todo", {"action": "update", "index": 1, "done": "FALSE"})
+    assert err2 is None and out2["done"] is False
+
+
 def test_coerce_unknown_tool_untouched():
     import ollama_agent as A
     args = {"anything": "1"}
@@ -223,24 +234,23 @@ def test_slim_output_env_and_config(fresh_appconfig, monkeypatch):
 
 
 def test_agent_loop_pins_slim_output_wiring():
-    """三条件并集:≤4B 自动 + 手动开关 + 上下文档位≤32K 自动(触发条件=上下文紧张,
-    不是机器低配——大模型+小档位人群正是受益者,用户 10-21 命名纠偏定案)。"""
-    assert ("_SMALL_MODEL_MODE = (bool(_small_model) or appconfig.slim_output_mode()\n"
-            "                         or CTX_BUDGET <= 32768)") in SRC_OA
+    """自动条件=上下文档位≤32K + 手动开关。不按模型大小自动——小模型配长上下文/
+    大模型配短上下文都常见,档位才反映真实预算(用户 10-21 二次纠偏定案);≤4B 的
+    edit_file 等协议降级仍由 _small_model 驱动,与输出瘦身解耦。"""
+    assert ("_SMALL_MODEL_MODE = (appconfig.slim_output_mode() or CTX_BUDGET <= 32768)") in SRC_OA
+    # 模型大小不再喂给输出瘦身标志(防回归)
+    assert "bool(_small_model) or appconfig.slim_output_mode()" not in SRC_OA
 
 
 def test_slim_output_triggers_on_small_ctx_budget(fresh_appconfig):
-    """档位 ≤32K 时,大模型(35B)也自动瘦身。"""
+    """档位 ≤32K 时,任何模型都自动瘦身;档位大且开关关时不瘦身。"""
     import ollama_agent as A
     saved = A.CTX_BUDGET
     try:
         A.CTX_BUDGET = 32768
-        # 直接复刻 agent_loop 的判定表达式(不跑整循环)
-        triggered = (False or fresh_appconfig.slim_output_mode() or A.CTX_BUDGET <= 32768)
-        assert triggered is True
+        assert (fresh_appconfig.slim_output_mode() or A.CTX_BUDGET <= 32768) is True
         A.CTX_BUDGET = 131072
-        triggered2 = (False or fresh_appconfig.slim_output_mode() or A.CTX_BUDGET <= 32768)
-        assert triggered2 is False
+        assert (fresh_appconfig.slim_output_mode() or A.CTX_BUDGET <= 32768) is False
     finally:
         A.CTX_BUDGET = saved
 
