@@ -3596,8 +3596,8 @@ def _maybe_parallel_dispatch(model, messages, workdir, session):
 
 def agent_loop(model, messages, workdir, session, budget_sec=None):
     global _active_tools
-    global _SMALL_MODEL_MODE   # v3.0.0:低配模式(config low_spec/AGENT_LOW_SPEC)在下方
-                               # 与 ≤4B 自动降级并集生效;子 agent 派发覆盖为更严格值
+    global _SMALL_MODEL_MODE   # v3.0.0:命令输出精简(上下文紧张时只留末尾)在下方
+                               # 三条件并集;子 agent 派发覆盖为更严格值
     _allow_all.clear()   # "允许全部(本轮)"以任务为界:新任务重新计数
     fails = 0
     fail_count = {}           # 工具名 -> 连续失败次数(同工具无成功则累计)
@@ -3666,7 +3666,12 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     # 直接持久禁用,一律用 create_file 重写;run_bash 报错附教学提示(见错误处理段)。
     # 模型名解析参数量: gemma4:e2b→2 / qwen3.5:4b→4 / ornith-1.5:35b→35;解析失败视为大模型。
     _small_model = (not qa) and ((_model_params_b(model) or 99.0) <= 4.0)
-    _SMALL_MODEL_MODE = bool(_small_model) or appconfig.low_spec_mode()   # v3.0.0:低配开关并入(自动≤4B 或用户显式开启);run_tool 读取:run_bash 输出瘦身
+    # v3.0.0:命令输出瘦身的真实触发条件=上下文紧张,而非"机器低配"——高配机跑
+    # 大模型但只能开小上下文档位的人(显存放不下大 ctx)恰恰最需要。三条件并集:
+    # ①≤4B 小模型自动;②上下文档位 ≤32K 自动;③用户手动开关(slim_output/
+    # AGENT_SLIM_OUTPUT)。run_tool 读取:run_bash/run_python 超长输出只留末尾。
+    _SMALL_MODEL_MODE = (bool(_small_model) or appconfig.slim_output_mode()
+                         or CTX_BUDGET <= 32768)
     if _small_model:
         _disabled_tools.add("edit_file")
     # Task #72:霰弹枪编辑守护(同文件连续成功编辑但不收敛 → 策略提示,不禁用)

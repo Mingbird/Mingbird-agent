@@ -16,7 +16,7 @@ import ttkbootstrap as tb
 import subprocess, threading, os, queue, sys, re, glob, json, time, shutil
 import voice_input
 import appconfig   # 统一配置层:Ollama 地址/模型映射等由用户配置,不硬编码
-import platform_profile   # v3.0.0:平台差异单一事实源(文件管理器/编辑器/低配等共用)
+import platform_profile   # v3.0.0:平台差异单一事实源(文件管理器/编辑器命令等共用)
 _dedupe_model_entries = appconfig.dedupe_model_entries   # digest 去重(GUI/WebUI 共用,勿放类体内)
 
 # 可选拖拽支持:装了 tkinterdnd2 即可把文件直接拖进聊天框;未装则静默降级,
@@ -232,7 +232,7 @@ def _first_msg_title(msg, limit=15):
 # 零出站(netstat 可验证);联网=本地+搜索+已配置的 MCP/云端 provider。
 _T["任务完成"] = "Task complete"
 _T["不限"] = "Unlimited"
-_T["低配模式(精简命令输出,小模型省上下文)"] = "Low-spec mode (compact command output; saves context for small models)"
+_T["命令输出精简(超长输出只留末尾,小上下文档位最受益)"] = "Compact command output (long outputs trimmed to the tail; best for small context tiers)"
 # v2.1.1 多引擎(OpenAI 兼容本地服务)
 _T["本地引擎:"] = "Local engine:"
 _T["自定义 OpenAI 兼容"] = "Custom OpenAI-compatible"
@@ -1671,11 +1671,12 @@ class AgentGUI:
                          width=8, state="readonly")
         np.set(_t("不限") if prefs["num_predict"] == -1 else prefs["num_predict"])
         np.pack(side="left", padx=6)
-        # v3.0.0 低配模式:config 层开关(agent 子进程直接读 config.json),
-        # 效果=run_bash/run_python 输出精简,给小模型上下文省 token
-        lowspec = tk.BooleanVar(value=appconfig.low_spec_mode())
-        tb.Checkbutton(body, text=_t("低配模式(精简命令输出,小模型省上下文)"),
-                       variable=lowspec, bootstyle="round-toggle").pack(anchor="w", pady=(4,0))
+        # v3.0.0 命令输出精简:config 层手动开关(agent 子进程直接读 config.json)。
+        # 命名按效果不按机器:自动条件(≤4B 模型/上下文档位≤32K)在 agent 侧判,
+        # 手动开关服务"大模型+小上下文档位"这类上下文紧张的场景
+        slimout = tk.BooleanVar(value=appconfig.slim_output_mode())
+        tb.Checkbutton(body, text=_t("命令输出精简(超长输出只留末尾,小上下文档位最受益)"),
+                       variable=slimout, bootstyle="round-toggle").pack(anchor="w", pady=(4,0))
         sys_en = tk.BooleanVar(value=prefs["sys_enable"])
         tb.Checkbutton(body, text=_t("启用自定义系统提示(替代内置,可大幅改造行为)"),
                        variable=sys_en, bootstyle="round-toggle").pack(anchor="w", pady=(8,2))
@@ -1698,8 +1699,8 @@ class AgentGUI:
             else:
                 _cfg["local_backend"] = {"type": "openai", "base_url": _base,
                                          "api_key": key.get().strip()}
-            # v3.0.0:低配模式进 config 层(agent 子进程同源读取)
-            _cfg["low_spec"] = bool(lowspec.get())
+            # v3.0.0:命令输出精简进 config 层(agent 子进程同源读取)
+            _cfg["slim_output"] = bool(slimout.get())
             appconfig.save_config(_cfg)
             _raw_t = temp.get().strip()
             if _raw_t == "":

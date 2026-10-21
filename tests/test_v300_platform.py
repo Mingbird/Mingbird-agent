@@ -2,7 +2,7 @@
 """v3.0.0 平台感知(Platform-Aware)测试:platform_profile 单一事实源 + agent/GUI 接线。
 
 范围对应 2026-10-21 调研报告 P0-1(平台信息块)/P0-2(exec_env 收敛)/
-P0-3b(参数类型校正回喂)/P1-4(profile 数据化)/P1-6(reg 危险面)/P1-7(低配开关)。
+P0-3b(参数类型校正回喂)/P1-4(profile 数据化)/P1-6(reg 危险面)/P1-7(命令输出精简)。
 静态 SYSTEM 常量与出厂 prefill 钉子(1250)不受影响——平台块是动态注入行。"""
 
 import importlib
@@ -21,9 +21,9 @@ SRC_GUI = open(os.path.join(_HERE, "agent_gui.py"), encoding="utf-8").read()
 
 @pytest.fixture
 def fresh_appconfig(monkeypatch, tmp_path):
-    """干净 MINGBIRD_HOME + 重载 appconfig(低配模式读配置层,必须隔离真机 config)。"""
+    """干净 MINGBIRD_HOME + 重载 appconfig(命令输出精简读配置层,必须隔离真机 config)。"""
     monkeypatch.setenv("MINGBIRD_HOME", str(tmp_path))
-    monkeypatch.delenv("AGENT_LOW_SPEC", raising=False)
+    monkeypatch.delenv("AGENT_SLIM_OUTPUT", raising=False)
     import appconfig
     importlib.reload(appconfig)
     yield appconfig
@@ -203,27 +203,46 @@ def test_risk_classify_registry_confirms_or_blocks(tmp_path, monkeypatch):
     assert A._risk_classify("reg add HKCU\\Software\\X /v y", str(tmp_path)) is None
 
 
-# ================= ⑤ 低配模式(P1-7 一期:config 开关) =================
+# ================= ⑤ 命令输出精简(P1-7 一期:上下文紧张触发,含手动开关) =================
 
-def test_low_spec_default_off(fresh_appconfig):
-    assert fresh_appconfig.low_spec_mode() is False
+def test_slim_output_default_off(fresh_appconfig):
+    assert fresh_appconfig.slim_output_mode() is False
 
 
-def test_low_spec_env_and_config(fresh_appconfig, monkeypatch):
-    monkeypatch.setenv("AGENT_LOW_SPEC", "1")
+def test_slim_output_env_and_config(fresh_appconfig, monkeypatch):
+    monkeypatch.setenv("AGENT_SLIM_OUTPUT", "1")
     fresh_appconfig._cache = None
-    assert fresh_appconfig.low_spec_mode() is True
-    monkeypatch.setenv("AGENT_LOW_SPEC", "")
+    assert fresh_appconfig.slim_output_mode() is True
+    monkeypatch.setenv("AGENT_SLIM_OUTPUT", "")
     fresh_appconfig._cache = None
     cfg = fresh_appconfig.load_config()
-    cfg["low_spec"] = True
+    cfg["slim_output"] = True
     fresh_appconfig.save_config(cfg)
     fresh_appconfig._cache = None
-    assert fresh_appconfig.low_spec_mode() is True
+    assert fresh_appconfig.slim_output_mode() is True
 
 
-def test_agent_loop_pins_low_spec_wiring():
-    assert "_SMALL_MODEL_MODE = bool(_small_model) or appconfig.low_spec_mode()" in SRC_OA
+def test_agent_loop_pins_slim_output_wiring():
+    """三条件并集:≤4B 自动 + 手动开关 + 上下文档位≤32K 自动(触发条件=上下文紧张,
+    不是机器低配——大模型+小档位人群正是受益者,用户 10-21 命名纠偏定案)。"""
+    assert ("_SMALL_MODEL_MODE = (bool(_small_model) or appconfig.slim_output_mode()\n"
+            "                         or CTX_BUDGET <= 32768)") in SRC_OA
+
+
+def test_slim_output_triggers_on_small_ctx_budget(fresh_appconfig):
+    """档位 ≤32K 时,大模型(35B)也自动瘦身。"""
+    import ollama_agent as A
+    saved = A.CTX_BUDGET
+    try:
+        A.CTX_BUDGET = 32768
+        # 直接复刻 agent_loop 的判定表达式(不跑整循环)
+        triggered = (False or fresh_appconfig.slim_output_mode() or A.CTX_BUDGET <= 32768)
+        assert triggered is True
+        A.CTX_BUDGET = 131072
+        triggered2 = (False or fresh_appconfig.slim_output_mode() or A.CTX_BUDGET <= 32768)
+        assert triggered2 is False
+    finally:
+        A.CTX_BUDGET = saved
 
 
 # ================= ⑥ GUI 接线钉子 =================
@@ -233,8 +252,7 @@ def test_gui_delegates_platform_cmds():
     assert "platform_profile.open_doc_cmd(path)" in SRC_GUI
 
 
-def test_gui_low_spec_checkbox_and_i18n():
-    assert "低配模式(精简命令输出,小模型省上下文)" in SRC_GUI      # 复选框
-    assert '_cfg["low_spec"] = bool(lowspec.get())' in SRC_GUI      # 存进 config 层
-    assert '"低配模式(精简命令输出,小模型省上下文)":' in SRC_GUI or \
-           '_T["低配模式(精简命令输出,小模型省上下文)"]' in SRC_GUI  # 英文翻译词条
+def test_gui_slim_output_checkbox_and_i18n():
+    assert "命令输出精简(超长输出只留末尾,小上下文档位最受益)" in SRC_GUI   # 复选框
+    assert '_cfg["slim_output"] = bool(slimout.get())' in SRC_GUI          # 存进 config 层
+    assert '_T["命令输出精简(超长输出只留末尾,小上下文档位最受益)"]' in SRC_GUI  # 英文词条

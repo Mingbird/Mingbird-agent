@@ -26,8 +26,12 @@ DEFAULTS = {
                                                # = OpenAI 兼容本地服务(LM Studio :1234/v1、
                                                #   llama.app :9931/v1、llama-server :8080/v1、
                                                #   Jan/vLLM 等),api_key 可空
-    "low_spec": False,                         # v3.0.0 低配模式:run_bash/run_python 输出
-                                               # 精简(小模型上下文省着用);默认关=行为不变
+    "slim_output": False,                      # v3.0.0 命令输出精简:超长命令输出只留
+                                               # 末尾(run_bash/run_python,省上下文)。
+                                               # 命名按触发条件=上下文紧张,不是机器
+                                               # "低配"——高配机跑大模型开小上下文档位
+                                               # 恰恰是最需要的人群。自动条件(≤4B 模型
+                                               # /上下文档位≤32K)在 agent_loop,此项=手动开关
 }
 
 _cache = None
@@ -74,14 +78,15 @@ def offline_mode():
         return env in ("1", "true", "yes", "on")
     return bool(load_config().get("offline_mode", False))
 
-def low_spec_mode():
-    """v3.0.0 低配模式:环境变量 AGENT_LOW_SPEC > config.json low_spec。
-    开启时 run_bash/run_python 输出走精简格式(与子 agent 的 _SMALL_MODEL_MODE
-    同一通路),给小模型的上下文省 token。默认关=行为与既有版本一致。"""
-    env = os.environ.get("AGENT_LOW_SPEC", "").strip().lower()
+def slim_output_mode():
+    """v3.0.0 命令输出精简(手动开关):环境变量 AGENT_SLIM_OUTPUT > config.json slim_output。
+    开启时 run_bash/run_python 超长输出只保留末尾(与 ≤4B 自动瘦身同一通路)。
+    触发条件语义=上下文紧张而非机器低配:自动条件(≤4B 模型/上下文档位≤32K)在
+    agent_loop 判定,本开关供其余场景手动开启。默认关=行为与既有版本一致。"""
+    env = os.environ.get("AGENT_SLIM_OUTPUT", "").strip().lower()
     if env:
         return env in ("1", "true", "yes", "on")
-    return bool(load_config().get("low_spec", False))
+    return bool(load_config().get("slim_output", False))
 
 def cloud_provider():
     """v1.8.0 云端 provider 配置(OpenAI 兼容端点)。返回 dict 或 {}。
