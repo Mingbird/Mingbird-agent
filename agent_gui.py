@@ -7,7 +7,7 @@
 - 📎 文件上传:复制到工作目录 _attachments/,agent 按需读取
 - ⚙ 设置:上下文窗口 / 温度 / 输出上限 / 自定义系统提示(持久化)
 - 🌓 主题切换(darkly / superhero / flatly / cosmo ...)
-- 快捷键:Ctrl+N 新对话 · Ctrl+F 历史搜索 · Ctrl+Enter 发送 · Ctrl+L 清日志
+- 快捷键:Ctrl+N 新对话 · Ctrl+F 历史搜索 · Enter 发送 · Shift+Enter 换行 · Ctrl+L 清日志
 """
 import tkinter as tk
 from tkinter import ttk, filedialog, font as tkfont
@@ -17,6 +17,7 @@ import subprocess, threading, os, queue, sys, re, glob, json, time, shutil
 import voice_input
 import appconfig   # 统一配置层:Ollama 地址/模型映射等由用户配置,不硬编码
 import platform_profile   # v3.0.0:平台差异单一事实源(文件管理器/编辑器命令等共用)
+import ui_v4 as v4        # v4.0:侧边栏/圆角按钮/主题化 UI 原语
 _dedupe_model_entries = appconfig.dedupe_model_entries   # digest 去重(GUI/WebUI 共用,勿放类体内)
 
 # 可选拖拽支持:装了 tkinterdnd2 即可把文件直接拖进聊天框;未装则静默降级,
@@ -45,6 +46,14 @@ def _file_manager_cmd(path):
 def _open_doc_cmd(path):
     """Open a document with the platform default text viewer.(v3.0.0:同上)"""
     return platform_profile.open_doc_cmd(path)
+
+
+def _atomic_json(path, data):
+    """GUI 侧 JSON 落盘:临时文件 + os.replace(进程中途被杀不截断原文件)。"""
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, path)
 # ============ 国际化:自动检测语言(OS 中文→中文,否则英文),可用 AGENT_LANG 强制 ============
 def _os_ui_lang_zh():
     """v2.0.0:OS 界面语言探测。GUI 程序在 mac/win 上拿不到 shell 的 LANG 环境变量
@@ -62,6 +71,16 @@ def _os_ui_lang_zh():
                                  creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
                                  ).stdout.decode("utf-8", "replace")
             return out.strip().lower().startswith("zh")
+        if sys.platform.startswith("linux"):
+            import locale
+            loc = (os.environ.get("LC_ALL") or os.environ.get("LC_MESSAGES")
+                   or os.environ.get("LANG") or "")
+            if not loc:
+                try:
+                    loc = locale.getlocale()[0] or ""
+                except Exception:
+                    loc = ""
+            return str(loc).lower().startswith("zh")
     except Exception:
         pass
     return False
@@ -101,7 +120,7 @@ _T = {
         "[Offline mode is ON: no web tools or cloud for this task — web-search "
         "requests cannot be fulfilled; toggle 🔒 back online first]",
     "会话": "Sessions", "计划": "Plan", "💬 对话": "💬 Chat", "🖥 日志": "🖥 Logs",
-    "发送": "Send", "🎤 语音": "🎤 Voice", "🎤 无音频": "🎤 No Audio", "■ 停止录音": "■ Stop",
+    "发送": "Send", "换行": "New line", "🎤 语音": "🎤 Voice", "🎤 无音频": "🎤 No Audio", "■ 停止录音": "■ Stop",
     "允许一次": "Allow once", "允许全部(本轮)": "Allow all (this task)",
     "拒绝": "Deny", "⚠ 越界操作确认": "⚠ Outside-workspace access",
     "AI 想访问工作目录之外的文件": "The agent wants to access files outside the workspace",
@@ -115,7 +134,7 @@ _T = {
     "关闭": "Close", "欢迎使用": "Welcome",
     "未能自动启动 Ollama,请手动运行 ollama serve 后再试。": "Could not start Ollama automatically. Please run `ollama serve` manually and try again.",
     "全离线·小模型优先的本地 AI agent": "Local-first, small-model-first AI agent",
-    "输入任务或对话,Ctrl+Enter 发送。可以直接说:": "Type a task or chat — Ctrl+Enter to send. Try:",
+    "输入任务或对话,Enter 发送。可以直接说:": "Type a task or chat — Enter to send. Try:",
     "· 用中文回答我,别客气": "· Answer in plain language",
     "· 在某个目录里写个 Python 程序并跑测试": "· Write a Python program in a folder and run its tests",
     "· 帮我查资料、整理成报告": "· Research a topic and summarize it into a report",
@@ -127,7 +146,7 @@ _T = {
     "停止": "Stop", "续跑": "Resume", "清空对话": "Clear chat",
     "清空输出": "Clear output", "保存": "Save",
     "查看对话": "View conversation", "恢复此会话": "Restore session",
-    "输入任务或对话…(Ctrl+Enter 发送)": "Type a task or chat… (Ctrl+Enter to send)",
+    "输入任务或对话…(Enter 发送 · Shift+Enter 换行)": "Type a task or chat… (Enter to send · Shift+Enter for newline)",
     " 上下文: - / - ( - % )": "  Ctx: - / - ( - % )",
     " 上下文: {pt} / {total} ({pct}%)": "  Ctx: {pt} / {total} ({pct}%)",
     "会话:": "Session: ",
@@ -230,9 +249,131 @@ def _first_msg_title(msg, limit=15):
 
 # v1.8.0 一键断网/联网(offline mode):断网=仅本地模型+禁联网工具+禁 url 型 MCP,
 # 零出站(netstat 可验证);联网=本地+搜索+已配置的 MCP/云端 provider。
+# v4 桌面 UI 新增文案(侧边栏/计划抽屉/输入卡/空状态)
+_T["鸣鸟 · 本地 AI 助手"] = "Mingbird · Local AI Assistant"
+_T["鸣鸟"] = "Mingbird"
+_T["你"] = "You"
+_T["新对话"] = "New chat"
+_T["搜索对话"] = "Search chats"
+_T["语音"] = "Voice"
+_T["目录"] = "Folder"
+_T["目录 · "] = "Folder · "
+_T["时限"] = "Limit"
+_T["时限 "] = "Limit "
+_T["任务设置"] = "Task settings"
+_T["工作目录"] = "Working directory"
+_T["任务时限(分钟或小时,留空=不限)"] = "Time limit (minutes or hours; empty = none)"
+_T["例: 40 / 1.5h"] = "e.g. 40 / 1.5h"
+_T["浏览"] = "Browse"
+_T["打开"] = "Open"
+_T["保存"] = "Save"
+_T["取消"] = "Cancel"
+_T["本地优先 · 小模型优先"] = "Local-first · small-model-first"
+_T["历史会话 · 下一条消息接续上下文"] = "History · the next message continues this context"
+_T["有什么可以帮你?"] = "What can I help you with?"
+_T["本地优先 · 小模型优先 · 数据不出本机"] = \
+    "Local-first · small-model-first · data never leaves this machine"
+_T["写一个 Python 脚本并跑测试"] = "Write a Python script and run its tests"
+_T["整理这个目录里的文件"] = "Organize the files in this folder"
+_T["查资料并汇总成报告"] = "Research a topic and write a report"
+_T["解释这段代码在做什么"] = "Explain what this code does"
+_T["Enter 发送 · Shift+Enter 换行;点上面的建议可直接填入输入框。"] = \
+    "Enter to send · Shift+Enter for a new line; click a suggestion to fill the composer."
+_T["(尚无计划 — agent 会先建 todo 再执行)"] = \
+    "(no plan yet — the agent creates a todo list first)"
+_T["实时"] = "live"
+# 命名口径:联网模式下推理仍在本地,但搜索/MCP/云端会出站,不能标"零出站"。
+_T["联网 · 本地推理"] = "Online · local inference"
+_T["断网 · 零出站"] = "Offline · zero egress"
+_T["联网 · 云端模型"] = "Online · cloud model"
+_T["云端 API"] = "Cloud API"
+_T["云端仅联网可用；api_key 只存本机"] =     "Cloud needs network; api_key stays in the local config only"
+_T["云端配置不完整:需要端点与模型名,未启用"] =     "Incomplete cloud config: endpoint and model are required (not enabled)"
+_T["云端模型需联网:先在顶部切回本地模型,再开断网"] =     "Cloud models need network; switch back to a local model before going offline"
+# v4.1 设置对话框分区/提示
+_T["设置"] = "Settings"
+_T["上下文窗口"] = "Context window"
+_T["温度"] = "Temperature"
+_T["输出上限"] = "Max output"
+_T["留空=用 Ollama 默认"] = "empty = Ollama default"
+_T["推理引擎"] = "Inference engine"
+_T["生成参数"] = "Generation"
+_T["命令输出"] = "Command output"
+_T["系统提示"] = "System prompt"
+_T["保存后自下一个任务起生效"] = "Applies from the next task"
+_T["本地服务 API Key 可空"] = "local service API key (optional)"
+_T["端点"] = "Endpoint"
+_T["启用自定义系统提示(替代内置,可大幅改造行为)"] = \
+    "Use a custom system prompt (replaces the built-in one)"
+# v4.1 深层对话框(关于/技能/搜索/回放/越界确认)
+_T["关于"] = "About"
+_T["版本"] = "Version"
+_T["许可"] = "License"
+_T["全离线·小模型优先的本地 AI agent"] = \
+    "An offline-first, small-model-first local AI agent"
+_T["打开安装目录"] = "Open install folder"
+_T["关闭"] = "Close"
+_T["技能列表"] = "Skills"
+_T["已装技能"] = "Installed"
+_T["技能目录"] = "Skill folders"
+_T["(暂无技能)"] = "(no skills yet)"
+_T["渐进式加载 · 只列名字与一句话描述"] = \
+    "Progressive disclosure · names and one-line descriptions"
+_T["会话历史搜索"] = "Search chats"
+_T["搜索"] = "Search"
+_T["查看对话"] = "View chat"
+_T["恢复此会话"] = "Restore this chat"
+_T["双击结果查看完整对话"] = "Double-click a result to view the full chat"
+_T["会话回放"] = "Chat replay"
+_T["(读取失败)"] = "(read failed)"
+_T["(输入关键词再搜索)"] = "(type a keyword and search)"
+_T["(未找到含 '{q}' 的会话)"] = "(no chat contains '{q}')"
+_T["⚠ 越界操作确认"] = "⚠ Out-of-workspace access"
+_T["AI 想访问工作目录之外的文件"] = \
+    "The AI wants to access a file outside the working folder"
+_T["目标不在当前工作目录内,需要你确认这一次的访问。"] = \
+    "The target is outside the working folder; confirm this one access."
+_T["工具"] = "Tool"
+_T["操作"] = "Action"
+_T["目标"] = "Target"
+_T["允许一次"] = "Allow once"
+_T["允许全部(本轮)"] = "Allow all (this run)"
+_T["拒绝"] = "Deny"
+_T["上下文: - / - ( - % )"] = "Context: - / - ( - % )"
+_T["模型"] = "Model"
+_T["思考 · "] = "Thinking · "
+_T["● 联网"] = "● Online"
+_T["● 断网"] = "● Offline"
+_T["☁ 云端"] = "☁ Cloud"
+_T["☁ 断网禁用"] = "☁ disabled offline"
+_T["还没有对话"] = "No conversations yet"
+_T["今天"] = "Today"
+_T["昨天"] = "Yesterday"
+_T["更早"] = "Earlier"
+
 _T["任务完成"] = "Task complete"
 _T["不限"] = "Unlimited"
-_T["命令输出精简(超长输出只留末尾,小上下文档位最受益)"] = "Compact command output (long outputs trimmed to the tail; best for small context tiers)"
+_T["命令输出精简"] = "Compact command output"
+_T["自动(≤32K)"] = "Auto (≤32K)"
+_T["环境变量覆盖中"] = "overridden by env var"
+_T["超长输出只留末尾"] = "trim long outputs to the tail"
+# v3.1.1 会话管理(侧栏右键菜单)
+_T["打开"] = "Open"
+_T["归档(移出列表,文件保留)"] = "Archive (hide from list, files kept)"
+_T["删除…"] = "Delete…"
+_T["删除对话"] = "Delete conversation"
+_T["确定彻底删除对话(转录/计划一并删除,不可恢复;只想移出列表请用「归档」)?"] = \
+    "Permanently delete this conversation (transcript and plan included, unrecoverable; use Archive to just hide it)?"
+_T["[已归档会话(文件移入 sessions/_archived,可随时找回)]"] = \
+    "[Archived (files moved to sessions/_archived, recoverable anytime)]"
+_T["[已删除会话(不可恢复)]"] = "[Conversation deleted (unrecoverable)]"
+_T["[归档失败:找不到会话文件]"] = "[Archive failed: session files not found]"
+_T["[任务运行中暂不能归档当前会话——请先停止或等它完成]"] = \
+    "[Cannot archive the current conversation while a task is running — stop it or wait]"
+_T["[任务运行中暂不能删除当前会话——请先停止或等它完成]"] = \
+    "[Cannot delete the current conversation while a task is running — stop it or wait]"
+_T["开"] = "On"
+_T["关"] = "Off"
 # v2.1.1 多引擎(OpenAI 兼容本地服务)
 _T["本地引擎:"] = "Local engine:"
 _T["自定义 OpenAI 兼容"] = "Custom OpenAI-compatible"
@@ -290,7 +431,9 @@ if __name__ == "__main__":
     import tkinter as _tk
     _tk.Tk.report_callback_exception = staticmethod(_log_exc)
 
-AGENT_HOME = os.path.expanduser("~/.ollama_agent")
+# 与 appconfig 同源:便携/隔离模式(MINGBIRD_HOME)下会话/偏好/技能必须一起搬。
+# 旧版这里硬编码 ~/.ollama_agent,agent 存到 MINGBIRD_HOME、GUI 却读旧目录(复审发现)。
+AGENT_HOME = appconfig.AGENT_HOME
 SESSION_DIR = os.path.join(AGENT_HOME, "sessions")
 def _skill_scan_dirs():
     """技能扫描目录。PyInstaller 6 onedir 把 datas 装进 _internal(=sys._MEIPASS),
@@ -388,7 +531,7 @@ class AgentGUI:
                     pass
         return ""   # VERSION 缺失时不显示版本号(旧兜底 v0.6.0 误导)
 
-    def refresh_models(self):
+    def refresh_models(self, quick=False):
         """从 ollama 动态读取已安装模型,构建 显示名→tag 映射。
         - ollama 可达:下拉 = 实际安装的模型(配置了友好名则显示友好名);
           配置里已卸载的模型不显示(它们跑不起来)。
@@ -402,28 +545,33 @@ class AgentGUI:
         import urllib.request as _ur
         import time as _sleep_mod
         _lb = appconfig.backend_openai()
-        for _ in range(3):
+        for _ in range(1 if quick else 3):
             try:
                 if _lb:
                     # v2.1.1 OpenAI 兼容引擎:GET /models(OpenAI 形态 {"data":[{"id":..}]},
                     # LM Studio/llama.app/llama-server 同构)→ 归一成 /api/tags 的 entries 形态
-                    r = json.loads(_ur.urlopen(_lb["base_url"] + "/models", timeout=6).read())
+                    r = json.loads(_ur.urlopen(_lb["base_url"] + "/models",
+                                               timeout=2 if quick else 6).read())
                     entries = [{"name": x.get("id")} for x in (r.get("data") or []) if x.get("id")]
                 else:
-                    r = json.loads(_ur.urlopen(f"{appconfig.ollama_host()}/api/tags", timeout=6).read())
+                    r = json.loads(_ur.urlopen(f"{appconfig.ollama_host()}/api/tags",
+                                               timeout=2 if quick else 6).read())
                     entries = [x for x in r.get("models", []) if x.get("name")]
                 break
             except Exception:
                 entries = []
-                _sleep_mod.sleep(0.8)
+                if not quick:
+                    _sleep_mod.sleep(0.8)
         if not entries:
             # 引擎不可达:不把配置里的陈旧映射当可用模型展示(那会让用户选到跑不起来的模型)
             self._model_map = {}
             try:
-                _off = f"[ {appconfig.engine_display_name()} 离线 — 启动后自动重试 ]"
-                self.model_cb.configure(values=[_off],
-                                        width=max(13, min(self._disp_units(_off), 40)))
-                self.model_var.set(_off)
+                if appconfig.cloud_provider():
+                    self.model_var.set("")
+                else:
+                    _off = f"[ {appconfig.engine_display_name()} 离线 — 启动后自动重试 ]"
+                    self.model_var.set(_off)
+                self._sync_model_btn()
             except Exception:
                 pass
             return
@@ -431,16 +579,28 @@ class AgentGUI:
             m[_t(display)] = t
         self._model_map = m
         try:
-            self.model_cb["values"] = list(m)
-            need = max([13] + [self._disp_units(v) for v in m])
-            self.model_cb.configure(width=min(need, 40))
-            if self.model_var.get() not in m and m:
+            if appconfig.cloud_provider():
+                self.model_var.set("")
+            elif self.model_var.get() not in m and m:
                 self.model_var.set(list(m)[0])
+            self._sync_model_btn()
+            self._sync_cloud_box()
         except Exception:
             pass
 
     def __init__(self, root):
         self.root = root
+        # 先按平台挑可用字体族,再建控件(ui_v4 的 FONT_* 会被就地刷新)
+        try:
+            v4.init_fonts(root)
+        except Exception:
+            pass
+        for _k, _v in (("font_title", v4.FONT_TITLE), ("font_body", v4.FONT),
+                       ("font_small", v4.FONT_SM), ("font_mono", v4.MONO)):
+            try:
+                MINIMAL[_k] = _v
+            except Exception:
+                pass
         if not hasattr(root, "style"):
             # 裸 Tk 根(如 tkinterdnd2 的 TkinterDnD.Tk)没有 ttkbootstrap 的
             # .style,build_minimal_theme 依赖它:这里补挂,任何根类型都能进
@@ -492,10 +652,17 @@ class AgentGUI:
         # 尺寸(轨宽/面板宽/窗口几何)不缩放 — 200% 缩放下 94px 轨只剩一半视觉宽度,
         # 这就是导航按钮文字被裁的根因。系数 = 实际DPI/96(winfo_fpixels('1i')/72
         # 即 Tk 的"每点像素数",再折算到 96DPI 基准)。
+        # 实测(200% DPI):Tk 的 winfo_width/geometry 都是物理像素,而字号按点
+        # 乘 tk scaling。像素尺寸不缩 = 侧栏只够 8 个字、对话框装不下内容。
+        # 正确做法:像素标尺按 DPI 放大,字号只吃一次点缩放。
         try:
-            self._ui_scale = 1.0   # Tk point 已由系统 DPI 处理,不做额外像素缩放(双重放大=巨大 UI bug)
+            self._ui_scale = max(1.0, root.winfo_fpixels("1i") / 96.0)
         except Exception:
             self._ui_scale = 1.0
+        try:
+            v4.set_scale(self._ui_scale)
+        except Exception:
+            pass
         # 默认开足够大的窗口,保证所有功能露出(避免小窗口只显示左上角)
         try:
             sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
@@ -514,7 +681,7 @@ class AgentGUI:
 
         self._build_toolbar()
         self._build_body()
-        self.refresh_models()          # 动态读取 ollama 里的模型(须在控件建成后:离线时用占位符覆盖,防陈旧配置回退)
+        self.refresh_models(quick=True)   # 启动只探测一次,避免离线引擎阻塞 UI;5s 自愈链会重试
         self._build_statusbar()
 
         # 快捷键
@@ -522,7 +689,9 @@ class AgentGUI:
         root.bind("<Control-f>", lambda e: self.search_history())
         root.bind("<Control-l>", lambda e: self.clear_log())
         root.bind("<Control-i>", lambda e: self.send_chat())
-        self.input.bind("<Control-Return>", lambda e: self.send_chat())
+        # v3.0.0:Enter 发送 · Shift+Enter 换行(输入卡处的同名绑定更具体,两处都挂保平安)
+        self.input.bind("<Return>", self._on_enter_key)
+        self.input.bind("<Control-Return>", lambda e: (self.send_chat(), "break")[1])
         root.bind("<F5>", lambda e: self.run_agent())
 
         self.apply_theme()
@@ -556,8 +725,11 @@ class AgentGUI:
             pass
         return d
     def save_prefs(self):
-        json.dump(self.prefs, open(PREFS_FILE, "w", encoding="utf-8"),
-                  ensure_ascii=False, indent=2)
+        try:
+            os.makedirs(os.path.dirname(PREFS_FILE), exist_ok=True)
+            _atomic_json(PREFS_FILE, self.prefs)
+        except Exception:
+            pass
 
     # ================= 思考三态(工具栏快切) =================
     def _think_states(self):
@@ -583,183 +755,470 @@ class AgentGUI:
         return sum(2 if ord(ch) > 0x2E7F else 1 for ch in str(s))
 
 
-    # ================= 构建界面(v2:导航轨 + 页面栈) =================
+    # ================= 构建界面(v4:会话侧边栏 + 对话 + 计划抽屉) =================
     def _build_toolbar(self):
-        """v2 外壳:左侧导航轨。模型/目录/时限等对话要素并入对话页。"""
+        """v4 外壳:常驻会话侧边栏 + 单列对话区 + 可折叠计划抽屉。
+
+        旧版是"左侧导航轨 + 两条工具栏 + 右侧常驻 todo 栏"——会话切换要跳页,
+        控件全部平铺,计划面板长期占地。v4 把会话变成一等公民,其余收进二级入口。
+        """
         import ui_theme as _ut
         self._ui = _ut
         self.T = _ut.tokens("dark")   # 构建期临时配色;apply_theme 统一刷新
         self._themable = []
-        self.pages = {}
-        self._rail_btns = {}
-        self._cur_page = "chat"
+        self._themed = []             # [(widget, bg_key, fg_key)] 供主题刷新
+        self._log_buf = []
+        self.console = None
+        self.plan_open = False
+        self._plan_items = []
+        self._plan_done = 0
+        self._plan_total = 0
+        self.search_var = tk.StringVar(value="")
+        self._plan_source = "run"
+        self._sess_w = 0
+        self._search_after = None
+        self._build_shell()
 
-        # 轨宽 DPI 感知:按钮字体(点阵)随系统 DPI 缩放,固定 94px 轨不缩放,
-        # 200% 下必裁字。改法:字体按缩放系数取整 + 按钮建完后按实测最宽行
-        # (Settings/History)定轨宽,双保险保证任何 DPI/任何语言下都不裁字。
-        s = getattr(self, "_ui_scale", 1.0)
-        self._nav_font = tkfont.Font(family="Microsoft YaHei UI",
-                                     size=max(9, int(round(9 * s))))
-        rail = tk.Frame(self.root, width=int(94 * s), bd=0, highlightthickness=0)
-        rail.pack(side="left", fill="y")
-        rail.pack_propagate(False)
-        self.rail = rail
-        tk.Label(rail, text="🐦", font=("Segoe UI Emoji", 15),
-                 bg=self.T["elevated"], fg=self.T["text"]).pack(pady=(12, 0))
-        tk.Label(rail, text="MB", font=("Segoe UI", 9, "bold"),
-                 bg=self.T["elevated"], fg=self.T["muted"]).pack(pady=(0, 8))
+    # ---- 主题登记辅助(避免逐个控件手写 apply_theme) ----
+    def _frame(self, parent, bg_key="bg", **kw):
+        w = tk.Frame(parent, bg=self.T[bg_key], bd=0, highlightthickness=0, **kw)
+        self._themed.append((w, bg_key, None))
+        return w
 
-        def _nav(pid, icon, label, cmd):
-            b = tk.Button(rail, text=icon + "\n" + label,
-                          font=self._nav_font, bd=0, relief="flat",
-                          bg=self.T["elevated"], fg=self.T["muted"],
-                          activebackground=self.T["sel"], activeforeground=self.T["text"],
-                          command=cmd)
-            b.pack(fill="x", padx=5, pady=3)
-            self._rail_btns[pid] = b
+    def _lab(self, parent, text="", bg_key="bg", fg_key="text", **kw):
+        w = tk.Label(parent, text=text, bg=self.T[bg_key],
+                     fg=self.T[fg_key], bd=0, **kw)
+        self._themed.append((w, bg_key, fg_key))
+        return w
 
-        _nav("chat", "💬", _t("对话"), lambda: self.show_page("chat"))
-        _nav("history", "🕘", _t("历史"), lambda: self.show_page("history"))
-        _nav("logs", "🖥", _t("日志"), lambda: self.show_page("logs"))
-        tk.Frame(rail, bg=self.T["elevated"]).pack(fill="both", expand=True)
-        _nav("skills", "🧩", _t("技能"), self.show_skills)
-        _nav("settings", "⚙", _t("设置"), self.open_settings)
-        _nav("about", "ℹ", _t("关于"), self.show_about)
-        self.theme_lbl = tk.Label(rail, text="🌓", font=("Segoe UI Emoji", 12),
-                                  bg=self.T["elevated"], fg=self.T["muted"], cursor="hand2")
-        self.theme_lbl.pack(pady=(4, 10))
-        self.theme_lbl.bind("<Button-1>", lambda e: self.cycle_theme())
+    def _entry(self, parent, bg_key="surface", fg_key="text", **kw):
+        w = tk.Entry(parent, bg=self.T[bg_key], fg=self.T[fg_key],
+                     insertbackground=self.T[fg_key], bd=0,
+                     highlightthickness=0, **kw)
+        self._themed.append((w, bg_key, fg_key))
+        return w
 
-        # 实测定宽:取全部按钮最宽行 + 左右 padx(2*5) + 内边距余量,与 94*s 取大者
+    def _build_shell(self):
+        T = self.T
+        S = self._ui_scale
+        self.root.configure(bg=T["bg"])
+        self.sidebar = tk.Frame(self.root, bg=T["side"], width=int(280 * S),
+                                bd=0, highlightthickness=0)
+        self.sidebar.pack(side="left", fill="y")
+        self.sidebar.pack_propagate(False)
+        self.plan_rail = tk.Frame(self.root, bg=T["bg"], width=int(46 * S),
+                                  bd=0, highlightthickness=0)
+        self.plan_rail.pack(side="right", fill="y")
+        self.plan_rail.pack_propagate(False)
+        self.main = tk.Frame(self.root, bg=T["bg"], bd=0, highlightthickness=0)
+        self.main.pack(side="left", fill="both", expand=True)
+        self._build_sidebar()
+
+    def _build_sidebar(self):
+        T = self.T
+        S = self._ui_scale
+        s = self.sidebar
+        head = self._frame(s, "side", height=int(56 * S))
+        head.pack(fill="x", padx=int(16 * S), pady=(int(10 * S), int(2 * S)))
+        head.pack_propagate(False)
+        self._brand_img = None
+        mw = None
         try:
-            need = 0
-            for b in self._rail_btns.values():
-                for line in str(b.cget("text")).split("\n"):
-                    need = max(need, self._nav_font.measure(line))
-            rail.configure(width=max(int(94 * s), need + int(26 * s)))
+            from PIL import Image, ImageTk
+            p = os.path.join(AGENT_DIR, "app.png")
+            if os.path.exists(p):
+                _m = int(34 * S)
+                im = Image.open(p).convert("RGBA").resize((_m, _m), Image.LANCZOS)
+                self._brand_img = ImageTk.PhotoImage(im)
+                mw = tk.Label(head, image=self._brand_img, bg=T["side"], bd=0)
         except Exception:
-            rail.configure(width=int(94 * s))
+            mw = None
+        if mw is None:
+            mw = self._lab(head, "🐦", "side", "primary",
+                           font=(v4.EMOJI_FAMILY, 16))
+        mw.pack(side="left")
+        self._themed.append((mw, "side", None))   # theme_use 会把图片 Label 刷成 #222
+        self._brand_mark = mw
+        box = self._frame(head, "side")
+        box.pack(side="left", padx=(int(10 * S), 0))
+        self._brand_name = self._lab(box, _t("鸣鸟"), "side", "text",
+                                     font=v4.FONT_BRAND)
+        self._brand_name.pack(anchor="w")
+        self._brand_sub = self._lab(
+            box, "MINGBIRD  " + (self.app_version() or ""), "side", "faint",
+            font=(v4.DISPLAY_FAMILY, 9))
+        self._brand_sub.pack(anchor="w")
 
-        for pid in ("chat", "history", "logs"):
-            f = tk.Frame(self.root, bd=0, highlightthickness=0)
-            f.pack(fill="both", expand=True)
-            self.pages[pid] = f
-        self.show_page("chat")
+        # 宽度 = 侧栏内容宽(280 - 左右各 16);之前写死 220,比搜索框窄一截
+        _btn_w = 280 - 32
+        self.new_btn = v4.Pill(s, "＋   " + _t("新对话"), self.new_chat, T,
+                               kind="primary", h=38, padx=0, width=_btn_w,
+                               font=v4.FONT_BOLD, radius=10)
+        self.new_btn.pack(pady=(int(8 * S), int(10 * S)), padx=int(16 * S),
+                          fill="x")
+
+        # 搜索框:圆角面板(自绘图片),不再用方形 1px 边框——旧样式最显"复古"
+        sbox = tk.Frame(s, bg=T["side"], height=int(44 * S))
+        self._themed.append((sbox, "side", None))
+        sbox.pack(fill="x", padx=int(16 * S), pady=(0, int(8 * S)))
+        sbox.pack_propagate(False)
+        sbox.bind("<Configure>", self._paint_search)
+        self._search_bg = tk.Label(sbox, bg=T["side"], bd=0)
+        self._search_bg.place(x=0, y=0, relwidth=1, relheight=1)
+        self._search_border = sbox
+        self._lab(sbox, "⌕", "surface", "faint",
+                  font=(v4.DISPLAY_FAMILY, 14)).place(x=int(13 * S), rely=0.5,
+                                               anchor="w")
+        self.search_entry = self._entry(sbox, font=v4.FONT_SM,
+                                        textvariable=self.search_var)
+        self.search_entry.place(x=int(38 * S), y=int(8 * S),
+                                relwidth=1.0, width=-int(50 * S),
+                                height=int(28 * S))
+        self._search_hint = _t("搜索对话")
+        self.search_var.set(self._search_hint)
+        self.search_entry.configure(fg=T["faint"])
+        self.search_entry.bind("<FocusIn>", self._search_focus_in)
+        self.search_entry.bind("<FocusOut>", self._search_focus_out)
+        self.search_entry.bind("<KeyRelease>", self._search_changed)
+
+        self.sess_canvas = tk.Canvas(s, bg=T["side"], bd=0, highlightthickness=0,
+                                     yscrollincrement=int(24 * S))
+        self.sess_canvas.pack(fill="both", expand=True)
+        self.sess_canvas.bind("<MouseWheel>", self._sidebar_wheel)
+        self.sess_canvas.bind("<Configure>", self._on_sess_resize)
+
+        foot = self._frame(s, "side")
+        foot.pack(fill="x", padx=int(14 * S), pady=(int(2 * S), int(8 * S)))
+        for label, cmd in ((_t("技能"), self.show_skills),
+                           (_t("日志"), self._open_logs),
+                           (_t("设置"), self.open_settings),
+                           (_t("关于"), self.show_about)):
+            b = self._lab(foot, label, "side", "muted",
+                          font=v4.FONT_XS, cursor="hand2", padx=int(2 * S))
+            b.pack(side="left", padx=(0, int(6 * S)))
+            b.bind("<Button-1>", lambda e, c=cmd: c())
+            b.bind("<Enter>", lambda e, w=b: w.configure(fg=self.T["primary"]))
+            b.bind("<Leave>", lambda e, w=b: w.configure(fg=self.T["muted"]))
+        th = self._lab(foot, "◐", "side", "muted",
+                       font=(v4.DISPLAY_FAMILY, 14), cursor="hand2")
+        th.pack(side="right")
+        th.bind("<Button-1>", lambda e: self.cycle_theme())
+        self._theme_icon = th
+
+    def _paint_search(self, _e=None):
+        if not hasattr(self, "_search_bg"):
+            return
+        w = self._search_border.winfo_width()
+        h = self._search_border.winfo_height()
+        if w < 60 or h < 30:
+            return
+        img = v4.card_img(max(2, w - 2), max(2, h - 2), v4.px(12),
+                          self.T["surface"], self.T["border"], self.T["side"])
+        if img is not None:
+            self._search_img = img
+            self._search_bg.configure(image=img, bg=self.T["side"])
+            self._search_bg.lower()
+
+    def _search_focus_in(self, _e=None):
+        if self.search_var.get() == self._search_hint:
+            self.search_var.set("")
+            self.search_entry.configure(fg=self.T["text"])
+
+    def _search_focus_out(self, _e=None):
+        if not self.search_var.get().strip():
+            self.search_var.set(self._search_hint)
+            self.search_entry.configure(fg=self.T["faint"])
+
+    def _sidebar_wheel(self, e):
+        try:
+            self.sess_canvas.yview_scroll(int(-e.delta / 120), "units")
+        except Exception:
+            pass
+        return "break"
+
+    def _search_changed(self, _e=None):
+        try:
+            if self._search_after:
+                self.root.after_cancel(self._search_after)
+        except Exception:
+            pass
+        self._search_after = self.root.after(160, self.refresh_sessions)
+
+    def _on_sess_resize(self, _e=None):
+        w = self.sess_canvas.winfo_width()
+        if abs(w - getattr(self, "_sess_w", 0)) < 4:
+            return
+        self._sess_w = w
+        if getattr(self, "_sess_names", None) is not None:
+            self.refresh_sessions()
 
     def _build_body(self):
         self._build_chat_page()
-        self._build_history_page()
-        self._build_logs_page()
-        self.show_page("chat")
-
-    def show_page(self, pid):
-        self._cur_page = pid
-        for k, f in self.pages.items():
-            if k == pid:
-                f.pack(fill="both", expand=True)
-            else:
-                f.pack_forget()
-        self.apply_theme()
 
     def _build_chat_page(self):
-        page = self.pages["chat"]
-        bar = tb.Frame(page, padding=(12, 10, 12, 4)); bar.pack(fill="x")
-        tb.Label(bar, text=self.app_version(), bootstyle="secondary",
-                 font=("Consolas", 9)).pack(side="left", padx=(0, 10))
-        tb.Label(bar, text=_t("模型:")).pack(side="left")
-        # 不再用配置映射覆盖 _model_map(修复:那会把已卸载的陈旧配置模型塞回下拉,
-        # 且空映射时 list(...)[0] 会 IndexError);此处仅用现有映射(若有)建控件,
-        # __init__ 紧随其后调 refresh_models() 用 ollama 实况重建。
-        if not getattr(self, "_model_map", None):
-            _cfg_models = appconfig.model_map()
-            self._model_map = {_t(k): v for k, v in _cfg_models.items()}
-        _vals = list(self._model_map) or [_t("[ {eng} 离线 — 启动后自动重试 ]").format(
-            eng=appconfig.engine_display_name())]
-        self.model_var = tk.StringVar(value=_vals[0])
-        # 下拉宽度按最长显示名适配(CJK 记 2 单位):否则 "qwen2b (长上下文 256K)"
-        # 这类名字在闭合态被截断
-        _mw = max([13] + [self._disp_units(v) for v in _vals])
-        self.model_cb = tb.Combobox(bar, textvariable=self.model_var,
-                                    values=_vals,
-                                    state="readonly", width=min(_mw, 40),
-                                    bootstyle="primary")
-        self.model_cb.bind("<<ComboboxSelected>>", lambda e: self._on_model_selected())
-        self.model_cb.pack(side="left", padx=3)
-        # 思考三态(v1.7.0):默认=请求不带 think 字段(ollama 出厂默认,thinking 模型
-        # 默认开);开/关=显式下发顶层 think 字段。旧版"关闭思考"勾选框与 env 语义相反
-        # (勾上反而传 AGENT_THINK=1)且从不持久化,已废除。
+        self._build_header()
+        self._build_transcript()
+        self._build_composer()
+
+    # ------------------------------------------------------------ header
+    def _build_header(self):
+        T = self.T
+        S = self._ui_scale
+        self.wd_var = tk.StringVar(value=os.path.join(DEFAULT_TASKS, "work"))
+        self.tb_var = tk.StringVar(value="")
+
+        h = self._frame(self.main, "bg", height=int(64 * S))
+        h.pack(fill="x", padx=(int(24 * S), int(18 * S)),
+               pady=(int(10 * S), 0))
+        h.pack_propagate(False)
+        self.header = h
+
+        right = self._frame(h, "bg")
+        right.pack(side="right", fill="y")
+        left = self._frame(h, "bg")
+        left.pack(side="left", fill="y")
+        self._header_left = left
+        self.conv_title = self._lab(left, _t("新对话"), "bg", "text",
+                                    font=v4.FONT_TITLE, anchor="w")
+        self.conv_title.pack(anchor="w", pady=(int(2 * S), 0))
+        self.conv_sub = self._lab(left, _t("本地优先 · 小模型优先"), "bg", "faint",
+                                  font=v4.FONT_XS, anchor="w")
+        self.conv_sub.pack(anchor="w")
+
+        _vals = list(getattr(self, "_model_map", {}) or {})
+        self.model_var = tk.StringVar(value=(_vals[0] if _vals else ""))
         self.think_var = tk.StringVar(
             value={None: _t("默认"), True: _t("开"), False: _t("关")}.get(
                 self.prefs.get("think"), _t("默认")))
-        tb.Label(bar, text=_t("思考:")).pack(side="left", padx=(6, 0))
-        self.think_cb = tb.Combobox(bar, textvariable=self.think_var,
-                                    values=list(self._think_states().keys()),
-                                    state="readonly", width=5, bootstyle="secondary")
-        self.think_cb.pack(side="left", padx=3)
-        self.think_cb.bind("<<ComboboxSelected>>", self._on_think_selected)
-        # v1.8.0 一键断网/联网:一键承诺"零出站"(仅本地模型+禁联网工具+禁 url MCP)。
-        self.offline_btn = tb.Button(
-            bar, text=(_t("🔒 断网") if appconfig.offline_mode() else _t("🌐 联网")),
-            bootstyle=("danger" if appconfig.offline_mode() else "secondary"),
-            width=10, command=self._toggle_offline)
-        self.offline_btn.pack(side="left", padx=(8, 0))
-        # v1.8.2 云端模型选择:仅"联网且 config.json cloud 段已配置"时可选。
-        # 与左侧本地模型框互斥(一次只和一个模型对话):选本地→此框清空;
-        # 选云端→本地框清空。断网=禁用+清空(runner 层架构级隔离)。
-        # 配置不走复杂入口,点 ? 看指引,直接改源码端 config.json。
-        _cloud_cfg = appconfig.load_config().get("cloud") or {}
-        _cloud_model = _cloud_cfg.get("model") or ""
-        self.cloud_var = tk.StringVar(
-            value=(_cloud_model if (_cloud_cfg.get("enabled") and _cloud_model
-                                    and not appconfig.offline_mode())
-                   else ("" if _cloud_model else _t("☁ 未配置"))))
-        self.cloud_cb = tb.Combobox(
-            bar, textvariable=self.cloud_var,
-            values=(["", _cloud_model] if _cloud_model else [_t("☁ 未配置")]),
-            state="readonly", bootstyle="info",
-            width=min(28, max(10, self._disp_units(_cloud_model or _t("☁ 未配置")) + 2)))
-        self.cloud_cb.pack(side="left", padx=(6, 0))
-        self.cloud_cb.bind("<<ComboboxSelected>>", self._on_cloud_selected)
-        tb.Button(bar, text="?", bootstyle="secondary", width=2,
-                  command=self._cloud_help).pack(side="left", padx=(2, 0))
+        self.cloud_var = tk.StringVar(value="")
+
+        self.model_btn = v4.Pill(right, "", self._model_menu, T, kind="surface",
+                                 h=30, padx=12, radius=8)
+        self.model_btn.pack(side="left", padx=(0, int(6 * S)), pady=int(12 * S))
+        self.think_btn = v4.Pill(right, "", self._cycle_think, T, kind="surface",
+                                 h=30, padx=12, radius=8)
+        self.think_btn.pack(side="left", padx=(0, int(6 * S)), pady=int(12 * S))
+        self.offline_btn = v4.Pill(right, "", self._toggle_offline, T,
+                                   kind="surface", h=30, padx=12, radius=8)
+        self.offline_btn.pack(side="left", padx=(0, int(6 * S)), pady=int(12 * S))
+        self.cloud_btn = v4.Pill(right, "", self._cloud_menu, T, kind="surface",
+                                 h=30, padx=12, radius=8)
+        # cloud_btn 由 _sync_cloud_box 决定是否 pack(未配置时不占位)
+        self.plan_btn = v4.Pill(right, "", self._toggle_plan, T, kind="surface",
+                                h=30, padx=12, radius=8)
+
+        self._sync_model_btn()
+        self._sync_think_btn()
+        self._sync_offline_ui()
         self._sync_cloud_box()
-        if self.cloud_var.get():        # 云端在用:本地框同步清空(互斥门)
-            self.model_var.set("")
-        self.sess_lbl = tb.Label(bar, text=_t("会话:无"), bootstyle="secondary")
-        self.sess_lbl.pack(side="right")
+        self._sync_plan_btn()
 
-        bar2 = tb.Frame(page, padding=(12, 0, 12, 4)); bar2.pack(fill="x")
-        tb.Label(bar2, text=_t("目录:")).pack(side="left")
-        self.wd_var = tk.StringVar(value=os.path.join(DEFAULT_TASKS, "work"))
-        self.wd_entry = tb.Entry(bar2, textvariable=self.wd_var)
-        self.wd_entry.pack(side="left", fill="x", expand=True, padx=4)
-        tb.Button(bar2, text=_t("浏览"), bootstyle="secondary",
-                  command=self.choose_dir).pack(side="left")
-        tb.Button(bar2, text=_t("打开"), bootstyle="secondary-outline",
-                  command=self.open_dir).pack(side="left", padx=(4, 0))
-        tb.Label(bar2, text=_t("任务时限:")).pack(side="left", padx=(10, 0))
-        self.tb_var = tk.StringVar(value="")
-        self.tb_entry = tb.Entry(bar2, textvariable=self.tb_var, width=9, bootstyle="info")
-        self.tb_entry.pack(side="left", padx=(2, 4))
+    def _sync_model_btn(self):
+        if not hasattr(self, "model_btn"):
+            return
+        txt = self.model_var.get() if hasattr(self, "model_var") else ""
+        if not txt:
+            _c = appconfig.load_config().get("cloud") or {}
+            if _c.get("enabled") and _c.get("model"):
+                txt = "☁ " + str(_c["model"])
+        if not txt:
+            txt = _t("模型")
+        if len(txt) > 26:
+            txt = txt[:25] + "…"
+        self.model_btn.set_text(txt + "  ▾")
 
-        pw = tb.Panedwindow(page, orient="horizontal")
-        pw.pack(fill="both", expand=True)
-        left = tb.Frame(pw); pw.add(left, weight=1)
-        self.transcript = tk.Text(left, font=("Microsoft YaHei UI", 10),
-                                  state="disabled", wrap="word", relief="flat",
-                                  padx=14, pady=10, bd=0)
+    def _sync_think_btn(self):
+        if not hasattr(self, "think_btn"):
+            return
+        self.think_btn.set_text(_t("思考 · ") + self.think_var.get())
+
+    def _cloud_ready(self):
+        """云端配置完整且启用 = 当前推理走云端(仅联网可用)。"""
+        c = appconfig.load_config().get("cloud") or {}
+        return bool(c.get("enabled") and c.get("base_url") and c.get("model"))
+
+    def _sync_offline_ui(self):
+        if not hasattr(self, "offline_btn"):
+            return
+        off = appconfig.offline_mode()
+        if self._cloud_ready():
+            # 云端模型只能联网:断网按钮置灰,先切回本地才能断网
+            self.offline_btn.set_text(_t("● 联网"))
+            self.offline_btn.set_kind("surface")
+            self.offline_btn.set_enabled(False)
+            return
+        self.offline_btn.set_enabled(True)
+        self.offline_btn.set_text(_t("● 断网") if off else _t("● 联网"))
+        self.offline_btn.set_kind("danger" if off else "surface")
+
+    def _model_menu(self):
+        names = list(getattr(self, "_model_map", {}) or {})
+        if not names:
+            self.log_note(_t("[模型清单为空 — 等引擎就绪后再试]"))
+            return
+        menu = tk.Menu(self.root, tearoff=0, bg=self.T["surface"],
+                       fg=self.T["text"], activebackground=self.T["soft"],
+                       activeforeground=self.T["primary"], bd=0,
+                       font=v4.FONT_SM)
+        for n in names:
+            menu.add_command(label=n, command=lambda x=n: self._pick_model(x))
+        menu.tk_popup(self.model_btn.winfo_rootx(),
+                      self.model_btn.winfo_rooty() + self.model_btn.winfo_height() + 4)
+
+    def _pick_model(self, name):
+        self.model_var.set(name)
+        self._on_model_selected()
+        self._sync_cloud_box()
+        self._sync_model_btn()
+
+    def _cycle_think(self):
+        states = list(self._think_states().keys())
+        cur = self.think_var.get()
+        nxt = states[(states.index(cur) + 1) % len(states)] if cur in states else states[0]
+        self.think_var.set(nxt)
+        self._on_think_selected()
+        self._sync_think_btn()
+
+    def _cloud_menu(self):
+        m = (appconfig.load_config().get("cloud") or {}).get("model") or ""
+        if not m:
+            return
+        menu = tk.Menu(self.root, tearoff=0, bg=self.T["surface"],
+                       fg=self.T["text"], activebackground=self.T["soft"],
+                       activeforeground=self.T["primary"], bd=0,
+                       font=v4.FONT_SM)
+        menu.add_command(label=_t("仅本地模型"),
+                         command=lambda: self._select_cloud(""))
+        menu.add_command(label="☁ " + m, command=lambda: self._select_cloud(m))
+        menu.tk_popup(self.cloud_btn.winfo_rootx(),
+                      self.cloud_btn.winfo_rooty() + self.cloud_btn.winfo_height() + 4)
+
+    def _select_cloud(self, val):
+        self.cloud_var.set(val or "")
+        self._on_cloud_selected()
+        self._sync_cloud_box()
+        self._sync_model_btn()
+
+    # ------------------------------------------------------------ transcript
+    def _build_transcript(self):
+        S = self._ui_scale
+        wrap = self._frame(self.main, "bg")
+        wrap.pack(fill="both", expand=True,
+                  padx=(int(24 * S), int(18 * S)), pady=(int(4 * S), 0))
+        self.transcript = tk.Text(wrap, bd=0, highlightthickness=0, wrap="word",
+                                  font=v4.FONT, padx=0, pady=int(8 * S),
+                                  cursor="arrow")
         self.transcript.pack(fill="both", expand=True)
-        # v1.8.2 只读区支持鼠标选中复制:禁用态 Tk Text 不响应选中拖拽,
-        # 按下时临时解锁、松开锁回;期间流式渲染器不抢锁(见 _selecting)。
         self.transcript.bind("<Button-1>", self._sel_press)
         self.transcript.bind("<ButtonRelease-1>", self._sel_release)
         self.transcript.bind("<Control-c>", self._copy_selection)
-        self.transcript.bind("<Key>", lambda e: "break")   # 选中期间不给了打字口子
-        self.input = tk.Text(left, height=3, font=("Microsoft YaHei UI", 10),
-                             wrap="word", relief="solid", bd=1)
-        self.input.pack(fill="x", padx=(0, 6), pady=(6, 4))
-        # 简易交互:Ctrl+V 直接把剪贴板里的文件/截图收为附件;装了 tkinterdnd2
-        # 还能把文件拖进输入框。两者都汇入 _attach_paths 的统一附件流。
+        self.transcript.bind("<Key>", lambda e: "break")
+        self.transcript.bind("<MouseWheel>", self._transcript_wheel)
+        self.transcript.configure(state="disabled")
+        self._configure_transcript_tags()
+
+    def _transcript_wheel(self, e):
+        try:
+            self.transcript.yview_scroll(int(-e.delta / 120), "units")
+        except Exception:
+            pass
+        return "break"
+
+    def _configure_transcript_tags(self):
+        T = self.T
+        S = self._ui_scale
+        px = lambda n: int(n * S)
+        tx = self.transcript
+        tx.configure(bg=T["bg"], fg=T["text"], insertbackground=T["text"],
+                     selectbackground=T["soft"], selectforeground=T["text"])
+        tx.tag_configure("day", justify="center", foreground=T["faint"],
+                         font=v4.FONT_XS, spacing1=px(14), spacing3=px(16))
+        tx.tag_configure("who", foreground=T["primary"],
+                         font=(v4.UI_FAMILY, 10, "bold"),
+                         lmargin1=0, lmargin2=0, spacing1=px(12), spacing3=px(2))
+        tx.tag_configure("you_line", justify="right", foreground=T["primary"],
+                         font=(v4.UI_FAMILY, 10, "bold"),
+                         lmargin1=px(220), lmargin2=px(220), rmargin=px(28),
+                         spacing1=px(10), spacing3=0)
+        tx.tag_configure("user", justify="right", foreground=T["text"],
+                         font=v4.FONT, lmargin1=px(220), lmargin2=px(220),
+                         rmargin=px(28), spacing1=px(6), spacing3=px(12))
+        tx.tag_configure("asst", foreground=T["text"], font=v4.FONT,
+                         lmargin1=0, lmargin2=0, rmargin=px(140),
+                         spacing1=px(8), spacing3=px(8))
+        tx.tag_configure("tool", foreground=T["muted"], background=T["code_bg"],
+                         font=v4.MONO_SM, lmargin1=px(4), lmargin2=px(4),
+                         rmargin=px(100), spacing1=px(4), spacing3=px(4))
+        tx.tag_configure("note", foreground=T["muted"],
+                         font=(v4.UI_FAMILY, 11),
+                         lmargin1=px(4), lmargin2=px(4))
+        tx.tag_configure("done", foreground=T["primary"], background=T["soft"],
+                         font=(v4.UI_FAMILY, 12, "bold"),
+                         lmargin1=px(12), lmargin2=px(12), rmargin=px(120),
+                         spacing1=px(6), spacing3=px(8))
+        tx.tag_configure("code", foreground=T["text"], background=T["code_bg"],
+                         font=v4.MONO, lmargin1=px(4), lmargin2=px(12),
+                         rmargin=px(100), spacing1=px(2), spacing3=px(2))
+        tx.tag_configure("spacer", spacing1=px(6), spacing3=px(6))
+        tx.tag_configure("think_region", foreground=T["muted"],
+                         background=T["code_bg"],
+                         font=(v4.UI_FAMILY, 11, "italic"),
+                         lmargin1=px(16), lmargin2=px(16), rmargin=px(120))
+        tx.tag_configure("think_marker", foreground=T["muted"],
+                         background=T["code_bg"],
+                         font=(v4.UI_FAMILY, 11, "italic"),
+                         lmargin1=px(16), lmargin2=px(16),
+                         spacing1=px(3), spacing3=px(3))
+        tx.tag_configure("welcome_title", foreground=T["text"],
+                         font=(v4.UI_FAMILY, 20, "bold"),
+                         lmargin1=px(8), lmargin2=px(8),
+                         spacing1=px(18), spacing3=px(8))
+        tx.tag_configure("welcome_sub", foreground=T["muted"],
+                         font=(v4.UI_FAMILY, 12),
+                         lmargin1=px(8), lmargin2=px(8), spacing3=px(18))
+        tx.tag_configure("sugg", foreground=T["primary"], font=v4.FONT,
+                         lmargin1=px(8), lmargin2=px(8),
+                         spacing1=px(4), spacing3=px(4), underline=1)
+        tx.tag_bind("sugg", "<Button-1>", self._click_suggestion)
+
+    def _click_suggestion(self, e):
+        try:
+            line = self.transcript.get(f"@{e.x},{e.y} linestart",
+                                       f"@{e.x},{e.y} lineend").strip()
+            if line.startswith("·"):
+                line = line[1:].strip()
+            if line:
+                self.input.delete("1.0", "end")
+                self.input.insert("1.0", line)
+                self.input.configure(fg=self.T["text"])
+                self.input.focus_set()
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------ composer
+    def _build_composer(self):
+        T = self.T
+        S = self._ui_scale
+        self.composer_wrap = tk.Frame(self.main, bg=T["bg"], height=int(142 * S))
+        self.composer_wrap.pack(fill="x", padx=(int(24 * S), int(18 * S)),
+                                pady=(int(6 * S), int(4 * S)))
+        self.composer_wrap.pack_propagate(False)
+        self.composer_wrap.bind("<Configure>", self._paint_composer)
+        self.composer_bg = tk.Label(self.composer_wrap, bg=T["bg"], bd=0)
+        self.composer_bg.place(x=0, y=0, relwidth=1, relheight=1)
+
+        self.input = tk.Text(self.composer_wrap, height=3, bd=0,
+                             highlightthickness=0, wrap="word",
+                             bg=T["surface"], fg=T["text"],
+                             insertbackground=T["primary"], font=v4.FONT,
+                             padx=int(4 * S), pady=int(2 * S))
+        self._themed.append((self.input, "surface", "text"))
+        self._hint = _t("输入任务或对话…(Enter 发送 · Shift+Enter 换行)")
+        self._set_input_hint(True)
+        self.input.bind("<FocusIn>", self._input_focus_in)
+        self.input.bind("<FocusOut>", self._input_focus_out)
+        self.input.bind("<Return>", self._on_enter_key)
+        self.input.bind("<Control-Return>", lambda e: (self.send_chat(), "break")[1])
         self.input.bind("<Control-v>", self._on_paste)
         if _HAVE_DND:
             try:
@@ -767,77 +1226,207 @@ class AgentGUI:
                 self.input.bind("<<Drop>>", self._on_drop)
             except Exception:
                 pass
-        crow = tb.Frame(left); crow.pack(fill="x", padx=(0, 6))
-        tb.Button(crow, text=_t("添加附件"), bootstyle="secondary-outline",
-                  command=self.add_files).pack(side="left")
-        self.send_btn = tb.Button(crow, text=_t("发送"), bootstyle="primary",
-                                  command=self.send_chat); self.send_btn.pack(side="left", padx=6)
-        self.mic_btn = tb.Button(crow, text=_t("🎤 语音"), bootstyle="info",
-                                 command=self.voice_input, state="disabled")
-        self.mic_btn.pack(side="left", padx=4)
-        # v1.9.1 语音语言切换(中/EN 双语内置模型)
-        self.stt_lang_btn = tb.Button(crow, width=4,
-                                      text=(self.prefs.get("stt_lang", "zh") == "en" and "EN" or "中"),
-                                      bootstyle="secondary-outline",
-                                      command=self.toggle_stt_lang)
-        self.stt_lang_btn.pack(side="left")
-        self.stop_btn = tb.Button(crow, text=_t("停止"), bootstyle="danger",
-                                  command=self.stop, state="disabled")
-        self.stop_btn.pack(side="left", padx=6)
-        self.resume_var = tk.BooleanVar(value=True)
-        tb.Checkbutton(crow, text=_t("续跑"), variable=self.resume_var).pack(side="left")
-        # v1.8.2:按钮语义改为"整场重开"(旧"清空对话"只清屏幕、会话与上下文仍在,
-        # 下一条消息会带着旧对话全部历史继续——跨对话记忆泄漏的事故根源,已废除)。
-        tb.Button(crow, text=_t("＋ 新对话"), bootstyle="danger-outline",
-                  command=self.new_chat).pack(side="right")
 
-        right = tb.Frame(pw); pw.add(right, weight=0)
-        # 固定像素宽在高 DPI 下等于逻辑减半,附件/计划内容会被挤出面板 → 随缩放
-        right.configure(width=int(250 * getattr(self, "_ui_scale", 1.0)))
-        right.pack_propagate(False)
-        tb.Button(right, text=_t("＋ 新对话"), bootstyle="primary",
-                  command=self.new_chat).pack(fill="x", padx=(2, 10), pady=(8, 6))
-        att = tb.Labelframe(right, text=_t("附件"), padding=6)
-        att.pack(fill="x", padx=(2, 10), pady=4)
-        self.att_lb = tk.Listbox(att, height=3, font=("Consolas", 9),
-                                 exportselection=False, relief="flat")
-        self.att_lb.pack(fill="x")
-        # 长文件名会被 Listbox 硬裁:加横向滚动,不再截断
-        self.att_sb = ttk.Scrollbar(att, orient="horizontal", command=self.att_lb.xview)
-        self.att_sb.pack(fill="x")
-        self.att_lb.configure(xscrollcommand=self.att_sb.set)
-        af = tb.Frame(att); af.pack(fill="x", pady=(3, 0))
-        tb.Button(af, text=_t("添加"), bootstyle="success-outline",
-                  command=self.add_files).pack(side="left")
-        tb.Button(af, text=_t("清空"), bootstyle="danger-outline",
-                  command=self.clear_files).pack(side="left", padx=(4, 0))
-        self.plan_frame = tb.Labelframe(right, text=_t("计划 (todo)"), padding=6)
-        self.plan_frame.pack(fill="both", expand=True, padx=(2, 10), pady=4)
-        # v2.0.1 fill=both+expand:旧版 pf 只 fill="x",面板再高 Text 也钉死在
-        # height=8 行,长任务清单下半截永远看不见(只能拖那条细滚动条)
-        pf = tb.Frame(self.plan_frame); pf.pack(fill="both", expand=True)
-        self.plan_txt = tk.Text(pf, height=8, font=("Consolas", 9), state="disabled",
-                                relief="flat", wrap="word")
-        self.plan_sb = tk.Scrollbar(pf, command=self.plan_txt.yview)
-        self.plan_txt.configure(yscrollcommand=self.plan_sb.set)
-        self.plan_txt.pack(side="left", fill="both", expand=True)
-        self.plan_sb.pack(side="right", fill="y")
-        # v2.0.1 滚轮接管:Windows 滚轮默认给"焦点控件",禁用态的计划面板永远
-        # 拿不到焦点 → 悬停滚不动。指针在面板内时路由给 plan_txt,在外放行。
-        self.root.bind_all("<MouseWheel>", self._route_wheel, add="+")
-        # 暗色主题刷新链:裸 Tk 控件必须注册,apply_theme 才会刷色(否则暗色下白底穿帮)
-        self._themable += [(self.att_lb, "list"), (self.plan_txt, "list")]
+        self.att_chips = tk.Frame(self.composer_wrap, bg=T["surface"])
+        self._themed.append((self.att_chips, "surface", None))
+
+        self.composer_row = tk.Frame(self.composer_wrap, bg=T["surface"])
+        self._themed.append((self.composer_row, "surface", None))
+
+        self.attach_btn = v4.Pill(self.composer_row, _t("附件"), self.add_files, T,
+                                  kind="ghost", h=28, padx=8)
+        self.attach_btn.pack(side="left")
+        self.mic_btn = v4.Pill(self.composer_row, _t("语音"), self.voice_input, T,
+                               kind="ghost", h=28, padx=8)
+        self.mic_btn.pack(side="left", padx=(int(2 * S), 0))
+        self.mic_btn.set_enabled(False)
+        _sl = "EN" if self.prefs.get("stt_lang", "zh") == "en" else "中"
+        self.stt_lang_btn = v4.Pill(self.composer_row, _sl, self.toggle_stt_lang, T,
+                                   kind="ghost", h=28, padx=8, width=32)
+        self.stt_lang_btn.pack(side="left", padx=(int(2 * S), 0))
+        self.dir_btn = v4.Pill(self.composer_row, _t("目录"),
+                               self._open_task_settings, T, kind="ghost", h=28, padx=8)
+        self.dir_btn.pack(side="left", padx=(int(6 * S), 0))
+        self.resume_var = tk.BooleanVar(value=True)
+        # 原生 Checkbutton 的方框是系统画的老式 bevel,和圆角输入卡冲突;
+        # 换成 v4.Check(圆角描边 + 主色勾),BooleanVar 接口不变。
+        self.resume_chk = v4.Check(self.composer_row, _t("续跑"),
+                                   self.resume_var, T, font=v4.FONT_XS)
+        self.resume_chk.pack(side="left", padx=(int(8 * S), 0))
+
+        self.send_btn = v4.Pill(self.composer_row, "↑", self.send_chat, T,
+                                kind="primary", h=34, padx=0, width=34, radius=17,
+                                font=(v4.DISPLAY_FAMILY, 13, "bold"))
+        self.send_btn.pack(side="right")
+        self.stop_btn = v4.Pill(self.composer_row, _t("停止"), self.stop, T,
+                                kind="danger", h=30, padx=12)
+        self.stop_btn.pack(side="right", padx=(0, int(6 * S)))
+        self.stop_btn.pack_forget()
+        self.hint_lbl = self._lab(self.composer_row,
+                                  "Enter " + _t("发送") + " · Shift+Enter " + _t("换行"),
+                                  "surface", "faint", font=v4.FONT_XS)
+        self.hint_lbl.pack(side="right", padx=(0, int(12 * S)))
+
+        self._layout_composer()
+        self._refresh_att_chips()
+        self._sync_dir_btn()
+        self.root.after(30, self._paint_composer)
+
+    def _input_focus_in(self, _e=None):
+        if self.input.get("1.0", "end-1c") == self._hint:
+            self.input.delete("1.0", "end")
+            self.input.configure(fg=self.T["text"])
+
+    def _input_focus_out(self, _e=None):
+        if not self.input.get("1.0", "end-1c").strip():
+            self._set_input_hint(True)
+
+    def _set_input_hint(self, on):
+        try:
+            if on:
+                if not self.input.get("1.0", "end-1c").strip():
+                    self.input.delete("1.0", "end")
+                    self.input.insert("1.0", self._hint)
+                    self.input.configure(fg=self.T["faint"])
+            elif self.input.get("1.0", "end-1c") == self._hint:
+                self.input.delete("1.0", "end")
+                self.input.configure(fg=self.T["text"])
+        except Exception:
+            pass
+
+    def _layout_composer(self):
+        if not hasattr(self, "composer_wrap"):
+            return
+        S = self._ui_scale
+        att_h = int(30 * S) if self.attachments else 0
+        try:
+            self.composer_wrap.configure(height=int(142 * S) + att_h)
+        except Exception:
+            pass
+        self.input.place(x=int(20 * S), y=int(16 * S) + att_h, relwidth=1.0,
+                         width=-int(40 * S), height=int(70 * S))
+        self.composer_row.place(x=int(16 * S), y=int(94 * S) + att_h,
+                                relwidth=1.0, width=-int(32 * S),
+                                height=int(36 * S))
+        if self.attachments:
+            self.att_chips.place(x=int(18 * S), y=int(10 * S), relwidth=1.0,
+                                 width=-int(36 * S), height=int(26 * S))
+        else:
+            self.att_chips.place_forget()
+
+    def _paint_composer(self, _e=None):
+        if not hasattr(self, "composer_bg"):
+            return
+        w = self.composer_wrap.winfo_width()
+        h = self.composer_wrap.winfo_height()
+        if w < 80 or h < 60:
+            return
+        img = v4.card_img(max(2, w - 2), max(2, h - 2), v4.px(14),
+                          self.T["surface"], self.T["border"], self.T["bg"])
+        if img is not None:
+            self._composer_img = img
+            self.composer_bg.configure(image=img, bg=self.T["bg"])
+            self.composer_bg.lower()
+
+    def _refresh_att_chips(self):
+        if not hasattr(self, "att_chips"):
+            return
+        for w in self.att_chips.winfo_children():
+            w.destroy()
+        if self.attachments:
+            for i, p in enumerate(self.attachments[:3]):
+                name = v4.ellipsize(os.path.basename(p), 150, v4.FONT_XS)
+                chip = tk.Label(self.att_chips, text="📎 " + name + "  ×",
+                                font=v4.FONT_XS, bg=self.T["code_bg"],
+                                fg=self.T["muted"], padx=7, pady=2,
+                                cursor="hand2")
+                chip.pack(side="left", padx=(0, 6))
+                chip.bind("<Button-1>", lambda e, idx=i: self._remove_att(idx))
+                self._themed.append((chip, "code_bg", "muted"))
+            if len(self.attachments) > 3:
+                self._lab(self.att_chips, "+%d" % (len(self.attachments) - 3),
+                          "surface", "muted", font=v4.FONT_XS).pack(side="left")
+        self._layout_composer()
+        self.root.after(10, self._paint_composer)
+
+    def _remove_att(self, i):
+        try:
+            self.attachments.pop(i)
+        except Exception:
+            pass
+        self._refresh_att_chips()
+
+    def _sync_dir_btn(self):
+        if not hasattr(self, "dir_btn"):
+            return
+        wd = self.wd_dir()
+        name = os.path.basename(os.path.normpath(wd)) or wd
+        txt = _t("目录 · ") + v4.ellipsize(name, 80, v4.FONT_SM)
+        tl = (self.tb_var.get() or "").strip() if hasattr(self, "tb_var") else ""
+        if tl:
+            txt += "  ·  " + _t("时限 ") + tl
+        self.dir_btn.set_text(txt)
+
+    def _open_task_settings(self):
+        """工作目录 / 任务时限(旧版常驻两条工具栏,现收进二级入口)。"""
+        T = self.T
+        win = tk.Toplevel(self.root)
+        win.title(_t("任务设置"))
+        win.geometry(self._scaled_geo(560, 250))
+        win.configure(bg=T["bg"])
+        self._theme_titlebar(win)
+        body = tk.Frame(win, bg=T["bg"])
+        body.pack(fill="both", expand=True, padx=18, pady=14)
+        tk.Label(body, text=_t("工作目录"), bg=T["bg"], fg=T["muted"],
+                 font=v4.FONT_SM).pack(anchor="w")
+        r1 = tk.Frame(body, bg=T["bg"])
+        r1.pack(fill="x", pady=(4, 10))
+        ent = tk.Entry(r1, textvariable=self.wd_var, bg=T["surface"],
+                       fg=T["text"], insertbackground=T["text"], bd=0,
+                       highlightthickness=1, highlightbackground=T["border"],
+                       highlightcolor=T["primary"], font=v4.FONT_SM)
+        ent.pack(side="left", fill="x", expand=True, ipady=6)
+        for label, cmd in ((_t("浏览"), self.choose_dir), (_t("打开"), self.open_dir)):
+            b = v4.Pill(r1, label, cmd, T, kind="surface", h=30, padx=10)
+            b.pack(side="left", padx=(6, 0))
+
+        tk.Label(body, text=_t("任务时限(分钟或小时,留空=不限)"),
+                 bg=T["bg"], fg=T["muted"], font=v4.FONT_SM).pack(anchor="w")
+        r2 = tk.Frame(body, bg=T["bg"])
+        r2.pack(fill="x", pady=(4, 12))
+        tk.Entry(r2, textvariable=self.tb_var, bg=T["surface"], fg=T["text"],
+                 insertbackground=T["text"], bd=0, highlightthickness=1,
+                 highlightbackground=T["border"], highlightcolor=T["primary"],
+                 font=v4.FONT_SM, width=16).pack(side="left", ipady=6)
+        tk.Label(r2, text=_t("例: 40 / 1.5h"), bg=T["bg"], fg=T["faint"],
+                 font=v4.FONT_XS).pack(side="left", padx=10)
+
+        btns = tk.Frame(body, bg=T["bg"])
+        btns.pack(fill="x", side="bottom")
+
+        def _save():
+            self._sync_dir_btn()
+            win.destroy()
+
+        v4.Pill(btns, _t("保存"), _save, T, kind="primary", h=32, padx=14).pack(side="right")
+        v4.Pill(btns, _t("取消"), win.destroy, T, kind="surface", h=32, padx=14).pack(
+            side="right", padx=(0, 6))
+        ent.focus_set()
+        win.bind("<Return>", lambda e: _save())
+        win.bind("<Escape>", lambda e: win.destroy())
 
     def _toggle_offline(self):
         """一键断网/联网:翻转 offline_mode 写入 config.json(appconfig 缓存随
         save_config 失效),GUI 按钮即时变色;下一次任务的装配层即刻生效。"""
+        if self._cloud_ready():
+            self.log_note(_t("[云端模型需联网:先在顶部切回本地模型,再开断网]"))
+            return
         cfg = appconfig.load_config()
         cfg["offline_mode"] = not appconfig.offline_mode()
         if appconfig.save_config(cfg):
             off = appconfig.offline_mode()
-            self.offline_btn.configure(
-                text=_t("🔒 断网") if off else _t("🌐 联网"),
-                bootstyle="danger" if off else "secondary")
+            self._sync_offline_ui()
+            self._sync_mode_lbl()
             self.log_note(_t("[断网模式:仅本地模型,联网工具与云端已禁用 — 零出站]") if off
                           else _t("[联网模式:搜索/已配置的 MCP/云端可用]"))
         else:
@@ -861,24 +1450,41 @@ class AgentGUI:
         self.cloud_var.set("")
         if changed:
             self.log_note(_t("[已切回本地模型:云端开关关闭]"))
+        self._sync_offline_ui()
+        self._sync_mode_lbl()
 
     def _sync_cloud_box(self):
-        """云端框状态:联网+已配置→可选(空=不用云端);未配置或断网→禁用。
+        """云端入口状态:未配置→隐藏;断网→灰色禁用;可用→显示当前选择。
         每次都从 config 重读(与 runner 的 cloud_provider 同源)。"""
-        if not hasattr(self, "cloud_cb"):
+        if not hasattr(self, "cloud_btn"):
             return
-        _m = (appconfig.load_config().get("cloud") or {}).get("model") or ""
+        _c = appconfig.load_config().get("cloud") or {}
+        _m = _c.get("model") or ""
         off = appconfig.offline_mode()
         if not _m:
-            self.cloud_cb.configure(values=[_t("☁ 未配置")], state="disabled")
-            self.cloud_var.set(_t("☁ 未配置"))
-        elif off:
-            self.cloud_cb.configure(state="disabled")
+            try:
+                self.cloud_btn.pack_forget()
+            except Exception:
+                pass
             self.cloud_var.set("")
+            return
+        if off:
+            self.cloud_var.set("")
+            self.cloud_btn.set_text(_t("☁ 断网禁用"))
+            self.cloud_btn.set_kind("surface")
+            self.cloud_btn.set_enabled(False)
         else:
-            self.cloud_cb.configure(values=["", _m], state="readonly")
+            on = bool(_c.get("enabled"))
+            self.cloud_btn.set_text(("☁ " + _m) if on else _t("☁ 云端"))
+            self.cloud_btn.set_kind("soft" if on else "surface")
+            self.cloud_btn.set_enabled(True)
             if self.cloud_var.get() not in ("", _m):
                 self.cloud_var.set("")
+        try:
+            if not self.cloud_btn.winfo_manager():
+                self.cloud_btn.pack(side="left", padx=(0, int(6 * S)), pady=int(12 * S))
+        except Exception:
+            pass
 
     def _on_cloud_selected(self, _e=None):
         """互斥门:右侧选了云端模型 = 左侧本地框清空、cloud.enabled=true;
@@ -899,96 +1505,253 @@ class AgentGUI:
                 cfg["cloud"] = cloud
                 appconfig.save_config(cfg)
             self.log_note(_t("[已切回本地模型]"))
+        self._sync_cloud_box()
+        self._sync_model_btn()
+        self._sync_offline_ui()
+        self._sync_mode_lbl()
 
     def _cloud_help(self):
         from tkinter import messagebox
         messagebox.showinfo(_t("云端模型配置(可选)"), _t(
-            "云端模型是可选功能,不走复杂设置界面,直接配置一次即可:\n\n"
-            "1. 打开 config.json(默认在 ~/.ollama_agent/;便携/隔离安装为 MINGBIRD_HOME 指定的目录)\n"
-            "2. 加入 cloud 段(任意 OpenAI 兼容端点):\n"
-            '   "cloud": {\n'
-            '     "enabled": true,\n'
-            '     "base_url": "https://api.example.com/v1",\n'
-            '     "api_key": "你的密钥",\n'
-            '     "model": "模型名"\n'
-            "   }\n"
-            "3. 重启 GUI,联网状态下在左侧框选中该模型即启用。\n\n"
+            "在 设置 → 推理引擎 里把引擎切到「云端 API」,填端点、API Key 与模型名后保存即可。\n\n"
             "说明:\n"
+            "- 任何 OpenAI 兼容端点均可(DeepSeek / 通义 / Moonshot / OpenRouter 等)\n"
             "- api_key 只存本机 config.json,不进仓库、不进日志\n"
-            "- 断网模式下云端被架构级禁用(推理与工具装配都不出网)\n"
+            "- 云端模型只能联网使用;启用时自动关闭断网模式\n"
+            "- 顶部「☁」胶囊可随时切回本地模型\n"
             "- 详细说明见仓库 README 的 \"Cloud model (optional)/云端模型(可选)\" 一节"))
 
-    def _build_history_page(self):
-        page = self.pages["history"]
-        head = tb.Frame(page, padding=(12, 10, 12, 4)); head.pack(fill="x")
-        tb.Label(head, text=_t("历史会话"),
-                 font=("Segoe UI", 12, "bold")).pack(side="left")
-        self.history_search_var = tk.StringVar(value="")
-        ent = tb.Entry(head, textvariable=self.history_search_var)
-        ent.pack(side="right", fill="x", expand=True, padx=(16, 0))
-        ent.bind("<KeyRelease>", lambda e: self.refresh_sessions())
-        body = tb.Frame(page, padding=(12, 4)); body.pack(fill="both", expand=True)
-        lbwrap = tb.Frame(body); lbwrap.pack(side="left", fill="both", expand=True)
-        self.se_lb = tk.Listbox(lbwrap, font=("Consolas", 10),
-                                exportselection=False, relief="flat")
-        self.se_lb.pack(side="top", fill="both", expand=True)
-        # 长会话名(名字+状态标签)会被硬裁:加横向滚动
-        self.se_sb = ttk.Scrollbar(lbwrap, orient="horizontal", command=self.se_lb.xview)
-        self.se_sb.pack(side="top", fill="x")
-        self.se_lb.configure(xscrollcommand=self.se_sb.set)
-        self._themable += [(self.se_lb, "list")]
-        btns = tb.Frame(body); btns.pack(side="left", fill="y", padx=(10, 0))
-        tb.Button(btns, text=_t("载入"), bootstyle="primary-outline",
-                  command=self.load_selected_session).pack(fill="x", pady=(0, 4))
-        tb.Button(btns, text=_t("回放"), bootstyle="secondary-outline",
-                  command=self.replay_selected_session).pack(fill="x", pady=4)
-        tb.Button(btns, text=_t("查看对话"), bootstyle="secondary-outline",
-                  command=lambda: self.view_transcript(
-                      (self.se_lb.get(self.se_lb.curselection()) or " [").split(" [")[0]
-                  ) if self.se_lb.curselection() else None).pack(fill="x", pady=4)
-
-    def _build_logs_page(self):
-        page = self.pages["logs"]
-        bar = tb.Frame(page, padding=(12, 10, 12, 4)); bar.pack(fill="x")
-        tb.Label(bar, text=_t("运行日志"),
-                 font=("Segoe UI", 12, "bold")).pack(side="left")
-        tb.Button(bar, text=_t("清空输出"), bootstyle="secondary-outline",
-                  command=self.clear_log).pack(side="right")
-        self.console = tk.Text(page, font=("Consolas", 9), state="disabled",
-                               wrap="word", relief="flat", padx=10, pady=8)
-        self.console.pack(fill="both", expand=True)
-        self._themable += [(self.console, "code")]
-
     def _build_statusbar(self):
-        bar = tb.Frame(self.root, padding=(6, 3)); bar.pack(fill="x", side="bottom")
-        self.ctx_bar = tb.Progressbar(bar, maximum=100, value=0, bootstyle="info-striped")
-        self.ctx_bar.pack(side="left", fill="x", expand=True)
-        self.status_var = tk.StringVar(value=_t(" 上下文: - / - ( - % )"))
-        # width=30 装不下 " 上下文: 262144 / 262144 (100%)"(CJK 按 2 单位 ≈32):放宽到 36
-        tb.Label(bar, textvariable=self.status_var, bootstyle="secondary",
-                 width=36).pack(side="left", padx=(8, 0))
-        self.ollama_lbl = tb.Label(bar, text="Ollama …", bootstyle="warning",
-                                   font=("Microsoft YaHei UI", 9, "bold"),
-                                   cursor="hand2")
+        T = self.T
+        bar = tk.Frame(self.main, bg=T["bg"], height=int(26 * self._ui_scale))
+        # main 里已有 transcript(expand) 与 composer;先让状态条占住最底部,
+        # 再把 composer 压回它上面,避免状态条被挤到右侧/抽屉区域。
+        try:
+            self.composer_wrap.pack_forget()
+        except Exception:
+            pass
+        bar.pack(side="bottom", fill="x")
+        try:
+            self.composer_wrap.pack(side="bottom", fill="x",
+                                    padx=(24, 18), pady=(6, 4))
+        except Exception:
+            pass
+        self.statusbar = bar
+        self.ctx_bar = v4.CtxBar(bar, T)
+        self.ctx_bar.pack(fill="x")
+        row = self._frame(bar, "bg")
+        row.pack(fill="x", padx=int(16 * self._ui_scale))
+        self.status_var = tk.StringVar(value=_t("上下文: - / - ( - % )"))
+        # 用 _lab 登记,主题切换时背景/前景跟着令牌走(此前裸 Label 不登记,
+        # 切主题后残留构建期底色,底部出现色差条)。
+        self.status_lbl = self._lab(row, "", "bg", "faint",
+                                    font=v4.FONT_XS, anchor="w")
+        self.status_lbl.configure(textvariable=self.status_var)
+        self.status_lbl.pack(side="left")
+        self.mode_lbl = self._lab(row, "", "bg", "faint", font=v4.FONT_XS)
+        self.mode_lbl.pack(side="right", padx=(12, 0))
+        self.ollama_lbl = self._lab(row, "Ollama …", "bg", "warn",
+                                    font=(v4.UI_FAMILY, 9, "bold"),
+                                    cursor="hand2")
         self.ollama_lbl.bind("<Button-1>", self._ollama_click)
-        self.ollama_lbl.pack(side="right", padx=(0, 4))
+        self.ollama_lbl.pack(side="right")
+        self._sync_mode_lbl()
         self.root.after(800, self._check_ollama)
 
+    def _sync_mode_lbl(self):
+        if not hasattr(self, "mode_lbl"):
+            return
+        try:
+            if self._cloud_ready() and not appconfig.offline_mode():
+                txt = _t("联网 · 云端模型")
+            elif appconfig.offline_mode():
+                txt = _t("断网 · 零出站")
+            else:
+                txt = _t("联网 · 本地推理")
+            self.mode_lbl.configure(text=txt)
+        except Exception:
+            pass
+
+    def _open_logs(self):
+        T = self.T
+        if self.console is not None:
+            try:
+                if self.console.winfo_exists():
+                    self.console.winfo_toplevel().lift()
+                    return
+            except Exception:
+                pass
+        win = tk.Toplevel(self.root)
+        win.title(_t("运行日志"))
+        win.geometry(self._scaled_geo(760, 520))
+        win.configure(bg=T["bg"])
+        self._theme_titlebar(win)
+        head = tk.Frame(win, bg=T["bg"])
+        head.pack(fill="x", padx=14, pady=(10, 4))
+        tk.Label(head, text=_t("运行日志"), bg=T["bg"], fg=T["text"],
+                 font=v4.FONT_TITLE).pack(side="left")
+        v4.Pill(head, _t("清空输出"), self.clear_log, T, kind="surface",
+                h=30, padx=10).pack(side="right")
+        self.console = tk.Text(win, font=v4.MONO, state="disabled", wrap="word",
+                               bg=T["code_bg"], fg=T["text"], bd=0,
+                               padx=px(10), pady=px(8))
+        self.console.pack(fill="both", expand=True, padx=14, pady=(0, 12))
+        self.console.config(state="normal")
+        self.console.insert("1.0", "\n".join(self._log_buf))
+        self.console.see("end")
+        self.console.config(state="disabled")
+        win.protocol("WM_DELETE_WINDOW", lambda: self._close_logs(win))
+
+    def _close_logs(self, win):
+        self.console = None
+        try:
+            win.destroy()
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------ plan drawer
+    def _toggle_plan(self):
+        self.plan_open = not self.plan_open
+        self._build_plan_rail()
+
+    def _build_plan_rail(self):
+        T = self.T
+        S = self._ui_scale
+        r = self.plan_rail
+        for w in r.winfo_children():
+            w.destroy()
+        self.plan_txt = None
+        if not self.plan_open:
+            # 收起时整个抽屉从 pack 中移除:不再留一条竖窄条
+            # (用户反馈"看起来很奇怪"),计划入口改到顶部胶囊。
+            try:
+                r.pack_forget()
+            except Exception:
+                pass
+            r.configure(width=1, highlightthickness=0, bg=T["bg"])
+            self._sync_plan_btn()
+            return
+        r.configure(bg=T["surface"], width=int(320 * S),
+                    highlightthickness=v4.px(1),
+                    highlightbackground=T["border"])
+        try:
+            if not r.winfo_ismapped():
+                r.pack(side="right", fill="y", before=self.main)
+        except Exception:
+            pass
+        self._sync_plan_btn()
+
+        head = tk.Frame(r, bg=T["surface"])
+        head.pack(fill="x", padx=int(16 * S), pady=(int(14 * S), int(6 * S)))
+        tk.Label(head, text=_t("计划"), bg=T["surface"], fg=T["text"],
+                 font=v4.FONT_BOLD).pack(side="left")
+        self._plan_count = tk.Label(
+            head, text=f"{self._plan_done}/{self._plan_total}",
+            bg=T["surface"], fg=T["faint"], font=v4.FONT_SM)
+        self._plan_count.pack(side="left", padx=(int(6 * S), 0))
+        x = tk.Label(head, text="×", bg=T["surface"], fg=T["faint"],
+                     font=(v4.DISPLAY_FAMILY, 15), cursor="hand2")
+        x.pack(side="right")
+        x.bind("<Button-1>", lambda e: self._toggle_plan())
+
+        track = tk.Frame(r, bg=T["border"], height=v4.px(3))
+        track.pack(fill="x", padx=int(16 * S), pady=(0, int(10 * S)))
+        track.pack_propagate(False)
+        if self._plan_total:
+            frac = self._plan_done / float(self._plan_total)
+            tk.Frame(track, bg=T["primary"], height=v4.px(3)).place(
+                x=0, y=0, relwidth=frac, relheight=1)
+
+        self.plan_txt = tk.Text(r, bg=T["surface"], fg=T["text"], bd=0,
+                                highlightthickness=0, wrap="word",
+                                font=v4.FONT_SM, padx=int(16 * S),
+                                pady=int(4 * S))
+        self.plan_txt.pack(fill="both", expand=True)
+        self.plan_txt.tag_configure("done", foreground=T["faint"],
+                                    font=v4.FONT_SM)
+        self.plan_txt.tag_configure("todo", foreground=T["text"],
+                                    font=v4.FONT_SM)
+        self.plan_txt.tag_configure("cur", foreground=T["primary"],
+                                    font=(v4.UI_FAMILY, 11, "bold"))
+        self.plan_txt.bind("<MouseWheel>", self._plan_wheel)
+        self.plan_txt.configure(state="normal")
+        self._render_plan_body()
+        self.plan_txt.configure(state="disabled")
+        tk.Label(r, text="todo.json · " + _t("实时"), bg=T["surface"],
+                 fg=T["faint"], font=v4.FONT_XS).pack(side="bottom",
+                                                      pady=int(10 * S))
+
+    def _sync_plan_btn(self):
+        """顶部计划胶囊:仅在有 todo 时出现;收起时显示 ▸,展开时 ▾。"""
+        b = getattr(self, "plan_btn", None)
+        if b is None:
+            return
+        S = self._ui_scale
+        if not self._plan_total:
+            try:
+                b.pack_forget()
+            except Exception:
+                pass
+            return
+        if b.winfo_manager() != "pack":
+            try:
+                b.pack(side="left", padx=(0, int(6 * S)),
+                       pady=int(12 * S))
+            except Exception:
+                pass
+        arrow = "▾" if self.plan_open else "▸"
+        b.set_text(_t("计划") + f" {self._plan_done}/{self._plan_total}  {arrow}")
+        b.set_kind("soft" if self.plan_open else "surface")
+
+    def _plan_wheel(self, e):
+        try:
+            self.plan_txt.yview_scroll(int(-e.delta / 120), "units")
+        except Exception:
+            pass
+        return "break"
+
+    def _render_plan_body(self):
+        tx = getattr(self, "plan_txt", None)
+        if tx is None:
+            return
+        try:
+            if not tx.winfo_exists():
+                return
+        except Exception:
+            return
+        tx.configure(state="normal")
+        tx.delete("1.0", "end")
+        items = self._plan_items or []
+        first_open = None
+        for i, x in enumerate(items, 1):
+            if not isinstance(x, dict):
+                continue
+            done = bool(x.get("done"))
+            if not done and first_open is None:
+                first_open = i
+            mark = "✓" if done else "○"
+            tag = "done" if done else ("cur" if i == first_open else "todo")
+            tx.insert("end", f"{mark}  {i}. {x.get('item', '')}\n", tag)
+        if not items:
+            tx.insert("end", _t("(尚无计划 — agent 会先建 todo 再执行)"), "done")
+        tx.configure(state="disabled")
+        if first_open:
+            try:
+                tx.see(f"{max(1, first_open - 1)}.0")
+            except Exception:
+                pass
 
     # ================= 目录 =================
     def choose_dir(self):
         d = filedialog.askdirectory()
         if d:
             self.wd_var.set(d)
-            self.att_lb.delete(0, "end"); self.attachments = []
+            self.clear_files()
+            self._sync_dir_btn()
     def open_dir(self):
         d = self.wd_var.get(); os.makedirs(d, exist_ok=True)
-        if os.name == "nt":
-            subprocess.Popen(["explorer", os.path.normpath(d)])
-        elif sys.platform == "darwin":
-            subprocess.Popen(["open", d])
-        else:
-            subprocess.Popen(["xdg-open", d])
+        # v3.0.0 单一事实源:不再手写三平台分支
+        subprocess.Popen(_file_manager_cmd(d))
 
     # ================= 主题 =================
     def cycle_theme(self):
@@ -1001,71 +1764,185 @@ class AgentGUI:
         self.apply_theme()
         self.log_note(_t("[主题: ") + self.prefs["ui_mode"] + "]")
 
+    def _walk(self, w):
+        yield w
+        try:
+            for c in w.winfo_children():
+                yield from self._walk(c)
+        except Exception:
+            return
+
     def apply_theme(self):
-        """v2:双主题对等(auto=跟随系统)。颜色出自 ui_theme 令牌;排版沿用原版。"""
+        """v4:令牌刷新所有登记控件 + 重绘会话/标签/计划抽屉/标题栏。"""
         import ui_theme as _ut
         mode = _ut.resolve_theme_mode(self.prefs.get("ui_mode", "auto"))
         self.T = _ut.tokens(mode)
-        t = self.T
-        tool_fg = "#8A6508" if mode == "light" else "#E8C87A"
+        T = self.T
         try:
-            self.style.theme_use(t["ttk_theme"])
+            self.style.theme_use(T["ttk_theme"])
         except Exception:
             pass
         try:
-            self.root.configure(bg=t["bg"])
-            self.rail.configure(bg=t["elevated"])
-            for ch in self.rail.winfo_children():
+            self.root.configure(bg=T["bg"])
+        except Exception:
+            pass
+        for w, bg_key, fg_key in list(getattr(self, "_themed", [])):
+            try:
+                if not w.winfo_exists():
+                    continue
+                w.configure(bg=T[bg_key])
+                if fg_key:
+                    w.configure(fg=T[fg_key])
+            except Exception:
+                pass
+        # 先复位容器底色,再重绘 Pill/Check:theme_use 会把原生 Frame/Label
+        # 统一刷成 ttk 主题底色(#222222),Pill 又按 master 底色合成图片。
+        # 顺序反了就会在新对话按钮、状态栏周围留下深灰方块(用户报的色差)。
+        for name, key in (("sidebar", "side"), ("main", "bg"),
+                          ("plan_rail", "side"), ("composer_wrap", "bg"),
+                          ("header", "bg"), ("statusbar", "bg")):
+            w = getattr(self, name, None)
+            if w is not None:
                 try:
-                    ch.configure(bg=t["elevated"])
+                    w.configure(bg=T[key])
                 except Exception:
                     pass
-            for k, b in self._rail_btns.items():
-                selc = (k == getattr(self, "_cur_page", "chat"))
-                b.configure(bg=t["sel"] if selc else t["elevated"],
-                            fg=t["text"] if selc else t["muted"])
-            self.theme_lbl.configure(bg=t["elevated"], fg=t["muted"])
-        except Exception:
-            pass
+        for w in self._walk(self.root):
+            try:
+                if isinstance(w, v4.Pill):
+                    w.apply_theme(T)
+                elif isinstance(w, v4.Icon):
+                    w.apply_theme(T)
+                elif isinstance(w, v4.CtxBar):
+                    w.apply_theme(T)
+                elif isinstance(w, v4.Check):
+                    w.apply_theme(T)
+            except Exception:
+                pass
+        if hasattr(self, "sess_canvas"):
+            try:
+                self.sess_canvas.configure(bg=T["side"])
+            except Exception:
+                pass
+        if hasattr(self, "composer_bg"):
+            try:
+                self.composer_bg.configure(bg=T["bg"])
+            except Exception:
+                pass
+        if hasattr(self, "statusbar"):
+            try:
+                self.statusbar.configure(bg=T["bg"])
+            except Exception:
+                pass
+        self._paint_search()
+        if hasattr(self, "search_entry") and hasattr(self, "_search_hint"):
+            try:
+                self.search_entry.configure(
+                    fg=T["faint"] if self.search_var.get() == self._search_hint
+                    else T["text"])
+            except Exception:
+                pass
+        self._reset_native_text_borders()
+        if hasattr(self, "transcript"):
+            self._configure_transcript_tags()
+        if hasattr(self, "input") and hasattr(self, "_hint"):
+            try:
+                if self.input.get("1.0", "end-1c") == self._hint:
+                    self.input.configure(fg=T["faint"])
+                else:
+                    self.input.configure(fg=T["text"])
+            except Exception:
+                pass
+        self._paint_composer()
+        if hasattr(self, "sess_canvas"):
+            try:
+                self.refresh_sessions()
+            except Exception:
+                pass
+        self._build_plan_rail()
+        self._sync_model_btn()
+        self._sync_think_btn()
+        self._sync_offline_ui()
+        self._sync_cloud_box()
+        self._sync_dir_btn()
+        self._sync_mode_lbl()
+        self.root.after(60, lambda m=mode: self._apply_titlebar_theme(m))
+
+    def _reset_native_text_borders(self):
+        """ttkbootstrap 2.0 的 theme_use 会遍历所有 tk.Text 并写回
+        highlightthickness=1(主题重绘)。v4 用无边框文本区,主题切换后必须复位。"""
+        T = self.T
+        items = (
+            (getattr(self, "transcript", None), T["bg"]),
+            (getattr(self, "input", None), T["surface"]),
+            (getattr(self, "plan_txt", None), T["side"]),
+            (getattr(self, "console", None), T["code_bg"]),
+            # theme_use 同样会给 tk.Entry 写回 2px 高亮边(#454545)——搜索框
+            # 圆角面板里会多出一圈方框,必须一并复位。
+            (getattr(self, "search_entry", None), T["surface"]),
+        )
+        for w, bg in items:
+            if w is None:
+                continue
+            try:
+                w.configure(highlightthickness=0, borderwidth=0, relief="flat",
+                            highlightbackground=bg, highlightcolor=T["primary"])
+            except Exception:
+                pass
+
+    def _apply_titlebar_theme(self, mode):
+        """Windows 11:标题栏随主题走(深色不再一条白条)。失败静默。"""
+        if os.name != "nt":
+            return
         try:
-            self.transcript.configure(bg=t["bg"], fg=t["text"])
-            self.input.configure(bg=t["surface"], fg=t["text"],
-                                 insertbackground=t["text"])
-            for w, kind in getattr(self, "_themable", []):
-                if kind == "code":
-                    w.configure(bg=t["code_bg"], fg=t["text"])
-                elif kind == "list":
-                    w.configure(bg=t["surface"], fg=t["text"],
-                                selectbackground=t["sel"], selectforeground=t["text"])
-                elif kind == "entry":
-                    w.configure(bg=t["surface"], fg=t["text"])
+            import ctypes
+            hwnd = 0
+            try:
+                hwnd = int(self.root.wm_frame(), 16)
+            except Exception:
+                hwnd = 0
+            if not hwnd:
+                hwnd = ctypes.windll.user32.GetParent(self.root.winfo_id())
+            if not hwnd:
+                hwnd = self.root.winfo_id()
+            dark = 1 if mode == "dark" else 0
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                hwnd, 20, ctypes.byref(ctypes.c_int(dark)), 4)
+
+            def _bgr(hexs):
+                h = str(hexs).lstrip("#")
+                r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+                return (b << 16) | (g << 8) | r
+
+            for attr, key in ((35, "bg"), (36, "text")):
+                c = ctypes.c_int(_bgr(self.T[key]))
+                ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                    hwnd, attr, ctypes.byref(c), 4)
         except Exception:
             pass
-        if not hasattr(self, "transcript"):
-            return   # 构建早期(导航轨先于对话页):transcript 尚未创建,标签重刷跳过
-        self.transcript.tag_config("user", background=t["user_bubble"], foreground=t["text"],
-                                   font=("Microsoft YaHei UI", 10), lmargin1=12, lmargin2=12,
-                                   rmargin=12, spacing1=4, spacing3=4)
-        self.transcript.tag_config("asst", foreground=t["text"], background=t["bg"],
-                                   font=("Microsoft YaHei UI", 12), lmargin1=12, lmargin2=12)
-        self.transcript.tag_config("tool", foreground=tool_fg, background=t["code_bg"],
-                                   font=("Consolas", 9), lmargin1=12, lmargin2=12)
-        self.transcript.tag_config("note", foreground=t["muted"],
-                                   font=("Microsoft YaHei UI", 9))
-        self.transcript.tag_config("done", foreground=t["primary"], background=t["sel"],
-                                   font=("Microsoft YaHei UI", 10, "bold"),
-                                   lmargin1=12, lmargin2=12)
-        self.transcript.tag_config("code", foreground=t["text"], background=t["code_bg"],
-                                   font=("Consolas", 9), lmargin1=20, lmargin2=20)
-        self.transcript.tag_config("spacer", spacing1=6, spacing3=6)
-        self.transcript.tag_config("think_region", foreground=t["muted"], background=t["code_bg"],
-                                   font=("Microsoft YaHei UI", 9, "italic"),
-                                   lmargin1=16, lmargin2=16, rmargin=12)
-        self.transcript.tag_config("think_marker", foreground=t["muted"], background=t["code_bg"],
-                                   font=("Microsoft YaHei UI", 9, "italic"),
-                                   lmargin1=16, lmargin2=16, spacing1=3, spacing3=3)
-        # 点击绑定在 _think_freeze 里按块 uid 逐个挂(旧版绑在 think_marker 全局
-        # 标签上,handler 只认单个全局 _think_text → 多块/收尾后点击失灵)
+
+    def _theme_titlebar(self, win):
+        """把 DWM 深/浅标题栏套到任意 Toplevel(设置/技能等对话框不再顶着白条)。"""
+        if os.name != "nt":
+            return
+        try:
+            import ctypes
+            import ui_theme as _ut
+            mode = _ut.resolve_theme_mode(self.prefs.get("ui_mode", "auto"))
+            hwnd = 0
+            try:
+                hwnd = int(win.wm_frame(), 16)
+            except Exception:
+                hwnd = 0
+            if not hwnd:
+                hwnd = ctypes.windll.user32.GetParent(win.winfo_id())
+            if not hwnd:
+                hwnd = win.winfo_id()
+            dark = 1 if mode == "dark" else 0
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                hwnd, 20, ctypes.byref(ctypes.c_int(dark)), 4)
+        except Exception:
+            pass
 
     def _c(self, key, fallback=None):
         return self.style.colors.get(key, fallback or "#222222")
@@ -1097,12 +1974,13 @@ class AgentGUI:
                     continue
             self.attachments.append(dest)
             names.append(os.path.basename(dest))
-            self.att_lb.insert("end", names[-1])
+        self._refresh_att_chips()
         return names
 
     def _insert_attach_tag(self, names):
         """在输入框光标处插一个附件占位标记(真正的随指令发送由 attach_note 完成)。"""
         try:
+            self._set_input_hint(False)
             self.input.insert("insert", "[📎 " + ", ".join(names) + "] ")
         except Exception:
             pass
@@ -1127,7 +2005,8 @@ class AgentGUI:
             wd = self.wd_dir()
             attdir = os.path.join(wd, "_attachments")
             os.makedirs(attdir, exist_ok=True)
-            dest = os.path.join(attdir, time.strftime("paste_%Y%m%d_%H%M%S") + ".png")
+            dest = os.path.join(attdir, time.strftime("paste_%Y%m%d_%H%M%S_")
+                                + f"{time.time_ns() % 1000000:06d}.png")
             try:
                 got.convert("RGB").save(dest, "PNG")
             except Exception:
@@ -1150,7 +2029,8 @@ class AgentGUI:
                 self._insert_attach_tag(names)
         return "break"
     def clear_files(self):
-        self.attachments = []; self.att_lb.delete(0, "end")
+        self.attachments = []
+        self._refresh_att_chips()
     def attach_note(self):
         if not self.attachments: return ""
         names = ", ".join(os.path.basename(a) for a in self.attachments)
@@ -1162,79 +2042,247 @@ class AgentGUI:
 
     # ================= 会话 =================
     def refresh_sessions(self):
-        self.se_lb.delete(0, "end")
+        """把历史会话画进侧边栏(标题 + 摘要 + 状态点 + 时间,按日期分组)。"""
+        c = getattr(self, "sess_canvas", None)
+        if c is None:
+            return
+        c.delete("all")
         self._sess_names = []
-        flt = ""
-        if hasattr(self, "history_search_var"):
-            flt = (self.history_search_var.get() or "").lower()
-        files = [f for f in sorted(glob.glob(os.path.join(SESSION_DIR, "*.json")))
-                 if not f.endswith(".meta.json")]
-        for s in files[-200:]:
+        self._sess_imgs = []
+        flt = (self.search_var.get() or "").strip().lower()
+        if hasattr(self, "_search_hint") and flt == self._search_hint.lower():
+            flt = ""
+        files = [f for f in sorted(glob.glob(os.path.join(SESSION_DIR, "*.json")),
+                                   key=os.path.getmtime, reverse=True)
+                 if not f.endswith((".meta.json", ".todo.json"))][:200]
+        today = time.strftime("%Y-%m-%d")
+        yesterday = time.strftime("%Y-%m-%d", time.localtime(time.time() - 86400))
+        buckets = {"今天": [], "昨天": [], "更早": []}
+        for s in files:
             name = os.path.basename(s)[:-5]
             meta_p = os.path.join(SESSION_DIR, name + ".meta.json")
-            tag = ""; title = ""
+            title = ""
+            status = ""
+            task = ""
+            mtime = os.path.getmtime(s)
             if os.path.exists(meta_p):
                 try:
                     m = json.load(open(meta_p, encoding="utf-8"))
-                    tag = f"[{m.get('status','?')}]"
                     title = str(m.get("title", "") or "")
-                except Exception: pass
-            # v2.0.1 标题前缀(模型起名)+ 搜索同时匹配标题与文件名
-            if flt and flt not in (name + " " + title).lower():
+                    status = str(m.get("status", "") or "")
+                    task = str(m.get("task", "") or "")
+                    mtime = os.path.getmtime(meta_p) or mtime
+                except Exception:
+                    pass
+            hay = (name + " " + title + " " + task).lower()
+            if flt and flt not in hay:
                 continue
-            disp = f"{title}·{name} {tag}" if title else f"{name} {tag}"
-            self._sess_names.append(name)
-            self.se_lb.insert("end", disp)
-    def load_selected_session(self):
-        # v2.1.4 运行中防护:任务跑着时切走会话,运行中的任务会把进度存进切走的
-        # 会话(串档)。只看不切——先停止或等完成。
+            d = time.strftime("%Y-%m-%d", time.localtime(mtime))
+            g = "今天" if d == today else ("昨天" if d == yesterday else "更早")
+            buckets[g].append((name, title or name, mtime, status, task))
+        S = self._ui_scale
+        cw = max(c.winfo_width(), int(280 * S))
+        y = int(4 * S)
+        idx = 0
+        for g in ("今天", "昨天", "更早"):
+            rows = buckets[g]
+            if not rows:
+                continue
+            c.create_text(int(18 * S), y + int(10 * S), text=_t(g), anchor="w",
+                          font=v4.FONT_XS, fill=self.T["faint"])
+            y += int(24 * S)
+            for name, title, mtime, status, task in rows:
+                sel = (name == self.session)
+                row_w = cw - int(24 * S)
+                if sel:
+                    img = v4._rr_img(row_w, int(58 * S), v4.px(9),
+                                     self.T["soft"], self.T["side"])
+                    if img is not None:
+                        c.create_image(int(12 * S), y, image=img, anchor="nw")
+                        self._sess_imgs.append(img)
+                dot = (self.T["ok"] if status == "done" else
+                       (self.T["warn"] if status == "interrupted" else self.T["border"]))
+                c.create_oval(int(20 * S), y + int(13 * S),
+                              int(26 * S), y + int(19 * S), fill=dot, outline="")
+                maxpx = row_w - int(28 * S) - int(46 * S)
+                c.create_text(int(32 * S), y + int(21 * S),
+                              text=v4.ellipsize(title, maxpx, v4.FONT_BOLD),
+                              anchor="w", font=v4.FONT_BOLD,
+                              fill=self.T["primary"] if sel else self.T["text"])
+                sub = task if task and task != title else status
+                c.create_text(int(32 * S), y + int(41 * S),
+                              text=v4.ellipsize(sub, maxpx, v4.FONT_XS),
+                              anchor="w", font=v4.FONT_XS, fill=self.T["faint"])
+                when = (time.strftime("%H:%M", time.localtime(mtime))
+                        if g in ("今天", "昨天")
+                        else time.strftime("%m-%d", time.localtime(mtime)))
+                c.create_text(cw - int(18 * S), y + int(21 * S), text=when,
+                              anchor="e", font=v4.FONT_XS, fill=self.T["faint"])
+                c.create_rectangle(int(12 * S), y, cw - int(12 * S),
+                                   y + int(58 * S), outline="",
+                                   fill="", tags=(f"sess{idx}",))
+                c.tag_bind(f"sess{idx}", "<Button-1>",
+                           lambda e, n=name: self._on_session_click(n))
+                # v3.1.1:右键菜单(归档/删除)——会话列表多了以后的管理出口;
+                # Button-2 兼容 macOS(那边右键是 Button-2),Win/Linux 中键同触发无害
+                c.tag_bind(f"sess{idx}", "<Button-3>",
+                           lambda e, n=name: self._session_menu(n, e))
+                c.tag_bind(f"sess{idx}", "<Button-2>",
+                           lambda e, n=name: self._session_menu(n, e))
+                self._sess_names.append(name)
+                idx += 1
+                y += int(62 * S)
+        if idx == 0:
+            c.create_text(cw // 2, 24, text=_t("还没有对话"), anchor="n",
+                          font=v4.FONT_SM, fill=self.T["faint"])
+        c.configure(scrollregion=(0, 0, cw, max(y + 8, 60)))
+
+    def _on_session_click(self, name):
+        self._switch_session(name)
+
+    # ---------------- v3.1.1 会话管理:归档 / 删除 ----------------
+    def _session_files(self, name):
+        """一个会话在磁盘上的全部侧车文件(主 JSON/转录/meta/todo),只返回存在的。"""
+        return [p for p in (os.path.join(SESSION_DIR, name + ext)
+                for ext in (".json", ".transcript.jsonl", ".meta.json", ".todo.json"))
+                if os.path.exists(p)]
+
+    def _session_menu(self, name, event):
+        busy = bool(self.proc and self.proc.poll() is None)
+        cur = (name == self.session)
+        m = tk.Menu(self.root, tearoff=0, bg=self.T["surface"], fg=self.T["text"],
+                    activebackground=self.T["soft"], activeforeground=self.T["text"],
+                    bd=0, relief="flat")
+        m.add_command(label=_t("打开"),
+                      command=lambda: self._switch_session(name),
+                      state="disabled" if (busy and cur) else "normal")
+        m.add_command(label=_t("归档(移出列表,文件保留)"),
+                      command=lambda: self._archive_session(name),
+                      state="disabled" if (busy and cur) else "normal")
+        m.add_command(label=_t("删除…"),
+                      command=lambda: self._delete_session(name),
+                      state="disabled" if (busy and cur) else "normal")
+        try:
+            m.tk_popup(event.x_root, event.y_root)
+        finally:
+            m.grab_release()
+
+    def _archive_session(self, name):
+        """归档:整套会话文件移入 sessions/_archived/,侧栏/搜索不再显示;
+        需要时把文件移回 sessions/ 即恢复。"""
+        if name == self.session and self.proc and self.proc.poll() is None:
+            self.log_note(_t("[任务运行中暂不能归档当前会话——请先停止或等它完成]"))
+            return
+        dst_dir = os.path.join(SESSION_DIR, "_archived")
+        os.makedirs(dst_dir, exist_ok=True)
+        moved = 0
+        for p in self._session_files(name):
+            try:
+                shutil.move(p, os.path.join(dst_dir, os.path.basename(p)))
+                moved += 1
+            except Exception:
+                pass
+        if not moved:
+            self.log_note(_t("[归档失败:找不到会话文件]"))
+            return
+        if name == self.session:
+            self.new_chat()          # 归档的是当前会话:重置到新对话态
+        self.refresh_sessions()
+        self.log_note(_t("[已归档会话(文件移入 sessions/_archived,可随时找回)]")
+                      + f" {name} ×{moved}")
+
+    def _delete_session(self, name):
+        """删除:确认后整套会话文件彻底移除(不可恢复;想保留请用归档)。"""
+        if name == self.session and self.proc and self.proc.poll() is None:
+            self.log_note(_t("[任务运行中暂不能删除当前会话——请先停止或等它完成]"))
+            return
+        import tkinter.messagebox as _mb
+        if not _mb.askyesno(_t("删除对话"),
+                            _t("确定彻底删除对话(转录/计划一并删除,不可恢复;只想移出列表请用「归档」)?")
+                            + f"\n  {name}"):
+            return
+        gone = 0
+        for p in self._session_files(name):
+            try:
+                os.remove(p)
+                gone += 1
+            except Exception:
+                pass
+        if name == self.session:
+            self.new_chat()
+        self.refresh_sessions()
+        self.log_note(_t("[已删除会话(不可恢复)]") + f" {name} ({gone})")
+
+    def _switch_session(self, name):
+        """载入历史会话(完整转录优先,旧会话回退上下文 JSON)。
+        运行中切换会串档(token 渲进被载入的会话、stop 保存错会话),所有入口
+        (侧边栏/搜索窗)统一在这里拦截。"""
+        if not name:
+            return
         if self.proc and self.proc.poll() is None:
             self.log_note(_t("[任务运行中暂不能切换会话——请先停止或等它完成]"))
             return
-        sel = self.se_lb.curselection()
-        if not sel: return
-        # 显示名可能带标题前缀,文件名从 _sess_names 取;列表异常陈旧时兜底反解
-        if sel[0] < len(self._sess_names):
-            name = self._sess_names[sel[0]]
-        else:
-            name = self.se_lb.get(sel[0]).split(" [")[0].split("·")[-1].strip()
         self.session = name
-        # 模型起过名的会话,会话栏一并带上标题
+        self.session_title = ""
         _mt = {}
         try:
-            _mt = json.load(open(os.path.join(SESSION_DIR, name + ".meta.json"), encoding="utf-8"))
-        except Exception: pass
+            _mt = json.load(open(os.path.join(SESSION_DIR, name + ".meta.json"),
+                                 encoding="utf-8"))
+        except Exception:
+            pass
         self.session_title = str(_mt.get("title", "") or "")
-        # v2.1.3 会话绑定工作目录:载入历史会话时恢复它当时的工作目录
-        # (会话 meta 由 save_session 写入;旧会话无此字段则保持当前目录)。
         _swd = str(_mt.get("workdir", "") or "")
         if _swd and os.path.isdir(_swd) and _swd != self.wd_var.get():
             self.wd_var.set(_swd)
             self.log_note(_t("[已恢复该会话的工作目录: {d}]").format(d=_swd))
-        self.sess_lbl.configure(text=_t("会话:") + (f"{self.session_title}·{name}" if self.session_title else name))
-        # v2.1.4 转录优先:完整历史从 transcript.jsonl 渲染(压缩只改模型上下文,
-        # 不再残缺化用户可见历史);旧版会话无转录 → 回退上下文 json
+        self._set_session_label(name, self.session_title)
         msgs = None
         _tp = os.path.join(SESSION_DIR, name + ".transcript.jsonl")
         if os.path.exists(_tp):
             try:
-                msgs = [json.loads(_ln) for _ln in open(_tp, encoding="utf-8") if _ln.strip()]
+                msgs = [json.loads(_ln) for _ln in open(_tp, encoding="utf-8")
+                        if _ln.strip()]
             except Exception:
                 msgs = None
         if msgs is None:
             p = os.path.join(SESSION_DIR, name + ".json")
-            try: msgs = json.load(open(p, encoding="utf-8"))
-            except Exception: msgs = None
+            try:
+                msgs = json.load(open(p, encoding="utf-8"))
+            except Exception:
+                msgs = None
         self.render_session(msgs, name)
-        self.log_note(_t("[已载入会话: {name}]").format(name=name))
-    def replay_selected_session(self):
-        sel = self.se_lb.curselection()
-        if not sel: return
-        if sel[0] < len(self._sess_names):
-            name = self._sess_names[sel[0]]
+        # 计划抽屉:优先该会话自己保存的 todo 快照;共享工作目录里的 todo.json
+        # 可能属于别的任务(跨会话串计划,复审 P2)。
+        try:
+            _snap = os.path.join(SESSION_DIR, name + ".todo.json")
+            _plan = json.load(open(_snap, encoding="utf-8")) if os.path.exists(_snap) else []
+            if not isinstance(_plan, list):
+                _plan = []
+        except Exception:
+            _plan = []
+        self._plan_source = "session"
+        self._render_plan(_plan, force=True)
+        self.refresh_sessions()
+        self._sync_dir_btn()
+        # 载入提示进运行日志即可;会话标题已换成该会话,不必再往正文塞系统消息
+        self.log(_t("[已载入会话: {name}]").format(name=name))
+
+    def _set_session_label(self, name=None, title=""):
+        self.session = name or None
+        if not hasattr(self, "conv_title"):
+            return
+        if name:
+            txt = (title + " · " + name) if title else name
+            sub = _t("历史会话 · 下一条消息接续上下文")
         else:
-            name = self.se_lb.get(sel[0]).split(" [")[0].split("·")[-1].strip()
-        self.view_transcript(name)
+            txt = _t("新对话")
+            sub = _t("本地优先 · 小模型优先")
+        try:
+            self.conv_title.configure(text=v4.ellipsize(txt, 520, v4.FONT_TITLE))
+            self.conv_sub.configure(text=sub)
+        except Exception:
+            pass
+
     def _session_summary(self, name):
         meta_p = os.path.join(SESSION_DIR, name + ".meta.json")
         if os.path.exists(meta_p):
@@ -1255,13 +2303,10 @@ class AgentGUI:
         for m in msgs:
             role = m.get("role"); c = str(m.get("content","") or "")
             if role == "system": continue
-            if role == "user" and (c.startswith("Continue: keep making") or c == _t("继续之前的对话,完成或回答当前需求。")):
+            if role == "user" and self._is_internal_user_msg(c):
                 continue
             if role == "user":
-                self.transcript.config(state="normal")
-                self.transcript.insert("end", "\n", "spacer")
-                self.transcript.insert("end", "  " + c + "\n", "user")
-                self.transcript.config(state="disabled")
+                self._insert_user(c)
             elif role == "assistant":
                 # v2.0.1 历史思考也渲染成可展开标记(会话 JSON 存有 m["thinking"],
                 # 旧版直接丢弃——加载历史后再也看不到当时的思考过程)
@@ -1281,30 +2326,51 @@ class AgentGUI:
                 if c:
                     self._insert_md(c)
             elif role == "tool":
+                if str(c).startswith("[TASK_COMPLETE]"):
+                    continue          # 内部收尾标记,不属于对话内容
                 self.transcript.config(state="normal")
                 self.transcript.insert("end", "      ↳ " + str(c)[:160] + "\n", "note")
                 self.transcript.config(state="disabled")
         self._scroll_transcript()
 
+    @staticmethod
+    def _is_internal_user_msg(c):
+        """历史会话里混有 harness 注入的推进/自查消息,不是用户说的,不上屏。"""
+        c = str(c or "").strip()
+        return (c.startswith("Continue: keep making")
+                or c == _t("继续之前的对话,完成或回答当前需求。")
+                or c.startswith("回答已经足够")
+                or "立即调用 finish" in c[:160]
+                or c.startswith("任务已收尾")
+                or c.startswith("⚠️ 交付前自查")
+                or c.startswith("提示:run_bash 执行的是 Windows shell 命令")
+                or c.startswith("[时间预算]"))
+
     def _insert_md(self, text):
-        """轻量 markdown:代码块 → 等宽深色;粗体 → bold。"""
+        """轻量 markdown:代码块 → 等宽;正文前落一行"鸣鸟"标识。"""
         self.transcript.config(state="normal")
+        self.transcript.insert("end", "\n", "spacer")
+        self.transcript.insert("end", _t("鸣鸟") + "\n", "who")
         in_code = False
         for line in text.split("\n"):
             if line.strip().startswith("```"):
                 in_code = not in_code
                 continue
             tag = "code" if in_code else "asst"
-            self.transcript.insert("end", "\n" + line + "\n", tag)
+            self.transcript.insert("end", line + "\n", tag)
         self.transcript.insert("end", "\n", "spacer")
         self.transcript.config(state="disabled")
 
-    def add_user_bubble(self, text):
+    def _insert_user(self, text):
         self.transcript.config(state="normal")
         self.transcript.insert("end", "\n", "spacer")
-        self.transcript.insert("end", "  " + text + "\n", "user")
+        self.transcript.insert("end", _t("你") + "\n", "you_line")
+        self.transcript.insert("end", str(text) + "\n", "user")
         self.transcript.config(state="disabled")
         self._scroll_transcript()
+
+    def add_user_bubble(self, text):
+        self._insert_user(text)
 
     def _scroll_transcript(self):
         self.transcript.see("end")
@@ -1336,9 +2402,9 @@ class AgentGUI:
         self._think_text = ""; self._think_live = False; self._think_hdr = False
         self._think_shown = 0; self._think_store = {}; self._think_seq = 0
         self._asst_buf = ""; self._asst_shown = 0; self._streaming_asst = False
-    def clear_log(self):
-        self._set_text(self.console)
     def _set_text(self, w):
+        if w is None:
+            return
         w.config(state="normal"); w.delete("1.0", "end"); w.config(state="disabled")
     def log_note(self, txt):
         self.transcript.config(state="normal")
@@ -1385,45 +2451,82 @@ class AgentGUI:
             return
 
     def log(self, txt):
-        self.console.config(state="normal")
-        self.console.insert("end", txt + "\n"); self.console.see("end")
-        self.console.config(state="disabled")
+        txt = str(txt)
+        self._log_buf.append(txt)
+        if len(self._log_buf) > 1000:
+            del self._log_buf[:-1000]
+        if self.console is not None:
+            try:
+                self.console.config(state="normal")
+                self.console.insert("end", txt + "\n")
+                self.console.see("end")
+                self.console.config(state="disabled")
+            except Exception:
+                self.console = None
+
+    def clear_log(self):
+        self._log_buf.clear()
+        if self.console is not None:
+            try:
+                self._set_text(self.console)
+            except Exception:
+                pass
 
     # ================= 关于 / 欢迎 =================
     def show_about(self):
-        win = tb.Toplevel(self.root); win.title(_t("ℹ 关于"))
-        win.geometry(self._scaled_geo(470, 380))
-        win.transient(self.root); win.grab_set()
-        tok = self.T   # 旧 MINIMAL 硬编码浅色在暗色主题下穿帮,改用当前主题令牌
-        win.configure(bg=tok["bg"])
-        # 品牌色横幅(鸣翠):不用 inverse-primary(随 ttkbootstrap 主题变成蓝/杂色)
-        tk.Label(win, text=_t("鸣鸟 · 本地 AI 助手"),
-                 font=("Microsoft YaHei UI", 14, "bold"),
-                 bg=tok["primary"], fg=tok["primary_text"],
-                 padx=16, pady=12).pack(fill="x")
-        body = tk.Frame(win, bg=tok["bg"]); body.pack(fill="both", expand=True, padx=18, pady=10)
-        info = (f"{_t('版本')}: {self.app_version()}\n"
-                f"{_t('许可')}: Apache-2.0\n\n"
+        T = self.T
+        S = self._ui_scale
+        px = lambda n: int(n * S)
+        win = tk.Toplevel(self.root)
+        win.title(_t("关于"))
+        win.geometry(self._scaled_geo(520, 440))
+        win.configure(bg=T["bg"])
+        self._theme_titlebar(win)
+        win.transient(self.root)
+        win.grab_set()
+
+        banner = tk.Frame(win, bg=T["primary"], height=px(92))
+        banner.pack(fill="x")
+        banner.pack_propagate(False)
+        tk.Label(banner, text=_t("鸣鸟 · 本地 AI 助手"), bg=T["primary"],
+                 fg=T["primary_text"],
+                 font=(v4.UI_FAMILY, 18, "bold")).pack(
+                     anchor="w", padx=px(22), pady=(px(18), px(2)))
+        tk.Label(banner, text=_t("本地优先 · 小模型优先 · 数据不出本机"),
+                 bg=T["primary"], fg=T["primary_text"],
+                 font=v4.FONT_SM).pack(anchor="w", padx=px(22))
+
+        body = tk.Frame(win, bg=T["bg"])
+        body.pack(fill="both", expand=True, padx=px(22), pady=px(14))
+        info = (f"{_t('版本')}  {self.app_version()}\n"
+                f"{_t('许可')}  Apache-2.0\n\n"
                 f"{_t('全离线·小模型优先的本地 AI agent')}\n"
-                f"Ollama + AMD iGPU / NVIDIA / CPU")
-        tb.Label(body, text=info, font=MINIMAL["font_body"], bootstyle="secondary",
-                 background=tok["bg"],
-                 justify="left", anchor="w").pack(fill="x")
-        tb.Label(body, text="", background=tok["bg"]).pack()
-        # 打开内嵌文档(两行排布:5 个按钮挤一行在 470px 内会溢出被裁)
-        df = tb.Frame(body); df.pack(fill="x", pady=(4, 0))
-        docs = {"README": "README_EN.md", "RELEASE_NOTES.md": "RELEASE_NOTES.md",
-                "AGENTS.md": "AGENTS.md"}
+                f"Ollama + iGPU / NVIDIA / CPU")
+        tk.Label(body, text=info, bg=T["bg"], fg=T["muted"],
+                 font=v4.FONT_SM, justify="left", anchor="w").pack(fill="x")
+
+        docs = {"README": "README_EN.md",
+                "RELEASE_NOTES.md": "RELEASE_NOTES.md",
+                "AGENTS.md": "AGENTS.md",
+                "LICENSE": "LICENSE"}
+        df = tk.Frame(body, bg=T["bg"])
+        df.pack(fill="x", pady=(14, 0))
         for label, fn in docs.items():
-            tb.Button(df, text=label, bootstyle="secondary-outline",
-                      command=lambda n=fn: self._open_doc(n)).pack(side="left", padx=2)
-        df2 = tb.Frame(body); df2.pack(fill="x", pady=(4, 0))
-        tb.Button(df2, text="LICENSE", bootstyle="secondary-outline",
-                  command=lambda: self._open_doc("LICENSE")).pack(side="left", padx=2)
-        tb.Button(df2, text=_t("打开安装目录"), bootstyle="secondary-outline",
-                  command=lambda: subprocess.Popen(_file_manager_cmd(AGENT_DIR))).pack(side="left", padx=2)
-        tb.Button(win, text=_t("关闭"), bootstyle="primary",
-                  command=win.destroy).pack(pady=(6, 10))
+            v4.Pill(df, label, lambda n=fn: self._open_doc(n), T,
+                    kind="surface", h=30, padx=12,
+                    font=v4.FONT_XS).pack(side="left", padx=(0, 6))
+        df2 = tk.Frame(body, bg=T["bg"])
+        df2.pack(fill="x", pady=(8, 0))
+        v4.Pill(df2, _t("打开安装目录"),
+                lambda: subprocess.Popen(_file_manager_cmd(AGENT_DIR)), T,
+                kind="ghost", h=30, padx=12,
+                font=v4.FONT_XS).pack(side="left")
+
+        foot = tk.Frame(win, bg=T["bg"])
+        foot.pack(fill="x", padx=px(22), pady=(0, px(16)))
+        v4.Pill(foot, _t("关闭"), win.destroy, T, kind="primary", h=32,
+                padx=18).pack(side="right")
+        win.bind("<Escape>", lambda e: win.destroy())
 
     def _open_doc(self, fn):
         """打开内嵌文档(exe 目录或 _internal 下)。"""
@@ -1436,56 +2539,102 @@ class AgentGUI:
         self.log(_t("[文档未找到: {fn}]").format(fn=fn))
 
     def _welcome(self):
-        """空状态欢迎语:新对话时给出最快的上手提示。"""
+        """空状态:一句产品定位 + 四条可点的上手建议。"""
         if self.transcript.get("1.0", "end-1c").strip():
             return
         self.transcript.config(state="normal")
         self.transcript.delete("1.0", "end")
         self.transcript.insert("end", "\n", "spacer")
-        self.transcript.insert("end", "  " + _t("欢迎使用") + " 🐦\n", "done")
-        self.transcript.insert("end", "  " + _t("全离线·小模型优先的本地 AI agent") + "\n", "note")
+        self.transcript.insert("end", _t("有什么可以帮你?") + "\n", "welcome_title")
+        self.transcript.insert("end", _t("本地优先 · 小模型优先 · 数据不出本机") + "\n",
+                               "welcome_sub")
+        for t in (_t("写一个 Python 脚本并跑测试"),
+                  _t("整理这个目录里的文件"),
+                  _t("查资料并汇总成报告"),
+                  _t("解释这段代码在做什么")):
+            self.transcript.insert("end", "· " + t + "\n", "sugg")
         self.transcript.insert("end", "\n", "spacer")
-        self.transcript.insert("end", "  " + _t("输入任务或对话,Ctrl+Enter 发送。可以直接说:") + "\n", "asst")
-        for t in (_t("· 用中文回答我,别客气"),
-                  _t("· 在某个目录里写个 Python 程序并跑测试"),
-                  _t("· 帮我查资料、整理成报告"),
-                  _t("· 管理本地文件,整理照片")):
-            self.transcript.insert("end", "\n  " + t + "\n", "asst")
-        self.transcript.insert("end", "\n", "spacer")
-        self.transcript.insert("end", "  " + _t("模型可在上方切换;工具栏可开关思考过程、切主题。") + "\n", "note")
-        self.transcript.insert("end", "\n", "spacer")
+        self.transcript.insert("end", _t("Enter 发送 · Shift+Enter 换行;点上面的建议可直接填入输入框。") + "\n",
+                               "note")
         self.transcript.config(state="disabled")
 
     # ================= 技能 / 搜索 =================
     def show_skills(self):
-        win = tb.Toplevel(self.root); win.title(_t("技能列表"))
-        win.geometry(self._scaled_geo(620, 500))
-        tb.Label(win, text=_t("本地 agent 可用技能(渐进式:用到才加载全文)"), padding=6).pack(anchor="w")
-        tok = self.T   # 暗色主题下不用默认白底
-        txt = scrolledtext.ScrolledText(win, font=("Consolas", 9), wrap="word",
-                                        bg=tok["surface"], fg=tok["text"],
-                                        insertbackground=tok["text"])
-        txt.pack(fill="both", expand=True, padx=6, pady=2)
+        """技能列表(v4 皮肤):同一份内容,改成主题化滚动卡片,
+        不再用 ttkbootstrap 默认白底 + Consolas 8 号字的记事本观感。"""
+        T = self.T
+        S = self._ui_scale
+        px = lambda n: int(n * S)
+        win = tk.Toplevel(self.root)
+        win.title(_t("技能列表"))
+        win.geometry(self._scaled_geo(700, 640))
+        win.configure(bg=T["bg"])
+        self._theme_titlebar(win)
+        win.transient(self.root)
+
+        head = tk.Frame(win, bg=T["bg"])
+        head.pack(fill="x", padx=px(20), pady=(px(16), px(2)))
+        tk.Label(head, text=_t("技能列表"), bg=T["bg"], fg=T["text"],
+                 font=v4.FONT_TITLE).pack(side="left")
+        v4.Icon(head, "×", win.destroy, T,
+                font=(v4.DISPLAY_FAMILY, 13)).pack(side="right")
+        tk.Label(win, text=_t("本地 agent 可用技能(渐进式:用到才加载全文)"),
+                 bg=T["bg"], fg=T["muted"], font=v4.FONT_SM).pack(
+                     anchor="w", padx=px(20))
+
+        card = tk.Frame(win, bg=T["surface"], highlightthickness=1,
+                        highlightbackground=T["border"])
+        card.pack(fill="both", expand=True, padx=px(20), pady=(px(10), px(12)))
+        txt = tk.Text(card, wrap="word", width=1, height=1, bd=0,
+                      highlightthickness=0, bg=T["surface"], fg=T["text"],
+                      font=v4.FONT_SM, padx=px(16), pady=px(12),
+                      spacing1=px(1), spacing3=px(2), cursor="arrow")
+        txt.pack(fill="both", expand=True)
+        txt.tag_configure("h", foreground=T["text"], font=v4.FONT_BOLD,
+                          spacing1=14, spacing3=6)
+        txt.tag_configure("name", foreground=T["text"], font=v4.FONT_BOLD,
+                          spacing1=9, spacing3=1)
+        txt.tag_configure("desc", foreground=T["muted"], font=v4.FONT_SM,
+                          lmargin1=18, lmargin2=18)
+        txt.tag_configure("path", foreground=T["faint"], font=v4.MONO_SM,
+                          lmargin1=18, lmargin2=18, spacing3=2)
+        txt.tag_configure("muted", foreground=T["faint"], font=v4.FONT_SM)
+        txt.bind("<MouseWheel>",
+                 lambda e: (txt.yview_scroll(int(-e.delta / 120), "units"),
+                            "break")[1])
+
         seen = {}
         for base in SKILL_DIRS:
             if os.path.isdir(base):
                 for f in sorted(os.listdir(base)):
                     if f.endswith((".md", ".txt", ".py")):
                         name = f.rsplit(".", 1)[0]
-                        if name not in seen: seen[name] = self._skill_desc(os.path.join(base, f))
-        # v1.9.1:自装技能与 MCP 的可见性(用户问了"怎么装自己的技能/MCP")
-        txt.insert("end", f"〔{_t('技能目录')}〕\n")
+                        if name not in seen:
+                            seen[name] = self._skill_desc(os.path.join(base, f))
+        # v1.9.1:自装技能与 MCP 的可见性(用户问过"怎么装自己的技能/MCP")
+        txt.insert("end", "〔" + _t("技能目录") + "〕\n", "h")
         for d in SKILL_DIRS:
-            txt.insert("end", f"  {d}\n")
-        txt.insert("end", _t("  自定义技能:把 .md 文件(开头写 name/description)放进上面的\"技能\"目录即可,重启后生效\n\n"))
-        mcp_hint = self._mcp_summary()
-        txt.insert("end", f"〔MCP〕\n{mcp_hint}\n\n")
-        txt.insert("end", f"〔{_t('已装技能')}〕{len(seen)}\n")
+            txt.insert("end", d + "\n", "path")
+        txt.insert("end", _t("  自定义技能:把 .md 文件(开头写 name/description)放进上面的\"技能\"目录即可,重启后生效\n"),
+                   "muted")
+        txt.insert("end", "〔MCP〕\n", "h")
+        txt.insert("end", self._mcp_summary() + "\n", "desc")
+        txt.insert("end", _t("已装技能") + " · " + str(len(seen)) + "\n", "h")
         if not seen:
-            txt.insert("end", _t("(暂无技能)") + "\n" + "\n".join(SKILL_DIRS))
+            txt.insert("end", _t("(暂无技能)") + "\n", "muted")
         for n in sorted(seen):
-            txt.insert("end", f"■ {n}\n   {seen[n]}\n\n" if seen[n] else f"■ {n}\n\n")
+            txt.insert("end", n + "\n", "name")
+            if seen[n]:
+                txt.insert("end", seen[n] + "\n", "desc")
         txt.config(state="disabled")
+
+        foot = tk.Frame(win, bg=T["bg"])
+        foot.pack(fill="x", padx=px(20), pady=(0, px(14)))
+        tk.Label(foot, text=_t("渐进式加载 · 只列名字与一句话描述"),
+                 bg=T["bg"], fg=T["faint"], font=v4.FONT_XS).pack(side="left")
+        v4.Pill(foot, _t("关闭"), win.destroy, T, kind="surface", h=32,
+                padx=16).pack(side="right")
+        win.bind("<Escape>", lambda e: win.destroy())
 
     def _mcp_summary(self):
         """技能窗里的 MCP 一览:配置了几台服务器、名字,以及没配时的上手提示。"""
@@ -1513,97 +2662,171 @@ class AgentGUI:
         return ""
 
     def search_history(self):
-        win = tb.Toplevel(self.root); win.title(_t("会话历史搜索"))
-        win.geometry(self._scaled_geo(640, 480))
-        top = tb.Frame(win, padding=6); top.pack(fill="x")
-        tb.Label(top, text=_t("关键词:")).pack(side="left")
+        """历史搜索(v4 皮肤):同一份检索逻辑,换成主题化输入框/列表/底栏。"""
+        T = self.T
+        S = self._ui_scale
+        px = lambda n: int(n * S)
+        win = tk.Toplevel(self.root)
+        win.title(_t("会话历史搜索"))
+        win.geometry(self._scaled_geo(700, 520))
+        win.configure(bg=T["bg"])
+        self._theme_titlebar(win)
+        win.transient(self.root)
+
+        head = tk.Frame(win, bg=T["bg"])
+        head.pack(fill="x", padx=px(20), pady=(px(16), px(8)))
+        tk.Label(head, text=_t("会话历史搜索"), bg=T["bg"], fg=T["text"],
+                 font=v4.FONT_TITLE).pack(side="left")
+        v4.Icon(head, "×", win.destroy, T,
+                font=(v4.DISPLAY_FAMILY, 13)).pack(side="right")
+
+        top = tk.Frame(win, bg=T["bg"])
+        top.pack(fill="x", padx=px(20))
+        wrap = tk.Frame(top, bg=T["surface"], highlightthickness=1,
+                        highlightbackground=T["border"],
+                        highlightcolor=T["primary"])
+        wrap.pack(side="left", fill="x", expand=True)
         kw = tk.StringVar()
-        ent = tb.Entry(top, textvariable=kw, width=28); ent.pack(side="left", padx=4)
+        ent = tk.Entry(wrap, textvariable=kw, bg=T["surface"], fg=T["text"],
+                       insertbackground=T["text"], bd=0,
+                       highlightthickness=0, font=v4.FONT_SM)
+        ent.pack(fill="x", padx=px(9), pady=px(7))
         ent.bind("<Return>", lambda e: do_search())
-        tb.Button(top, text=_t("搜索"), bootstyle="primary", command=lambda: do_search()).pack(side="left")
-        fr = tb.Frame(win); fr.pack(fill="both", expand=True, padx=6, pady=2)
-        lbwrap = tb.Frame(fr); lbwrap.pack(side="left", fill="both", expand=True)
-        tok = self.T   # 暗色主题下列表不用默认白底
-        lb = tk.Listbox(lbwrap, font=("Consolas", 9), relief="flat",
-                        bg=tok["surface"], fg=tok["text"],
-                        selectbackground=tok["sel"], selectforeground=tok["text"])
-        lb.pack(side="top", fill="both", expand=True)
-        lsb = ttk.Scrollbar(lbwrap, orient="horizontal", command=lb.xview)
-        lsb.pack(side="top", fill="x")
-        lb.config(xscrollcommand=lsb.set)
-        sb = ttk.Scrollbar(fr, orient="vertical", command=lb.yview)
-        sb.pack(side="right", fill="y")
-        lb.config(yscrollcommand=sb.set)
+        v4.Pill(top, _t("搜索"), lambda: do_search(), T, kind="primary",
+                h=32, padx=16).pack(side="left", padx=(8, 0))
+
+        card = tk.Frame(win, bg=T["surface"], highlightthickness=1,
+                        highlightbackground=T["border"])
+        card.pack(fill="both", expand=True, padx=px(20), pady=(px(10), px(8)))
+        lb = tk.Listbox(card, font=v4.FONT_SM, relief="flat", bd=0,
+                        highlightthickness=0, activestyle="none",
+                        bg=T["surface"], fg=T["text"],
+                        selectbackground=T["sel"], selectforeground=T["text"])
+        lb.pack(fill="both", expand=True, padx=px(6), pady=px(6))
         results = []
+
+        def _row(text):
+            lb.insert("end", v4.ellipsize(text, 600, v4.FONT_SM))
+
         def do_search():
-            q = kw.get().strip().lower(); lb.delete(0, "end"); results.clear()
-            if not q: lb.insert("end", _t("(输入关键词再搜索)")); return
+            q = kw.get().strip().lower()
+            lb.delete(0, "end")
+            results.clear()
+            if not q:
+                _row(_t("(输入关键词再搜索)"))
+                return
             files = [f for f in glob.glob(os.path.join(SESSION_DIR, "*.json"))
-                     if not f.endswith(".meta.json")]
+                     if not f.endswith((".meta.json", ".todo.json"))]
             for s in sorted(files):
                 name = os.path.basename(s)[:-5]
-                try: msgs = json.load(open(s, encoding="utf-8"))
-                except Exception: continue
-                text = " ".join(str(m.get("content","")) for m in msgs)
+                try:
+                    msgs = json.load(open(s, encoding="utf-8"))
+                except Exception:
+                    continue
+                text = " ".join(str(m.get("content", "")) for m in msgs)
                 idx = text.lower().find(q)
-                if idx < 0: continue
-                snip = text[max(0,idx-55):idx+120].replace("\n"," ")
+                if idx < 0:
+                    continue
+                snip = text[max(0, idx - 55):idx + 120].replace("\n", " ")
                 results.append(name)
-                lb.insert("end", f"{name}  |  …{snip}…")
-            if not results: lb.insert("end", _t("(未找到含 '{q}' 的会话)").format(q=q))
+                _row(f"{name}  ·  …{snip}…")
+            if not results:
+                _row(_t("(未找到含 '{q}' 的会话)").format(q=q))
+
         def view_sel():
             sel = lb.curselection()
-            if sel: self.view_transcript(results[sel[0]])
+            if sel and results:
+                self.view_transcript(results[sel[0]])
+
         def load_sel():
             sel = lb.curselection()
-            if not sel: return
-            self.session = results[sel[0]]; self.sess_lbl.configure(text=_t("会话:") + self.session)
-            p = os.path.join(SESSION_DIR, self.session + ".json")
-            try: msgs = json.load(open(p, encoding="utf-8"))
-            except Exception: msgs = None
-            self.render_session(msgs, self.session)
-            self.log_note(_t("[从历史恢复会话: {name}]").format(name=self.session))
+            if not sel or not results:
+                return
+            self._switch_session(results[sel[0]])
             win.destroy()
-        bf = tb.Frame(win); bf.pack(pady=4)
-        tb.Button(bf, text=_t("查看对话"), command=view_sel).pack(side="left", padx=4)
-        tb.Button(bf, text=_t("恢复此会话"), bootstyle="primary", command=load_sel).pack(side="left", padx=4)
+
+        lb.bind("<Double-Button-1>", lambda e: view_sel())
+
+        foot = tk.Frame(win, bg=T["bg"])
+        foot.pack(fill="x", padx=px(20), pady=(0, px(14)))
+        tk.Label(foot, text=_t("双击结果查看完整对话"), bg=T["bg"],
+                 fg=T["faint"], font=v4.FONT_XS).pack(side="left")
+        v4.Pill(foot, _t("恢复此会话"), load_sel, T, kind="primary", h=32,
+                padx=14).pack(side="right")
+        v4.Pill(foot, _t("查看对话"), view_sel, T, kind="surface", h=32,
+                padx=14).pack(side="right", padx=(0, 8))
         ent.focus_set()
+        win.bind("<Escape>", lambda e: win.destroy())
 
     def view_transcript(self, name):
-        win = tb.Toplevel(self.root); win.title(_t("会话回放: {name}").format(name=name))
-        win.geometry(self._scaled_geo(760, 560))
-        tb.Label(win, text=_t("会话 {name} — 完整对话记录(Ctrl+F 搜索)").format(name=name),
-                 padding=6,
-                 wraplength=int(700 * getattr(self, "_ui_scale", 1.0))
-                 ).pack(anchor="w")
-        tok = self.T   # 暗色主题下回放区不用默认白底/黑字
-        txt = scrolledtext.ScrolledText(win, font=("Consolas", 9), wrap="word",
-                                        bg=tok["bg"], fg=tok["text"],
-                                        insertbackground=tok["text"])
-        txt.pack(fill="both", expand=True, padx=6, pady=2)
+        """会话回放(v4 皮肤):等宽/正文分标签,颜色全走令牌。"""
+        T = self.T
+        S = self._ui_scale
+        px = lambda n: int(n * S)
+        win = tk.Toplevel(self.root)
+        win.title(_t("会话回放: {name}").format(name=name))
+        win.geometry(self._scaled_geo(820, 620))
+        win.configure(bg=T["bg"])
+        self._theme_titlebar(win)
+        win.transient(self.root)
+
+        head = tk.Frame(win, bg=T["bg"])
+        head.pack(fill="x", padx=px(20), pady=(px(16), px(2)))
+        tk.Label(head, text=_t("会话回放"), bg=T["bg"], fg=T["text"],
+                 font=v4.FONT_TITLE).pack(side="left")
+        v4.Icon(head, "×", win.destroy, T,
+                font=(v4.DISPLAY_FAMILY, 13)).pack(side="right")
+        tk.Label(win, text=name, bg=T["bg"], fg=T["muted"],
+                 font=v4.FONT_SM).pack(anchor="w", padx=px(20))
+
+        card = tk.Frame(win, bg=T["surface"], highlightthickness=1,
+                        highlightbackground=T["border"])
+        card.pack(fill="both", expand=True, padx=px(20), pady=(px(10), px(16)))
+        txt = tk.Text(card, wrap="word", width=1, height=1, bd=0,
+                      highlightthickness=0, bg=T["surface"], fg=T["text"],
+                      font=v4.FONT, padx=px(16), pady=px(12),
+                      spacing1=px(2), spacing3=px(3), cursor="arrow")
+        txt.pack(fill="both", expand=True)
+        txt.bind("<MouseWheel>",
+                 lambda e: (txt.yview_scroll(int(-e.delta / 120), "units"),
+                            "break")[1])
+
         p = os.path.join(SESSION_DIR, name + ".json")
-        try: msgs = json.load(open(p, encoding="utf-8"))
+        try:
+            msgs = json.load(open(p, encoding="utf-8"))
         except Exception:
-            txt.insert("end", _t("(读取失败)")); txt.config(state="disabled"); return
+            txt.insert("end", _t("(读取失败)"))
+            txt.config(state="disabled")
+            return
         for m in msgs:
-            role = m.get("role"); c = m.get("content","") or ""
-            if role == "system": continue
-            if role == "user" and (c.startswith("Continue: keep making") or c == _t("继续之前的对话,完成或回答当前需求。")):
+            role = m.get("role")
+            c = m.get("content", "") or ""
+            if role == "system":
+                continue
+            if role == "user" and self._is_internal_user_msg(c):
                 continue
             if role == "user":
-                txt.insert("end", f"\n━━━ 👤 {_t('用户')} ━━━\n{c}\n", "u")
+                txt.insert("end", f"\n{_t('你')}\n", "u")
+                txt.insert("end", f"{c}\n", "a")
             elif role == "assistant":
                 for tc in m.get("tool_calls", []):
                     fn = tc.get("function", {})
-                    txt.insert("end", f"\n⚙ {fn.get('name','')} {json.dumps(fn.get('arguments',{}), ensure_ascii=False)[:120]}\n", "t")
-                if c: txt.insert("end", f"\n▸ {c}\n", "a")
+                    txt.insert("end", "\n⚙ " + fn.get('name', '') + " " +
+                               json.dumps(fn.get('arguments', {}),
+                                          ensure_ascii=False)[:120] + "\n", "t")
+                if c:
+                    txt.insert("end", f"\n▸ {c}\n", "a")
             elif role == "tool":
                 txt.insert("end", f"   ↳ {str(c)[:200]}\n", "r")
-        txt.tag_config("u", foreground="#1a5fb4", font=("Microsoft YaHei UI", 10, "bold"))
-        txt.tag_config("a", foreground=tok["text"])     # 旧值 #000000 在暗色下不可读
-        txt.tag_config("t", foreground="#a34e00")
-        txt.tag_config("r", foreground=tok["muted"])
+        txt.tag_config("u", foreground=T["primary"], font=v4.FONT_BOLD,
+                       spacing1=px(12), spacing3=px(2))
+        txt.tag_config("a", foreground=T["text"], font=v4.FONT)
+        txt.tag_config("t", foreground=T["warn"], font=v4.MONO_SM,
+                       lmargin1=px(4), lmargin2=px(4))
+        txt.tag_config("r", foreground=T["muted"], font=v4.FONT_XS,
+                       lmargin1=px(8), lmargin2=px(8))
         txt.config(state="disabled")
+        win.bind("<Escape>", lambda e: win.destroy())
 
     # ================= 设置 =================
     # v2.1.1 引擎预设:名字 → OpenAI 兼容 base_url(端口为各家出厂默认)。
@@ -1614,92 +2837,294 @@ class AgentGUI:
                       ("llama.cpp server", "http://127.0.0.1:8080/v1")]
 
     def open_settings(self):
-        win = tb.Toplevel(self.root); win.title(_t("设置"))
-        win.geometry(self._scaled_geo(560, 620))
+        """设置对话框(v4 皮肤):配置项与保存逻辑不变,只把 ttkbootstrap 的
+        灰底输入框/蓝按钮换成令牌化控件,与主界面同一套视觉。"""
+        T = self.T
+        S = self._ui_scale
+        px = lambda n: int(n * S)
+        win = tk.Toplevel(self.root)
+        win.title(_t("设置"))
+        win.geometry(self._scaled_geo(660, 820))
+        win.configure(bg=T["bg"])
+        self._theme_titlebar(win)
+        win.transient(self.root)
         prefs = dict(self.prefs)
-        body = tb.Frame(win, padding=12); body.pack(fill="both", expand=True)
-        # v2.1.1 本地引擎行:Ollama(默认,自动拉起/keep_alive)或 OpenAI 兼容本地服务
-        r0 = tb.Frame(body); r0.pack(fill="x", pady=2)
-        tb.Label(r0, text=_t("本地引擎:")).pack(side="left")
+
+        # ttk 下拉/微调也走令牌:否则浅色下是系统灰边,深色下白底。
+        try:
+            st = self.style
+            st.configure("V4.TCombobox", fieldbackground=T["surface"],
+                         background=T["surface"], foreground=T["text"],
+                         arrowcolor=T["muted"], bordercolor=T["border"],
+                         lightcolor=T["surface"], darkcolor=T["surface"],
+                         padding=(px(9), px(5)))
+            st.map("V4.TCombobox",
+                   fieldbackground=[("readonly", T["surface"])],
+                   foreground=[("readonly", T["text"])],
+                   bordercolor=[("focus", T["primary"])],
+                   arrowcolor=[("active", T["primary"])])
+            st.configure("V4.TSpinbox", fieldbackground=T["surface"],
+                         background=T["surface"], foreground=T["text"],
+                         arrowcolor=T["muted"], bordercolor=T["border"],
+                         lightcolor=T["surface"], darkcolor=T["surface"],
+                         padding=(px(8), px(5)))
+            st.map("V4.TSpinbox",
+                   fieldbackground=[("readonly", T["surface"])],
+                   foreground=[("readonly", T["text"])],
+                   bordercolor=[("focus", T["primary"])])
+        except Exception:
+            pass
+
+        head = tk.Frame(win, bg=T["bg"])
+        head.pack(fill="x", padx=px(22), pady=(px(16), px(2)))
+        tk.Label(head, text=_t("设置"), bg=T["bg"], fg=T["text"],
+                 font=v4.FONT_TITLE).pack(side="left")
+        v4.Icon(head, "×", win.destroy, T, font=(v4.DISPLAY_FAMILY, 13)).pack(side="right")
+
+        # 底部按钮条先占位(云端协议多两行后,后 pack 的按钮会被挤出窗口)
+        bottom = tk.Frame(win, bg=T["bg"])
+        bottom.pack(side="bottom", fill="x", padx=px(22),
+                    pady=(px(10), px(16)))
+        body = tk.Frame(win, bg=T["bg"])
+        body.pack(fill="both", expand=True, padx=px(22), pady=(px(4), 0))
+
+        def section(text, first=False):
+            tk.Label(body, text=text, bg=T["bg"], fg=T["faint"],
+                     font=v4.FONT_XS).pack(anchor="w",
+                                           pady=(0 if first else px(12), px(5)))
+
+        def card():
+            outer = tk.Frame(body, bg=T["surface"], highlightthickness=1,
+                             highlightbackground=T["border"],
+                             highlightcolor=T["border"])
+            outer.pack(fill="x")
+            inner = tk.Frame(outer, bg=T["surface"])
+            inner.pack(fill="x", padx=px(16), pady=px(12))
+            return inner
+
+        def lab(parent, text, fg="text", font=v4.FONT_SM):
+            return tk.Label(parent, text=text, bg=T["surface"], fg=T[fg],
+                            font=font)
+
+        def entry(parent, width=20, show=None):
+            wrap = tk.Frame(parent, bg=T["surface"], highlightthickness=1,
+                            highlightbackground=T["border"],
+                            highlightcolor=T["primary"])
+            e = tk.Entry(wrap, bg=T["surface"], fg=T["text"],
+                         insertbackground=T["text"], bd=0,
+                         highlightthickness=0, font=v4.FONT_SM, width=width)
+            if show:
+                e.configure(show=show)
+            e.pack(fill="x", padx=px(8), pady=px(5))
+            return wrap, e
+
+        def combo(parent, values, width=10):
+            return ttk.Combobox(parent, values=values, width=width,
+                                state="readonly", style="V4.TCombobox")
+
+        # ---- 引擎 ----
+        section(_t("推理引擎"), first=True)
+        c1 = card()
+        c1.columnconfigure(1, weight=1)
         _lb = appconfig.local_backend()
         _cur_base = _lb.get("base_url", "") if _lb.get("type") == "openai" else ""
         _CUSTOM = _t("自定义 OpenAI 兼容")
-        eng = tb.Combobox(r0, values=[p[0] for p in self.ENGINE_PRESETS] + [_CUSTOM],
-                          width=16, state="readonly")
+        _CLOUD = _t("云端 API")
+        _cloud = dict(appconfig.load_config().get("cloud") or {})
+        _cloud_on = bool(_cloud.get("enabled") and _cloud.get("base_url")
+                         and _cloud.get("model"))
+
+        lab(c1, _t("推理引擎")).grid(row=0, column=0, sticky="w", pady=px(4))
+        r0 = tk.Frame(c1, bg=T["surface"])
+        r0.grid(row=0, column=1, sticky="ew", padx=(px(14), 0), pady=px(4))
+        eng = combo(r0, [p[0] for p in self.ENGINE_PRESETS] + [_CUSTOM, _CLOUD], 14)
         _sel = "Ollama" if _lb.get("type") == "ollama" else _CUSTOM
         for _n, _u in self.ENGINE_PRESETS[1:]:
             if _cur_base == _u:
                 _sel = _n
-        eng.set(_sel); eng.pack(side="left", padx=6)
-        base = tb.Entry(r0, width=36)
-        base.insert(0, _cur_base or self.ENGINE_PRESETS[1][1])
-        base.pack(side="left", padx=2)
-        r0b = tb.Frame(body); r0b.pack(fill="x", pady=1)
-        tb.Label(r0b, text=_t("端点(Ollama 引擎忽略);本地服务 API Key 可空:")).pack(side="left")
-        key = tb.Entry(r0b, width=30, show="•")
-        key.insert(0, (_lb.get("api_key") or "") if _lb.get("type") == "openai" else "")
-        key.pack(side="left", padx=4)
+        if _cloud_on:
+            _sel = _CLOUD
+        eng.set(_sel)
+        eng.pack(side="left")
+
+        # 端点 / Key 两行本地与云端共用;云端多一行模型名。
+        _model_row = {"lab": None, "frame": None}
+
+        lab(c1, _t("端点")).grid(row=1, column=0, sticky="w", pady=px(4))
+        r1 = tk.Frame(c1, bg=T["surface"])
+        r1.grid(row=1, column=1, sticky="ew", padx=(px(14), 0), pady=px(4))
+        base_wrap, base = entry(r1, width=1)
+        base.insert(0, (_cloud.get("base_url") or "") if _cloud_on
+                    else (_cur_base or self.ENGINE_PRESETS[1][1]))
+        base_wrap.pack(fill="x", expand=True)
+
+        lab(c1, "API Key").grid(row=2, column=0, sticky="w", pady=px(4))
+        r2 = tk.Frame(c1, bg=T["surface"])
+        r2.grid(row=2, column=1, sticky="ew", padx=(px(14), 0), pady=px(4))
+        key_wrap, key = entry(r2, width=1, show="•")
+        key.insert(0, (_cloud.get("api_key") or "") if _cloud_on
+                   else ((_lb.get("api_key") or "") if _lb.get("type") == "openai" else ""))
+        key_wrap.pack(fill="x", expand=True)
+
+        _model_lab = lab(c1, _t("模型"))
+        _model_lab.grid(row=3, column=0, sticky="w", pady=px(4))
+        r3 = tk.Frame(c1, bg=T["surface"])
+        r3.grid(row=3, column=1, sticky="ew", padx=(px(14), 0), pady=px(4))
+        cloud_model_wrap, cloud_model = entry(r3, width=1)
+        cloud_model.insert(0, _cloud.get("model") or "")
+        cloud_model_wrap.pack(fill="x", expand=True)
+        _model_row["lab"], _model_row["frame"] = _model_lab, r3
+
+        _hint = lab(c1, "", fg="faint", font=v4.FONT_XS)
+        _hint.grid(row=4, column=1, sticky="w", padx=(px(14), 0), pady=(0, px(4)))
+
+        def _sync_eng_rows(*_e):
+            cloud = eng.get() == _CLOUD
+            for w in (_model_row["lab"], _model_row["frame"]):
+                try:
+                    w.grid() if cloud else w.grid_remove()
+                except Exception:
+                    pass
+            _hint.configure(text=(_t("云端仅联网可用；api_key 只存本机")
+                                  if cloud else _t("本地服务 API Key 可空")))
+        _sync_eng_rows()
+
         def _eng_picked(_e=None):
-            for _n, _u in self.ENGINE_PRESETS[1:]:
-                if eng.get() == _n:
-                    base.delete(0, "end"); base.insert(0, _u)
+            if eng.get() == _CLOUD:
+                base.delete(0, "end")
+                base.insert(0, _cloud.get("base_url") or "")
+                key.delete(0, "end")
+                key.insert(0, _cloud.get("api_key") or "")
+                cloud_model.delete(0, "end")
+                cloud_model.insert(0, _cloud.get("model") or "")
+            else:
+                for _n, _u in self.ENGINE_PRESETS[1:]:
+                    if eng.get() == _n:
+                        base.delete(0, "end")
+                        base.insert(0, _u)
+                key.delete(0, "end")
+                if _lb.get("type") == "openai":
+                    key.insert(0, _lb.get("api_key") or "")
+            _sync_eng_rows()
         eng.bind("<<ComboboxSelected>>", _eng_picked)
-        r1 = tb.Frame(body); r1.pack(fill="x", pady=2)
-        tb.Label(r1, text=_t("上下文窗口:")).pack(side="left")
-        # v2.1.3:补 512K/1M 档——新本地模型(qwen3.6 等)原生支持更大上下文;
-        # 模型实际低于所选档位时由引擎侧按能力截断/告警,不挡用户选择。
-        ctx = tb.Combobox(r1, values=[16384, 32768, 65536, 131072, 262144,
-                                      524288, 1048576],
-                          width=10, state="readonly")
-        # v2.0.0 修复:tk 的 values 读回是字符串元组,int 与 str 比较恒不等,
-        # 导致每次打开对话框显示值都被重置为 32768、保存时覆盖用户设置
-        # ("上下文怎么设都是 32K"的根因)。统一转 int 再比。
+
+        # ---- 生成参数 ----
+        section(_t("生成参数"))
+        c2 = card()
+        r2a = tk.Frame(c2, bg=T["surface"])
+        r2a.pack(fill="x")
+        lab(r2a, _t("上下文窗口")).pack(side="left")
+        # v2.1.3:补 512K/1M 档;模型实际低于所选档位时由引擎侧截断/告警。
+        ctx = combo(r2a, [16384, 32768, 65536, 131072, 262144,
+                          524288, 1048576], 8)
+        # v2.0.0 修复:tk values 读回是字符串,int 与 str 恒不等会把每次打开
+        # 的显示值重置成 32768。统一转 int 再比。
         _ctx_vals = [int(v) for v in ctx["values"]]
         if prefs["ctx"] not in _ctx_vals:
-            prefs["ctx"] = 32768   # 兼容旧保存值,归入梯度
-        ctx.set(prefs["ctx"]); ctx.pack(side="left", padx=6)
-        tb.Label(r1, text=_t("温度:")).pack(side="left")
-        # tb.Spinbox(ttkbootstrap 样式):裸 ttk.Spinbox 在暗色主题下白底白字不可读。
-        # 留空=未设置:请求不带 temperature 字段,用 ollama/模型 manifest 默认(v1.7.0)。
-        temp = tb.Spinbox(r1, from_=0.0, to=2.0, increment=0.1, width=6)
-        temp.set("" if prefs.get("temp") is None else prefs["temp"]); temp.pack(side="left", padx=6)
-        tb.Label(r1, text=_t("留空=用 Ollama 默认"), bootstyle="secondary").pack(side="left")
-        tb.Label(r1, text=_t("输出上限:")).pack(side="left")
-        # v2.0.4:8k 之上补 16k/32k/不限(-1=ollama 无限生成,直到上下文装满;
-        # 云端 provider 无负值语义,发请求时省略 max_tokens 字段)
-        np = tb.Combobox(r1, values=[512, 1024, 2048, 4096, 8192, 16384, 32768, _t("不限")],
-                         width=8, state="readonly")
+            prefs["ctx"] = 32768
+        ctx.set(prefs["ctx"])
+        ctx.pack(side="left", padx=(px(8), px(20)))
+        lab(r2a, _t("输出上限")).pack(side="left")
+        np = combo(r2a, [512, 1024, 2048, 4096, 8192,
+                        16384, 32768, _t("不限")], 7)
         np.set(_t("不限") if prefs["num_predict"] == -1 else prefs["num_predict"])
-        np.pack(side="left", padx=6)
-        # v3.0.0 命令输出精简:config 层手动开关(agent 子进程直接读 config.json)。
-        # 自动条件(上下文档位≤32K)在 agent 侧判;开关服务其余场景
-        slimout = tk.BooleanVar(value=appconfig.slim_output_mode())
-        tb.Checkbutton(body, text=_t("命令输出精简(超长输出只留末尾,小上下文档位最受益)"),
-                       variable=slimout, bootstyle="round-toggle").pack(anchor="w", pady=(4,0))
+        np.pack(side="left", padx=(px(8), 0))
+
+        r2b = tk.Frame(c2, bg=T["surface"])
+        r2b.pack(fill="x", pady=(px(8), 0))
+        lab(r2b, _t("温度")).pack(side="left")
+        temp = ttk.Spinbox(r2b, from_=0.0, to=2.0, increment=0.1, width=5,
+                           style="V4.TSpinbox")
+        temp.set("" if prefs.get("temp") is None else prefs["temp"])
+        temp.pack(side="left", padx=(px(8), px(12)))
+        lab(r2b, _t("留空=用 Ollama 默认"), fg="faint",
+            font=v4.FONT_XS).pack(side="left")
+
+        # ---- 命令输出 ----
+        section(_t("命令输出"))
+        c3 = card()
+        r3 = tk.Frame(c3, bg=T["surface"])
+        r3.pack(fill="x")
+        # v3.0.0 三态:自动(≤32K)/强制开/强制关;旧布尔在 ≤32K 时关不掉。
+        _slim_map = {None: _t("自动(≤32K)"), True: _t("开"), False: _t("关")}
+        _slim_rev = {v: k for k, v in _slim_map.items()}
+        # 显示 config 层手动值,而非环境变量覆盖后的有效值(否则会被写回)。
+        _slim_cfg = appconfig.load_config().get("slim_output", "auto")
+        if isinstance(_slim_cfg, bool):
+            _slim_cur = True if _slim_cfg else None
+        else:
+            _v = str(_slim_cfg).strip().lower()
+            _slim_cur = (True if _v in ("on", "1", "true", "yes")
+                         else (False if _v in ("off", "0", "false", "no") else None))
+        _env_slim = os.environ.get("AGENT_SLIM_OUTPUT", "").strip().lower()
+        lab(r3, _t("命令输出精简")).pack(side="left")
+        slim_var = tk.StringVar(value=_slim_map.get(_slim_cur, _slim_map[None]))
+        ttk.Combobox(r3, textvariable=slim_var, state="readonly",
+                     width=14, values=list(_slim_map.values()),
+                     style="V4.TCombobox").pack(side="left",
+                                                   padx=(px(8), px(12)))
+        lab(r3, _t("超长输出只留末尾"), fg="faint",
+            font=v4.FONT_XS).pack(side="left")
+        if _env_slim in ("1", "true", "yes", "on", "0", "false", "no", "off"):
+            lab(r3, _t("环境变量覆盖中"), fg="warn",
+                font=v4.FONT_XS).pack(side="left", padx=(px(10), 0))
+
+        # ---- 系统提示 ----
+        section(_t("系统提示"))
+        c4 = card()
         sys_en = tk.BooleanVar(value=prefs["sys_enable"])
-        tb.Checkbutton(body, text=_t("启用自定义系统提示(替代内置,可大幅改造行为)"),
-                       variable=sys_en, bootstyle="round-toggle").pack(anchor="w", pady=(8,2))
-        # 裸 Tk Text 按当前主题令牌上色(默认白底在暗色主题下穿帮)
-        tok = self.T
-        sys_txt = scrolledtext.ScrolledText(body, height=10, font=("Consolas", 9), wrap="word",
-                                            bg=tok["surface"], fg=tok["text"],
-                                            insertbackground=tok["text"])
+        v4.Check(c4, _t("启用自定义系统提示(替代内置,可大幅改造行为)"),
+                 sys_en, T, font=v4.FONT_SM).pack(anchor="w")
+        tw = tk.Frame(c4, bg=T["surface"], highlightthickness=1,
+                      highlightbackground=T["border"],
+                      highlightcolor=T["primary"])
+        tw.pack(fill="both", expand=True, pady=(px(10), 0))
+        sys_txt = tk.Text(tw, height=5, width=1, bd=0, highlightthickness=0,
+                          wrap="word",
+                          bg=T["code_bg"], fg=T["text"],
+                          insertbackground=T["text"], font=v4.MONO,
+                          padx=10, pady=8)
         sys_txt.pack(fill="both", expand=True)
         sys_txt.insert("1.0", prefs["sys_text"])
+
+        tk.Label(bottom, text=_t("保存后自下一个任务起生效"), bg=T["bg"],
+                 fg=T["faint"], font=v4.FONT_XS).pack(side="left")
+
         def save():
-            # v2.1.1 引擎持久化:写 config.json 层(config.json 是 agent 子进程的
-            # 同源配置,不进 gui_prefs)。Ollama=清回默认;openai=base_url 归一
-            # (去尾斜杠,与 appconfig.local_backend 同口径)。
+            # v2.1.1 引擎持久化:写 config.json(config.json 是 agent 子进程的
+            # 同源配置,不进 gui_prefs)。Ollama=清回默认;openai=base_url 归一。
             _sel = eng.get()
             _base = base.get().strip().rstrip("/")
             _cfg = dict(appconfig.load_config())
-            if _sel == "Ollama" or not _base.startswith("http"):
-                _cfg["local_backend"] = {"type": "ollama"}
+            if _sel == _CLOUD:
+                # 云端是互斥协议:启用后仅联网可用(cloud_provider 会拦断网),
+                # 这里顺手把 offline_mode 关掉,避免"云端 + 断网"的矛盾状态。
+                _c = dict(_cfg.get("cloud") or {})
+                _c["base_url"] = _base
+                _k = key.get().strip()
+                if _k:
+                    _c["api_key"] = _k
+                _c["model"] = cloud_model.get().strip()
+                _c["enabled"] = bool(_c["base_url"] and _c["model"])
+                _cfg["cloud"] = _c
+                if _c["enabled"]:
+                    _cfg["offline_mode"] = False
+                else:
+                    self.log_note(_t("[云端配置不完整:需要端点与模型名,未启用]"))
             else:
-                _cfg["local_backend"] = {"type": "openai", "base_url": _base,
-                                         "api_key": key.get().strip()}
-            # v3.0.0:命令输出精简进 config 层(agent 子进程同源读取)
-            _cfg["slim_output"] = bool(slimout.get())
+                _c = dict(_cfg.get("cloud") or {})
+                if _c.get("enabled"):
+                    _c["enabled"] = False
+                    _cfg["cloud"] = _c
+                if _sel == "Ollama" or not _base.startswith("http"):
+                    _cfg["local_backend"] = {"type": "ollama"}
+                else:
+                    _cfg["local_backend"] = {"type": "openai", "base_url": _base,
+                                             "api_key": key.get().strip()}
+            # 命令输出精简三态进 config 层(agent 子进程同源读取)
+            _slim_pick = _slim_rev.get(slim_var.get(), None)
+            _cfg["slim_output"] = ("auto" if _slim_pick is None
+                                   else ("on" if _slim_pick else "off"))
             appconfig.save_config(_cfg)
             _raw_t = temp.get().strip()
             if _raw_t == "":
@@ -1721,23 +3146,45 @@ class AgentGUI:
             if prefs["sys_enable"] and prefs["sys_text"]:
                 open(SYS_OVERRIDE_FILE, "w", encoding="utf-8").write(prefs["sys_text"])
             self.save_prefs()
-            # 引擎切换立即生效:重刷模型下拉(下个任务起 agent 子进程读同一 config)
+            # 引擎切换立即生效:重刷模型下拉(下个任务起 agent 读同一 config)
             try:
                 self.refresh_models()
             except Exception:
                 pass
+            if _sel == _CLOUD and (_cfg.get("cloud") or {}).get("enabled"):
+                self.model_var.set("")     # 云端模式清空本地选择,顶部胶囊显示 ☁ model
+            self._sync_cloud_box()
+            self._sync_offline_ui()
+            self._sync_mode_lbl()
+            self._sync_model_btn()
             self.log_note(_t("[设置已保存:自下一个任务起生效(运行中的任务不受影响)]"))
             win.destroy()
-        tb.Button(win, text=_t("保存"), bootstyle="success", command=save).pack(pady=8)
+
+        v4.Pill(bottom, _t("保存"), save, T, kind="primary", h=34,
+                padx=20).pack(side="right")
+        v4.Pill(bottom, _t("取消"), win.destroy, T, kind="ghost", h=34,
+                padx=16).pack(side="right", padx=(0, 8))
+        win.bind("<Escape>", lambda e: win.destroy())
 
     # ================= 运行 =================
     def _input_text(self):
         t = self.input.get("1.0", "end").strip()
-        return None if t in (_t("输入任务或对话…(Ctrl+Enter 发送)"), "") else t
+        return None if t in (_t("输入任务或对话…(Enter 发送 · Shift+Enter 换行)"), "") else t
 
     def run_agent(self):
         # 统一为一个发送入口:模型自己判断是聊天还是任务
         self.send_chat()
+
+    def _on_enter_key(self, e):
+        """v3.0.0 输入快捷键与主流对齐:Enter=发送,Shift+Enter=换行。
+        Shift 走默认行为(插入换行);发送路径必须 break——否则默认换行会
+        跟在已被清空的输入框后面。Ctrl+Enter 保留为发送别名(独立绑定更具体,
+        Tk 只触发它,不会同时触发本绑定)。Windows IME 组合中的 Enter 由输入法
+        消费(VK_PROCESSKEY),不会到这里,中文打字不受影响。"""
+        if e.state & 0x0001:          # Shift 按下 → 换行
+            return None
+        self.send_chat()
+        return "break"
 
     def send_chat(self):
         if self.proc and self.proc.poll() is None:
@@ -1745,6 +3192,8 @@ class AgentGUI:
         msg = self._input_text()
         if not msg: return
         self.input.delete("1.0", "end")
+        if not self.session:
+            self.clear_transcript()   # 新对话的第一条消息:清掉欢迎空状态
         self._flush_asst()
         self.add_user_bubble(msg)
         # v1.8.2 会话隔离:新对话的第一条消息强制清掉工作目录里上一任务遗留的
@@ -1757,7 +3206,7 @@ class AgentGUI:
             _name15 = _first_msg_title(msg)
             self.session = (f"{_name15}_" if _name15 else "chat_") + time.strftime("%m%d_%H%M%S")
             self.session_title = ""
-            self.sess_lbl.configure(text=_t("会话:") + self.session)
+            self._set_session_label(self.session, self.session_title)
         self.launch(msg, use_session=True,
                     resume_ok=(self.resume_var.get() and not fresh))
 
@@ -1767,7 +3216,7 @@ class AgentGUI:
         cur = self.prefs.get("stt_lang", "zh")
         self.prefs["stt_lang"] = "en" if cur == "zh" else "zh"
         self.save_prefs()
-        self.stt_lang_btn.configure(text="EN" if self.prefs["stt_lang"] == "en" else "中")
+        self.stt_lang_btn.set_text("EN" if self.prefs["stt_lang"] == "en" else "中")
         self.log_note(_t("[语音语言: 中文]") if self.prefs["stt_lang"] == "zh"
                       else _t("[语音语言: 英文]"))
         self.refresh_voice_state()
@@ -1779,9 +3228,8 @@ class AgentGUI:
             lang = self.prefs.get("stt_lang", "zh")
             model = self._model_map.get(self.model_var.get())
             ok = voice_input.local_stt_available(lang) or (model and voice_input.model_audio_capable(model))
-            self.mic_btn.config(state="normal" if ok else "disabled")
-            self.mic_btn.configure(text=_t("🎤 语音") if ok else _t("🎤 无音频"))
-            self.mic_btn.configure(bootstyle="info" if ok else "secondary")
+            self.mic_btn.set_enabled(ok)
+            self.mic_btn.set_text(_t("语音") if ok else _t("无音频"))
         self.root.after(10, _check)
 
     def voice_input(self):
@@ -1794,7 +3242,7 @@ class AgentGUI:
             if self._vad_timer:
                 self.root.after_cancel(self._vad_timer)
                 self._vad_timer = None
-            self.mic_btn.configure(text=_t("转写中…"), state="disabled")
+            self.mic_btn.set_text(_t("转写中…")); self.mic_btn.set_enabled(False)
             wav = os.path.join(AGENT_HOME, "voice_input.wav")
             ok = self._voice_rec.stop(wav)
             self._voice_rec = None
@@ -1810,7 +3258,7 @@ class AgentGUI:
             try:
                 self._voice_rec = voice_input.Recorder()
                 self._voice_rec.start()
-                self.mic_btn.configure(text=_t("■ 停止录音"), bootstyle="danger")
+                self.mic_btn.set_text(_t("■ 停止录音")); self.mic_btn.set_kind("danger")
                 self.log_note(_t("[录音中… 说完话自动停止]"))
                 self._voice_stop_timer = self.root.after(60000, self._auto_stop_voice)  # 60s 保险上限
                 self._vad_timer = self.root.after(150, self._voice_vad_check)
@@ -1853,7 +3301,11 @@ class AgentGUI:
                                    capture_output=True,
                                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
                 else:
-                    self.proc.kill()
+                    import signal
+                    try:
+                        os.killpg(os.getpgid(self.proc.pid), signal.SIGTERM)
+                    except Exception:
+                        self.proc.kill()
         except Exception:
             pass
 
@@ -1870,50 +3322,75 @@ class AgentGUI:
         # (旧写法先设回"🎤 语音"再比较,条件恒真,禁用态丢失)
         self.refresh_voice_state()
 
+    def _set_running(self, running):
+        try:
+            self.send_btn.set_enabled(not running)
+        except Exception:
+            pass
+        try:
+            if running:
+                self.stop_btn.pack(side="right", padx=(0, 6))
+                self.stop_btn.set_enabled(True)
+            else:
+                self.stop_btn.pack_forget()
+                self.stop_btn.set_enabled(False)
+        except Exception:
+            pass
+
     def new_chat(self):
-        """整场重开(v1.8.2):会话、上下文、工作目录、计划面板全部复位。
-        旧实现不重置工作目录——上一个对话若用过别的目录(如个人文档文件夹),
-        新对话会静默继承,task_input.txt 都写进去;这是跨对话记忆/隐私事故的
-        第二条泄漏通道,已封死。
-        v2.0.0:补两处磁盘残留——旧 todo.json 不删,poll_todo 每 500ms 就把它
-        渲染回计划面板(用户看到"新对话不清空旧清单");旧 .agent_state.json
-        同理会被下次任务意外续跑。任务在跑则先停,避免边跑边清。"""
+        """整场重开:会话、上下文、工作目录、计划面板全部复位。"""
         if self.proc and self.proc.poll() is None:
             self._kill_tree()
+        self._run_seq = int(getattr(self, "_run_seq", 0)) + 1
+        self._run_id = self._run_seq
+        self._drain_q()
         _old_wd = self.wd_var.get() if hasattr(self, "wd_var") else None
         for _wd in {_old_wd, os.path.join(DEFAULT_TASKS, "work")}:
-            if not _wd: continue
+            if not _wd:
+                continue
             for _stale in ("todo.json", ".agent_state.json"):
                 try:
                     _p = os.path.join(_wd, _stale)
-                    if os.path.exists(_p): os.remove(_p)
+                    if os.path.exists(_p):
+                        os.remove(_p)
                 except Exception:
                     pass
-        self.session = None
+        self._set_session_label(None)
         self.session_title = ""
-        self.sess_lbl.configure(text=_t("会话:无"))
+        self._plan_source = "run"
         self.clear_transcript()
         self.wd_var.set(os.path.join(DEFAULT_TASKS, "work"))
-        self._render_plan([], force=True)   # 旧任务的 todo 面板一并清掉
+        self._render_plan([], force=True)
         self._welcome()
-        self.att_lb.delete(0, "end"); self.attachments = []
-        self.status_var.set(_t(" 上下文: - / - ( - % )"))
-        self.ctx_bar["value"] = 0
+        self.attachments = []
+        self._refresh_att_chips()
+        self.status_var.set(_t("上下文: - / - ( - % )"))
+        if hasattr(self, "ctx_bar"):
+            self.ctx_bar.set(0)
         self.input.delete("1.0", "end")
+        self._set_input_hint(True)
+        self._set_running(False)
+        self.refresh_sessions()
+        self._sync_dir_btn()
         self.log_note(_t("[新对话已开启:上下文与工作目录已重置]"))
 
     def launch(self, task, use_session, resume_ok):
-        if not self._model_map:
-            self.log_note(_t("[无法启动:模型清单为空 — Ollama 未就绪,请先启动 Ollama]"))
-            return
-        # 查不到时用原选择本身,绝不静默回退到"第一个模型"(选 A 跑 B)
-        model = self._model_map.get(self.model_var.get(), self.model_var.get())
+        # 查不到时用原选择本身,绝不静默回退到"第一个模型"(选 A 跑 B)。
+        # 云端启用时 model_var 为空,argv 仍带云端模型名(仅日志/能力探测用,
+        # 云端路由下 runner 不调本地 ollama)。本地清单为空不再直接拒绝——
+        # 只配云端(LM Studio 未开/无本地模型)时任务仍应能发。
+        _pick = self.model_var.get() if hasattr(self, "model_var") else ""
+        model = self._model_map.get(_pick, _pick) if _pick else ""
+        _cloud = appconfig.cloud_provider()
+        if not model and _cloud:
+            model = _cloud.get("model") or ""
+        if not model and self._model_map:
+            _first = next(iter(self._model_map))
+            self.model_var.set(_first)
+            model = self._model_map[_first]
+            self._sync_model_btn()
         if not model:
-            # 互斥门清空本地框后与云端对话:argv 仍带模型名(仅日志/能力探测用,
-            # 云端路由下 runner 不会真正调本地 ollama)
-            model = (appconfig.load_config().get("cloud") or {}).get("model") or ""
-        if not model:
-            self.log_note(_t("[请先在左侧选择本地模型,或在右侧选择云端模型]"))
+            self.log_note(_t("[请先选择本地模型,或配置并启用云端模型]"))
             return
         workdir = self.wd_var.get() if hasattr(self, "wd_var") else os.path.join(DEFAULT_TASKS, "work")
         task = task + self.attach_note()
@@ -1979,12 +3456,23 @@ class AgentGUI:
             self.log_note(_t("[断网模式已开启:本任务无联网工具与云端 — 联网搜索类请求无法满足,请先点 🔒 切回联网]"))
         self.log(f"====== {_t('开始: ')}{model}" + (f" | {_t('会话:')}{self.session}" if self.session else "") + " ======")
         self.log(_t("工作目录: ") + workdir + "\n")
+        _popen_kw = {}
+        if os.name != "nt":
+            # POSIX:独立进程组,kill 时能连孙进程一起收掉(对齐 Windows taskkill /T)
+            _popen_kw["start_new_session"] = True
         self.proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             stdin=subprocess.PIPE,   # 守护系统:GUI 通过 stdin 回传越界确认
-            text=True, encoding="utf-8", errors="replace", env=env, bufsize=1)
-        threading.Thread(target=self.reader, daemon=True).start()
-        self.send_btn.config(state="disabled")
-        self.stop_btn.config(state="normal")
+            text=True, encoding="utf-8", errors="replace", env=env, bufsize=1,
+            **_popen_kw)
+        # 每次任务一个 run id:旧任务的残留行/哨兵不得污染新任务(队列是共享的)
+        self._run_seq = int(getattr(self, "_run_seq", 0)) + 1
+        self._run_id = self._run_seq
+        self._run_wd = workdir
+        self._run_session = self.session
+        self._plan_source = "run"
+        self._drain_q()
+        threading.Thread(target=self.reader, args=(self._run_id,), daemon=True).start()
+        self._set_running(True)
 
     def _apply_time_budget(self, env, task):
         """任务时限(Task #73):输入框值(分钟/小时)→ AGENT_TIME_BUDGET_SEC 传给 harness。
@@ -2009,10 +3497,22 @@ class AgentGUI:
                      if src == "prompt" else _t("[任务时限 {n} 分钟,超时会收到收尾提醒]"))
             self.log_note(label.format(n=f"{minutes:g}"))
 
-    def reader(self):
-        for line in iter(self.proc.stdout.readline, ""):
-            self.q.put(line.rstrip("\n"))
-        self.q.put(None)
+    def reader(self, run_id=None):
+        proc = self.proc
+        try:
+            for line in iter(proc.stdout.readline, ""):
+                self.q.put((run_id, line.rstrip("\n")))
+        finally:
+            self.q.put((run_id, None))
+
+    def _drain_q(self):
+        try:
+            while True:
+                self.q.get_nowait()
+        except queue.Empty:
+            pass
+        except Exception:
+            pass
 
     def stop(self):
         if self.proc and self.proc.poll() is None:
@@ -2025,21 +3525,23 @@ class AgentGUI:
         用户手动停止的对话在历史列表里根本不存在——换窗口就再也找不回。现在停止即
         存(含 todo 快照,与 agent 侧 save_session 同构),历史里可加载、可续跑。"""
         try:
-            if not self.session:
+            _sess = getattr(self, "_run_session", None) or self.session
+            _wd = getattr(self, "_run_wd", None) or (
+                self.wd_var.get() if hasattr(self, "wd_var")
+                else os.path.join(DEFAULT_TASKS, "work"))
+            if not _sess:
                 return
-            _wd = self.wd_var.get() if hasattr(self, "wd_var") else os.path.join(DEFAULT_TASKS, "work")
             ck = os.path.join(_wd, ".agent_state.json")
             if not os.path.exists(ck):
                 return
             msgs = json.load(open(ck, encoding="utf-8"))
             if not isinstance(msgs, list) or len(msgs) < 2:
                 return
-            json.dump(msgs, open(os.path.join(SESSION_DIR, self.session + ".json"), "w",
-                                 encoding="utf-8"), ensure_ascii=False, indent=2)
+            _atomic_json(os.path.join(SESSION_DIR, _sess + ".json"), msgs)
             # v2.0.1 合并写:标题等已有字段不丢(agent 侧 save_session 同构)
             _old_meta = {}
             try:
-                _old_meta = json.load(open(os.path.join(SESSION_DIR, self.session + ".meta.json"),
+                _old_meta = json.load(open(os.path.join(SESSION_DIR, _sess + ".meta.json"),
                                            encoding="utf-8"))
             except Exception:
                 pass
@@ -2047,11 +3549,10 @@ class AgentGUI:
                     "task": next((str(m.get("content", "")) for m in msgs
                                   if m.get("role") == "user" and not m.get("tool_calls")), "")[:200],
                     "status": "interrupted", "msgs": len(msgs)})
-            json.dump(_old_meta, open(os.path.join(SESSION_DIR, self.session + ".meta.json"), "w",
-                                      encoding="utf-8"), ensure_ascii=False, indent=2)
+            _atomic_json(os.path.join(SESSION_DIR, _sess + ".meta.json"), _old_meta)
             import shutil
             tj = os.path.join(_wd, "todo.json")
-            snap = os.path.join(SESSION_DIR, self.session + ".todo.json")
+            snap = os.path.join(SESSION_DIR, _sess + ".todo.json")
             if os.path.exists(tj):
                 shutil.copyfile(tj, snap)
             elif os.path.exists(snap):
@@ -2064,20 +3565,31 @@ class AgentGUI:
     def poll(self):
         try:
             while True:
-                line = self.q.get_nowait()
+                item = self.q.get_nowait()
+                if isinstance(item, tuple):
+                    rid, line = item
+                else:
+                    rid, line = getattr(self, "_run_id", 0), item
+                if rid is not None and rid != getattr(self, "_run_id", rid):
+                    continue                       # 旧任务的残留行/哨兵:丢弃
                 if line is None:
                     self._collapse_think()
                     self._flush_asst()
                     self.log("\n===== " + _t("任务结束") + " =====")
-                    self.send_btn.config(state="normal")
-                    self.stop_btn.config(state="disabled"); self.proc = None
+                    self._set_running(False); self.proc = None
                     self.refresh_sessions()
                 elif line:
                     self.log(line)
                     self.feed_transcript(line)
         except queue.Empty:
             pass
-        self.root.after(100, self.poll)
+        except Exception:
+            pass       # 单条坏载荷不得杀死轮询链(否则转写永久冻结)
+        finally:
+            try:
+                self.root.after(100, self.poll)
+            except Exception:
+                pass
 
     def _check_ollama(self):
         """本地引擎在线状态灯:绿=在线有模型,黄=在线无模型,红=离线。
@@ -2107,11 +3619,13 @@ class AgentGUI:
             pass
         _eng = appconfig.engine_display_name()
         if up and has_models:
-            self.ollama_lbl.configure(text=f"{_eng} ✓", bootstyle="success")
+            self.ollama_lbl.configure(text=f"{_eng} ✓", fg=self.T["ok"])
         elif up:
-            self.ollama_lbl.configure(text=_t("{eng} ✓(无模型)").format(eng=_eng), bootstyle="warning")
+            self.ollama_lbl.configure(text=_t("{eng} ✓(无模型)").format(eng=_eng),
+                                      fg=self.T["warn"])
         else:
-            self.ollama_lbl.configure(text=_t("{eng} ✗ 未启动").format(eng=_eng), bootstyle="danger")
+            self.ollama_lbl.configure(text=_t("{eng} ✗ 未启动").format(eng=_eng),
+                                      fg=self.T["danger"])
         self.root.after(5000, self._check_ollama)
 
     def _try_start_ollama(self):
@@ -2171,9 +3685,13 @@ class AgentGUI:
 
     def _stream_render_tick(self):
         """150ms 批量渲染:几千思考 token 也只是字符串追加,UI 不再卡死。"""
+        try:
+            at_bottom = self.transcript.yview()[1] >= 0.995
+        except Exception:
+            at_bottom = True
+        had = bool(self._think_text or self._asst_buf)
         self._flush_stream_pending()
-        if (self._think_shown < len(self._think_text)
-                or self._asst_shown < len(self._asst_buf)):
+        if had and at_bottom:
             try:
                 self._scroll_transcript()
             except Exception:
@@ -2189,6 +3707,7 @@ class AgentGUI:
             if not self._asst_buf:
                 self.transcript.config(state="normal")
                 self.transcript.insert("end", "\n", "spacer")
+                self.transcript.insert("end", _t("鸣鸟") + "\n", "who")
                 self.transcript.config(state="disabled")
             self._asst_buf += tok
             self._streaming_asst = True
@@ -2277,32 +3796,63 @@ class AgentGUI:
             path = req.get("path", "?")
             action = req.get("action", "访问")
             wd = req.get("workdir", "?")
-            win = tb.Toplevel(self.root)
+            T = self.T
+            S = self._ui_scale
+            px = lambda n: int(n * S)
+            win = tk.Toplevel(self.root)
             win.title(_t("⚠ 越界操作确认"))
-            win.geometry(self._scaled_geo(580, 300))
+            win.geometry(self._scaled_geo(600, 360))
+            win.configure(bg=T["bg"])
+            self._theme_titlebar(win)
+            win.transient(self.root)
             win.attributes("-topmost", True)
-            tb.Label(win, text=_t("AI 想访问工作目录之外的文件"), bootstyle="warning",
-                     font=("Microsoft YaHei UI", 12, "bold"), padding=8).pack(anchor="w")
-            txt = (f"{_t('工具:')} {tool}\n"
-                   f"{_t('操作:')} {_t(str(action))}\n"
-                   f"{_t('目标:')} {path}\n\n"
-                   f"{_t('工作目录:')} {wd}\n\n"
-                   f"{_t('允许这次访问吗?')}")
-            tb.Label(win, text=txt, justify="left", padding=(10, 4),
-                     font=("Microsoft YaHei UI", 10),
-                     wraplength=int(540 * getattr(self, "_ui_scale", 1.0))
-                     ).pack(fill="both", expand=True, padx=6)
-            btnrow = tb.Frame(win); btnrow.pack(fill="x", padx=8, pady=8)
+
+            head = tk.Frame(win, bg=T["bg"])
+            head.pack(fill="x", padx=px(22), pady=(px(18), px(2)))
+            tk.Label(head, text=_t("AI 想访问工作目录之外的文件"),
+                     bg=T["bg"], fg=T["danger"],
+                     font=v4.FONT_TITLE).pack(side="left")
+            tk.Label(win, text=_t("目标不在当前工作目录内,需要你确认这一次的访问。"),
+                     bg=T["bg"], fg=T["muted"],
+                     font=v4.FONT_SM).pack(anchor="w", padx=px(22))
+
+            card = tk.Frame(win, bg=T["surface"], highlightthickness=1,
+                            highlightbackground=T["border"])
+            card.pack(fill="both", expand=True, padx=px(22), pady=(px(12), px(8)))
+
+            def row(label, value, mono=False, last=False):
+                r = tk.Frame(card, bg=T["surface"])
+                r.pack(fill="x", padx=px(16), pady=(px(10) if not last else px(6), 0))
+                tk.Label(r, text=label, bg=T["surface"], fg=T["faint"],
+                         font=v4.FONT_XS, width=8,
+                         anchor="w").pack(side="left", anchor="n")
+                tk.Label(r, text=str(value), bg=T["surface"], fg=T["text"],
+                         font=v4.MONO_SM if mono else v4.FONT_SM,
+                         justify="left", anchor="w",
+                         wraplength=int(430 * getattr(self, "_ui_scale", 1.0))
+                         ).pack(side="left", fill="x", expand=True)
+
+            row(_t("工具"), tool)
+            row(_t("操作"), _t(str(action)))
+            row(_t("目标"), path, mono=True)
+            row(_t("工作目录"), wd, mono=True)
+            tk.Frame(card, bg=T["surface"], height=10).pack()
+
+            btnrow = tk.Frame(win, bg=T["bg"])
+            btnrow.pack(fill="x", padx=px(22), pady=(0, px(16)))
             result = {}
+
             def _reply(v):
                 result["v"] = v
                 win.destroy()
-            tb.Button(btnrow, text=_t("允许一次"), bootstyle="success",
-                      command=lambda: _reply("@allow")).pack(side="left", padx=4)
-            tb.Button(btnrow, text=_t("允许全部(本轮)"), bootstyle="primary",
-                      command=lambda: _reply("@allow_all")).pack(side="left", padx=4)
-            tb.Button(btnrow, text=_t("拒绝"), bootstyle="secondary",
-                      command=lambda: _reply("@deny")).pack(side="left", padx=4)
+
+            v4.Pill(btnrow, _t("允许一次"), lambda: _reply("@allow"), T,
+                    kind="primary", h=34, padx=16).pack(side="left")
+            v4.Pill(btnrow, _t("允许全部(本轮)"),
+                    lambda: _reply("@allow_all"), T, kind="surface",
+                    h=34, padx=14).pack(side="left", padx=(8, 0))
+            v4.Pill(btnrow, _t("拒绝"), lambda: _reply("@deny"), T,
+                    kind="ghost", h=34, padx=14).pack(side="right")
             # 超时默认拒绝:60s 后自动关(agent 侧 120s 超时,这里提前响应避免卡死)
             win.after(60000, lambda: _reply("@deny") if not result else None)
             win.grab_set()
@@ -2328,10 +3878,10 @@ class AgentGUI:
             self._ask_approval(req)
             return
         if line.startswith("@@TOK@@"):
-            self._stream_tok(line[len("@@TOK@@"):])
+            self._stream_tok(self._decode_stream_frame(line[len("@@TOK@@"):]))
             return
         if line.startswith("@@THINK@@"):
-            self._stream_think(line[len("@@THINK@@"):])
+            self._stream_think(self._decode_stream_frame(line[len("@@THINK@@"):]))
             return
         if line.startswith("@@DISPATCH@@"):
             self._on_dispatch(line[len("@@DISPATCH@@"):])
@@ -2342,7 +3892,7 @@ class AgentGUI:
             self._flush_asst()
             pt, total, pct = int(m.group(1)), int(m.group(2)), int(m.group(3))
             self.status_var.set(_t(" 上下文: {pt} / {total} ({pct}%)").format(pt=pt, total=total, pct=pct))
-            self.ctx_bar["value"] = min(pct, 100)
+            self.ctx_bar.set(min(pct, 100))
             return
         if line.startswith("[ctx:") or line == "":
             return
@@ -2371,6 +3921,10 @@ class AgentGUI:
             self._flush_asst()
             self._asst_buf = m.group(2)
             return
+        # 协议行不得并进回答气泡(旧版 _asst_buf 非空时会把它们全部追加进去)
+        if line.startswith(("[TASK_COMPLETE]", "[session saved", "=====")):
+            self._flush_asst()
+            return
         if self._asst_buf:
             self._asst_buf += "\n" + line
             return
@@ -2379,6 +3933,15 @@ class AgentGUI:
         if line.startswith(("[RESUMED", "[session", "[上下文已压缩", "[交互模式", "[已选择", "[已从历史", "=====", "[新对话")):
             self.log_note(line.strip("= ")); return
         self.log_note(line.strip("= "))
+
+    @staticmethod
+    def _decode_stream_frame(payload):
+        """新版是 JSON 字符串帧(换行不拆帧);旧版裸文本原样返回。"""
+        try:
+            v = json.loads(payload)
+            return v if isinstance(v, str) else payload
+        except Exception:
+            return payload
 
     def _flush_asst(self):
         self._flush_stream_pending()   # 流式尾部先上屏,再按"已在屏"语义收尾
@@ -2392,6 +3955,10 @@ class AgentGUI:
             self._streaming_asst = False
 
     def poll_todo(self):
+        if getattr(self, "_plan_source", "run") == "session" \
+                and not (self.proc and self.proc.poll() is None):
+            self.root.after(500, self.poll_todo)
+            return
         tf = os.path.join(self.wd_dir(), "todo.json")
         t = None
         try:
@@ -2399,7 +3966,10 @@ class AgentGUI:
             if not isinstance(t, list): t = None
         except Exception:
             t = None
-        self._render_plan(t or [])
+        try:
+            self._render_plan(t or [])
+        except Exception:
+            pass
         self.root.after(500, self.poll_todo)
 
     @staticmethod
@@ -2414,34 +3984,29 @@ class AgentGUI:
                              for i, x in enumerate(todo_list, 1))
 
     def _render_plan(self, todo_list, force=False):
-        """渲染计划面板:内容与 harness 回执同源(ollama_agent.format_todo_lines),
-        标题带进度(x/y),内容变化时滚动到第一个未完成项——长列表 + 4 行小窗
-        曾让"正在做第几项"完全落在可视区外。"""
+        """渲染计划抽屉:关闭时只更新角标;打开时更新正文。内容不变不重建。"""
         todo_list = todo_list or []
-        done, total = 0, len(todo_list)
+        done = 0
         for x in todo_list:
             try:
-                if x.get("done"): done += 1
-            except AttributeError:
+                if isinstance(x, dict) and x.get("done"):
+                    done += 1
+            except Exception:
                 pass
-        text = self._format_plan(todo_list) if total else _t("(尚无计划 — agent 会先建 todo 再执行)")
-        title = _t("计划 (todo)") + (f"  {done}/{total}" if total else "")
+        self._plan_items = list(todo_list)
+        self._plan_done = done
+        self._plan_total = len(todo_list)
+        if not self._plan_total and self.plan_open:
+            # 计划清空后收起抽屉,避免留一个空面板
+            self.plan_open = False
+        self._sync_plan_btn()
         try:
-            self.plan_frame.configure(text=title)
+            sig = json.dumps(todo_list, ensure_ascii=False, sort_keys=True)
         except Exception:
-            pass
-        self.plan_txt.config(state="normal")
-        if force or self.plan_txt.get("1.0", "end").strip() != text.strip():
-            self.plan_txt.delete("1.0", "end")
-            self.plan_txt.insert("1.0", text)
-            # 滚到第一个未完成项(全部完成则滚到末尾),让"当前进度"落在可视区
-            target = None
-            for idx, x in enumerate(todo_list, 1):
-                if not x.get("done"): target = idx; break
-            if target is None and total: target = total
-            if target is not None:
-                self.plan_txt.see(f"{target}.0")
-        self.plan_txt.config(state="disabled")
+            sig = repr(todo_list)
+        if force or sig != getattr(self, "_plan_sig", None):
+            self._plan_sig = sig
+            self._build_plan_rail()
 
     def _route_wheel(self, event):
         """滚轮路由:指针在计划面板内 → 滚 plan_txt 并拦截;其余情况放行
@@ -2449,7 +4014,7 @@ class AgentGUI:
         try:
             w = self.root.winfo_containing(event.x_root, event.y_root)
             while w is not None:
-                if w is self.plan_frame:
+                if w is getattr(self, "plan_txt", None):
                     self.plan_txt.yview_scroll(int(-1 * (event.delta / 120)), "units")
                     return "break"
                 w = w.master
@@ -2458,7 +4023,9 @@ class AgentGUI:
         return None
 
     def on_close(self):
-        if self.proc and self.proc.poll() is None: self._kill_tree()
+        if self.proc and self.proc.poll() is None:
+            self._kill_tree()
+            self._save_interrupted_session()   # 关窗也保留中断会话(复审 P2)
         self.root.destroy()
 
 if __name__ == "__main__":

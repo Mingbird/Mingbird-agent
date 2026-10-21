@@ -1,17 +1,33 @@
 # Changelog
 
-## v3.0.0 (2026-10-21)
+## v3.1.1 (2026-10-21)
 
-Platform-aware Mingbird — the model now knows which OS and shell it is working in, and every platform truth lives in one data-driven place. Tests: **602 green** (576 + 26 new).
+Platform-aware Mingbird — the model now knows which OS and shell it is working in, and every platform truth lives in one data-driven place. Tests: **625 green** (576 + 49 new).
 
 ### ✨ New
 - **Platform profile module** (`platform_profile.py`): platform differences — prompt fragments, command mappings, subprocess environment, folder/editor openers — converge into a single source of truth instead of scattered `os.name` branches.
 - **Platform block in the system prompt** (aider-style): every task now states the real platform, shell and command mapping — on Windows: cmd.exe, `dir`/`type`/`findstr`/`copy`, backslash paths; on macOS/Linux: `ls`/`cat`/`grep`, forward slashes. Small models writing `ls`/`grep` inside Windows cmd was a top failure class, and the platform truth was never stated before. Chat mode gets a one-line variant (platform + path separator). The static factory prompt is untouched, byte for byte — the prefill pin stays 1250.
-- **Compact command output** (automatic, with a manual switch): long command outputs are trimmed to the tail — the automatic trigger is the **context tier** (≤32K turns it on; the tier reflects the real budget, whatever the model size — a small model on a long context or a big model on a short one are both common pairings), plus a settings toggle or `AGENT_SLIM_OUTPUT=1`. Previously automatic only for ≤4B models and child agents.
+- **Compact command output** (three states: auto / force on / force off): long command outputs are trimmed to the tail — `auto` triggers on the **context tier** (≤32K; the tier reflects the real budget, whatever the model size); the settings page offers Auto (≤32K) / On / Off, and `AGENT_SLIM_OUTPUT=1|0` overrides (set 0 to reproduce old benchmark data). Previously tied to model size (≤4B) only.
 
 ### 🔧 Fixes
 - **Tool-argument type repair** (PydanticAI-style feedback): small models often pass numbers/booleans as strings (`index: "1"`, `done: "true"`) — now silently coerced per the tool schema; an unparseable string returns a structured error naming the parameter, the expected type and the received value so the model can self-correct. Non-scalar shapes pass through untouched (todo's batch `index` list keeps working).
 - **Registry writes join the danger surface**: `reg add/delete/import` now goes through the same confirm-gate as `setx`/`schtasks` (read-only `reg query` untouched).
+
+### 🎨 Desktop UI redesign
+- **Conversation sidebar**: history lives in a persistent left rail grouped by today/yesterday/earlier, with instant search; click to switch. The old nav rail + separate history page are gone.
+- **Plan entry**: the permanent right rail is gone. A `Plan 2/5` chip appears in the header only when a todo list exists; clicking it opens a 320px drawer with progress and the current item, and it disappears completely when collapsed.
+- **Unified composer**: attachments, voice, language, workdir, task time limit and resume live in the bottom card; model/thinking/offline move into header pills. The two old toolbars are gone.
+- **One visual token set**: new side/faint/soft/track/danger tokens, light/dark parity; borderless text surfaces, right-aligned user messages, tighter thinking/tool rows, Windows 11 caption colour follows the theme.
+- Logs moved to an on-demand window; cross-session plan leakage, mid-run session switching, and stale queue output are fixed alongside.
+- **DPI layout fix**: at 200% scaling, window/widget pixel sizes were half their intended visual width — the sidebar fit only ~8 characters and dialogs clipped their content. Pixel metrics now scale with the real DPI (fonts still take the point scale once), and the type scale was raised one step.
+- **Web UI redesign**: the browser frontend now shares the desktop tokens and layout — conversation sidebar (Today/Yesterday/Earlier + search), header pills for model/thinking/online/plan, rounded composer, plan drawer, and themed settings/approval dialogs. Streaming buffers tokens and repaints once per frame instead of re-parsing markdown per token.
+
+- **Mainstream input shortcuts**: Enter sends, Shift+Enter inserts a newline (Ctrl+Enter still sends); the web composer guards IME composition, so Enter while composing Chinese never mis-sends.
+- **Conversation management**: right-click any conversation in the sidebar to **archive** (hidden from the list and search, files kept under `sessions/_archived`, move back to restore) or **delete** (confirm dialog, removes the full sidecar set). The current conversation cannot be archived/deleted while a task is running.
+
+### ☁️ Cloud API & cross-platform
+- **Cloud protocol in Settings**: Settings → Inference engine gains a **Cloud API** option (endpoint / API key / model) for any OpenAI-compatible service, mutually exclusive with local models. While a cloud model is active the offline toggle is disabled (cloud inference needs the network), the status bar reads "Online · cloud model", and the ☁ pill switches back at any time.
+- **Cross-platform fonts and processes**: font families resolve per platform (Windows YaHei / macOS PingFang / Linux Noto CJK), Linux desktop locale is detected, and POSIX agent runs start in their own process group so Stop kills the whole tree (matching Windows `taskkill /T`).
 
 ## v2.1.5 (2026-10-13)
 

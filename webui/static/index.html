@@ -1,216 +1,441 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mingbird · Local AI Assistant</title>
+<title>鸣鸟 · Mingbird</title>
+<link rel="icon" href="data:,">
 <style>
 :root{
-  --ming:#0F8A7E; --ming-bright:#1FA396; --accent:#F2A93B;
-  --bg:#F6F5F2; --surface:#FFFFFF; --elev:#EFEDE8; --text:#23282C;
-  --muted:#7A838B; --border:#DCD8D0; --bubble:#E4F1EF; --code:#F0EFEB; --sel:#DDEEEB;
+  --ui:"Microsoft YaHei UI","PingFang SC","Noto Sans CJK SC","WenQuanYi Micro Hei",sans-serif;
+  --mono:Consolas,Menlo,"DejaVu Sans Mono",monospace;
+  --bg:#F7F6F2; --side:#F1F0EA; --surface:#FFFFFF; --text:#1E2226;
+  --muted:#6F767D; --faint:#9AA0A6; --primary:#0F8A7E; --primary-h:#0C786D;
+  --primary-text:#FFFFFF; --accent:#E8A33D; --border:#E4E2DA; --soft:#E1F0EC;
+  --track:#E4E2DA; --code:#F2F1EC; --danger:#C4554D; --ok:#2E9E6B; --warn:#B7791F;
+  --shadow:0 1px 2px rgba(20,30,25,.05),0 10px 30px rgba(20,30,25,.06);
+  --r:14px;
 }
 [data-theme="dark"]{
-  --bg:#1E2226; --surface:#262B31; --elev:#2E343B; --text:#E8EAED;
-  --muted:#98A2AB; --border:#3A4148; --bubble:#24403C; --code:#191D21; --sel:#204441;
-  --ming:#1FA396;
+  --bg:#141619; --side:#0E1012; --surface:#1B1E22; --text:#E8EBEE;
+  --muted:#98A0A8; --faint:#6F777F; --primary:#3FBFAF; --primary-h:#55D0C0;
+  --primary-text:#0E1512; --accent:#E8B15C; --border:#2A2F35; --soft:#1B3A36;
+  --track:#2A2F35; --code:#24282D; --danger:#E07A72; --ok:#4CC38A; --warn:#E8B15C;
+  --shadow:none;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--text);font:14px/1.55 "Segoe UI","Microsoft YaHei UI",sans-serif;display:flex;height:100vh;overflow:hidden}
-#rail{width:76px;background:var(--elev);display:flex;flex-direction:column;align-items:center;padding:12px 0 8px;gap:4px;flex-shrink:0}
-#rail .brand{font-size:22px}
-#rail .brandname{font-size:9px;font-weight:700;color:var(--muted);margin-bottom:10px}
-.navbtn{width:64px;padding:8px 0;border:0;background:transparent;color:var(--muted);border-radius:10px;cursor:pointer;font:12px "Segoe UI","Microsoft YaHei UI",sans-serif}
-.navbtn:hover{background:var(--sel);color:var(--text)}
-.navbtn.active{background:var(--sel);color:var(--ming);font-weight:600}
-#rail .spacer{flex:1}
-#main{flex:1;display:flex;flex-direction:column;min-width:0}
-.page{flex:1;display:none;flex-direction:column;min-height:0;overflow:hidden}
-.page.active{display:flex}
-#topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
-#topbar select{padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
-.title{font-weight:700;font-size:15px}
-#chat{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px}
-.msg{max-width:78%;padding:10px 14px;border-radius:12px;white-space:pre-wrap;word-break:break-word}
-.msg.user{align-self:flex-end;background:var(--bubble);border:1px solid var(--border)}
-.msg.assistant{align-self:flex-start;background:var(--surface);border:1px solid var(--border)}
-.msg .who{font-size:11px;font-weight:700;color:var(--ming);margin-bottom:4px}
-.msg.assistant .who{color:var(--muted)}
-details.think{border-left:3px solid var(--border);padding:4px 10px;margin:6px 0;color:var(--muted);font-size:12.5px;white-space:pre-wrap}
-details.think summary{cursor:pointer;color:var(--muted)}
-.toolchip{display:inline-block;background:var(--code);border:1px solid var(--border);border-radius:6px;padding:1px 8px;margin:2px 4px 2px 0;font:12px Consolas,monospace;color:var(--muted)}
-code{background:var(--code);padding:1px 5px;border-radius:5px;font:12.5px Consolas,monospace}
-pre{background:var(--code);padding:10px 12px;border-radius:10px;overflow-x:auto;font:12.5px Consolas,monospace}
-pre code{background:transparent;padding:0}
-#inputdock{border-top:1px solid var(--border);padding:10px 16px;background:var(--surface)}
-#input{width:100%;min-height:64px;max-height:200px;resize:vertical;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font:14px "Segoe UI","Microsoft YaHei UI",sans-serif;background:var(--surface);color:var(--text)}
-#inputrow{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap}
-button{border:1px solid var(--border);background:var(--surface);color:var(--text);padding:6px 14px;border-radius:9px;cursor:pointer;font:13px "Segoe UI",sans-serif}
-button.primary{background:var(--ming);border-color:var(--ming);color:#fff;font-weight:600}
-button.danger{color:#d9534f;border-color:#d9534f}
-button:disabled{opacity:.45;cursor:not-allowed}
-#statusbar{display:flex;gap:14px;align-items:center;padding:4px 16px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)}
-#ctxbar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
-#ctxfill{height:100%;width:0;background:var(--ming);transition:width .3s}
-#ollamadot{font-weight:700}
-.ok{color:var(--ming)} .bad{color:#d9534f}
-dialog{border:1px solid var(--border);border-radius:14px;background:var(--surface);color:var(--text);padding:20px 24px;min-width:440px}
-dialog::backdrop{background:rgba(0,0,0,.45)}
-dialog h3{margin:0 0 12px}
-dialog .row{display:flex;align-items:center;gap:10px;margin:8px 0}
-dialog .row label{min-width:130px}
-dialog input[type=text],dialog input[type=number],dialog select,dialog textarea{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font:13px "Segoe UI",sans-serif}
-dialog textarea{width:100%;min-height:90px;font:12px Consolas,monospace;resize:vertical}
-#sesslist{flex:1;overflow-y:auto}
-.sessitem{padding:8px 12px;border-radius:8px;cursor:pointer;border:1px solid transparent}
-.sessitem:hover{background:var(--sel)}
-.sessitem.sel{background:var(--sel);border-color:var(--ming)}
-#planlist{font:12px Consolas,monospace;white-space:pre-wrap;color:var(--muted)}
-.pagehead{padding:14px 18px 6px}
-.pagehead .title{font-size:16px}
-#planpanel{width:250px;border-left:1px solid var(--border);padding:10px 12px;overflow-y:auto;flex-shrink:0}
-#planpanel .kicker{margin-bottom:6px}
+body{background:var(--bg);color:var(--text);font:14px/1.6 var(--ui);overflow:hidden}
+button,input,textarea,select{font-family:var(--ui)}
+#app{display:grid;grid-template-columns:280px minmax(0,1fr) 0;height:100vh;
+     transition:grid-template-columns .18s ease}
+#app.plan-open{grid-template-columns:280px minmax(0,1fr) 320px}
+
+/* ---------- sidebar ---------- */
+#sidebar{background:var(--side);display:flex;flex-direction:column;
+         padding:18px 16px 10px;gap:10px;min-width:0}
+.brand{display:flex;align-items:center;gap:11px;padding:2px 4px 6px}
+.logo{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;
+      font-size:21px;background:linear-gradient(145deg,var(--primary),#2E9E6B);
+      color:#fff;box-shadow:0 2px 6px rgba(15,138,126,.25)}
+.brandname{font-size:16px;font-weight:700;line-height:1.2}
+.brandver{font-size:9.5px;color:var(--faint);letter-spacing:.10em;margin-top:2px}
+.btn{border:1px solid var(--border);background:var(--surface);color:var(--text);
+     border-radius:10px;padding:8px 13px;font-size:13px;cursor:pointer}
+.btn:hover{border-color:var(--primary);color:var(--primary)}
+.btn.primary{background:var(--primary);border-color:var(--primary);
+             color:var(--primary-text);font-weight:600}
+.btn.primary:hover{background:var(--primary-h);color:var(--primary-text)}
+.btn.danger{background:transparent;border-color:var(--danger);color:var(--danger)}
+.btn.wide{width:100%;height:40px;border-radius:12px;font-size:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.searchbox{display:flex;align-items:center;gap:8px;height:40px;
+           background:var(--surface);border:1px solid var(--border);
+           border-radius:12px;padding:0 12px}
+.searchbox:focus-within{border-color:var(--primary)}
+.searchbox .mag{color:var(--faint);font-size:15px}
+.searchbox input{flex:1;min-width:0;border:0;outline:none;background:transparent;
+                 color:var(--text);font-size:13px}
+.searchbox input::placeholder{color:var(--faint)}
+.sesslist{flex:1;overflow-y:auto;min-height:0;padding-right:2px}
+.sessgroup{font-size:10.5px;color:var(--faint);padding:10px 8px 6px;letter-spacing:.04em}
+.sessitem{padding:8px 10px;border-radius:10px;cursor:pointer;margin-bottom:2px;
+          display:flex;flex-direction:column;gap:2px}
+.sessitem:hover{background:var(--soft)}
+.sessitem.sel{background:var(--soft)}
+.sessrow{display:flex;align-items:center;gap:6px}
+.sessdot{width:6px;height:6px;border-radius:50%;background:var(--border);flex:0 0 auto}
+.sessdot.done{background:var(--ok)} .sessdot.run{background:var(--warn)}
+.sesstitle{font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;
+           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sesstime{font-size:10.5px;color:var(--faint);flex:0 0 auto}
+.sesssub{font-size:11px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;
+         white-space:nowrap;padding-left:12px}
+.sidefoot{display:flex;align-items:center;gap:4px;padding:8px 2px 2px;
+          border-top:1px solid var(--border)}
+.linkbtn{border:0;background:transparent;color:var(--muted);font-size:11.5px;
+         padding:4px 6px;border-radius:7px;cursor:pointer}
+.linkbtn:hover{background:var(--soft);color:var(--primary)}
+.iconbtn{margin-left:auto;border:0;background:transparent;color:var(--muted);
+         font-size:15px;cursor:pointer;padding:4px 6px;border-radius:7px}
+.iconbtn:hover{background:var(--soft);color:var(--primary)}
+
+/* ---------- main ---------- */
+#main{display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+#topbar{display:flex;align-items:flex-start;justify-content:space-between;
+        gap:16px;padding:16px 24px 8px}
+.title{font-size:19px;font-weight:700;line-height:1.25}
+.sub{font-size:11.5px;color:var(--faint);margin-top:3px}
+.pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:70%}
+.pill{height:34px;padding:0 13px;border-radius:10px;border:1px solid var(--border);
+      background:var(--surface);color:var(--text);font-size:12.5px;cursor:pointer;
+      display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.pill:hover{border-color:var(--primary);color:var(--primary)}
+.pill.active{background:var(--soft);border-color:transparent;color:var(--primary)}
+.pill.danger{color:var(--danger);border-color:var(--danger)}
+.pill:disabled{opacity:.45;cursor:not-allowed}
+.hidden{display:none !important}
+#chat{flex:1;overflow-y:auto;padding:18px 24px 8px;display:flex;
+      flex-direction:column;gap:16px;scroll-behavior:smooth}
+.msg{max-width:min(780px,86%);white-space:pre-wrap;word-break:break-word;
+     line-height:1.68;font-size:14.5px}
+.msg.user{align-self:flex-end;background:var(--soft);border-radius:14px;padding:9px 13px}
+.msg.user .who{text-align:right;color:var(--primary);font-size:10.5px;
+               font-weight:700;margin-bottom:1px}
+.msg.asst{align-self:flex-start;padding:0 2px}
+.msg.asst .who{color:var(--primary);font-size:10.5px;font-weight:700;
+               letter-spacing:.03em;margin-bottom:5px}
+.msg .body{min-width:0}
+.msg .body p{margin:0 0 8px}
+.msg .body p:last-child{margin-bottom:0}
+.msg code{background:var(--code);border-radius:5px;padding:1px 5px;font:12.5px var(--mono)}
+.msg pre{background:var(--code);border:1px solid var(--border);border-radius:10px;
+         padding:11px 13px;overflow-x:auto;margin:8px 0}
+.msg pre code{background:transparent;padding:0;font:12.5px/1.55 var(--mono)}
+.msg b{font-weight:700}
+details.think{margin:2px 0 10px;padding:4px 0 4px 11px;border-left:2px solid var(--border);
+              color:var(--muted);font-size:12.5px}
+details.think summary{cursor:pointer;color:var(--faint);font-size:11.5px;outline:none}
+details.think .tbody{white-space:pre-wrap;margin-top:6px;line-height:1.6}
+.toolchip{display:inline-flex;align-items:center;gap:4px;background:var(--code);
+          border:1px solid var(--border);border-radius:7px;padding:1px 8px;
+          margin:2px 6px 2px 0;font:11px var(--mono);color:var(--muted)}
+.noteline{color:var(--faint);font-size:12px;padding-left:2px}
+
+/* ---------- composer ---------- */
+#composer{margin:8px 24px 4px;background:var(--surface);border:1px solid var(--border);
+          border-radius:16px;padding:12px 14px 10px;box-shadow:var(--shadow);flex:0 0 auto}
+#input{display:block;width:100%;min-height:62px;max-height:220px;border:0;outline:none;
+       background:transparent;color:var(--text);font:14.5px/1.6 var(--ui);
+       resize:none;padding:2px 2px 6px}
+#input::placeholder{color:var(--faint)}
+.composerbar{display:flex;align-items:center;gap:10px}
+.check{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);
+       cursor:pointer;user-select:none}
+.check input{appearance:none;-webkit-appearance:none;width:16px;height:16px;
+             border-radius:5px;border:1px solid var(--border);background:var(--surface);
+             position:relative;cursor:pointer;margin:0}
+.check input:checked{background:var(--primary);border-color:var(--primary)}
+.check input:checked::after{content:"✓";position:absolute;inset:0;display:grid;
+             place-items:center;color:#fff;font-size:11px;line-height:1}
+.grow{flex:1}
+.hint{font-size:10.5px;color:var(--faint)}
+.sendbtn{width:38px;height:38px;border-radius:50%;border:0;background:var(--primary);
+         color:var(--primary-text);font-size:17px;cursor:pointer;flex:0 0 auto}
+.sendbtn:hover{background:var(--primary-h)}
+.sendbtn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---------- status ---------- */
+#statusbar{display:flex;align-items:center;gap:14px;padding:5px 24px 8px;
+           font-size:11px;color:var(--faint);flex:0 0 auto}
+.ctxbar{width:120px;height:3px;border-radius:2px;overflow:hidden;background:transparent}
+.ctxbar i{display:block;height:100%;width:0;background:var(--primary);transition:width .3s}
+#modelbl{margin-left:auto}
+.ok{color:var(--ok)} .bad{color:var(--danger)}
+
+/* ---------- plan drawer ---------- */
+#planpanel{background:var(--surface);border-left:1px solid var(--border);
+           display:flex;flex-direction:column;overflow:hidden;min-width:0;
+           opacity:0;pointer-events:none}
+#app.plan-open #planpanel{opacity:1;pointer-events:auto}
+#planhead{display:flex;align-items:center;gap:8px;padding:16px 16px 8px}
+#planhead .t{font-size:14px;font-weight:700}
+#plancount{font-size:11.5px;color:var(--faint)}
+#planclose{margin-left:auto;border:0;background:transparent;color:var(--faint);
+           font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px}
+#planclose:hover{background:var(--soft);color:var(--primary)}
+#planbar{height:3px;background:var(--track);margin:0 16px 10px;border-radius:2px;
+         overflow:hidden;flex:0 0 auto}
+#planfill{height:100%;width:0;background:var(--primary);transition:width .3s}
+#planlist{flex:1;overflow-y:auto;padding:0 16px 12px;font-size:12.5px}
+.planitem{display:flex;gap:8px;padding:5px 0;color:var(--text);line-height:1.5}
+.planitem .mk{flex:0 0 auto;color:var(--faint)}
+.planitem.done{color:var(--faint)}
+.planitem.done .mk{color:var(--ok)}
+.planitem.cur{color:var(--primary);font-weight:600}
+#planfoot{padding:8px 16px 12px;font-size:10.5px;color:var(--faint)}
+
+/* ---------- menu ---------- */
+.menu{position:fixed;z-index:40;background:var(--surface);border:1px solid var(--border);
+      border-radius:12px;box-shadow:var(--shadow);padding:6px;min-width:220px;
+      max-height:60vh;overflow-y:auto}
+.menu button{display:block;width:100%;text-align:left;border:0;background:transparent;
+             color:var(--text);padding:8px 10px;border-radius:8px;font-size:13px;cursor:pointer}
+.menu button:hover{background:var(--soft);color:var(--primary)}
+.menu button.sel{color:var(--primary);font-weight:600}
+
+/* ---------- dialogs ---------- */
+dialog{border:1px solid var(--border);border-radius:16px;background:var(--bg);
+       color:var(--text);padding:0;width:min(640px,92vw);max-height:88vh;
+       box-shadow:0 24px 70px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(10,14,16,.45);backdrop-filter:blur(2px)}
+.dlghead{display:flex;align-items:center;gap:10px;padding:18px 22px 8px}
+.dlghead .t{font-size:19px;font-weight:700}
+.dlgclose{margin-left:auto;border:0;background:transparent;color:var(--faint);
+          font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px}
+.dlgclose:hover{background:var(--soft);color:var(--primary)}
+.dlgbody{padding:4px 22px 16px;overflow-y:auto}
+.section{font-size:10.5px;color:var(--faint);letter-spacing:.04em;margin:14px 0 6px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+      padding:13px 15px;display:flex;flex-direction:column;gap:10px}
+.frow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.frow label{min-width:92px;font-size:13px;color:var(--text)}
+.frow .note{font-size:10.5px;color:var(--faint)}
+input[type=text],input[type=number],select,textarea{background:var(--surface);
+      color:var(--text);border:1px solid var(--border);border-radius:9px;
+      padding:7px 10px;font-size:13px;outline:none}
+input[type=text]:focus,input[type=number]:focus,select:focus,textarea:focus{
+      border-color:var(--primary)}
+textarea.sys{width:100%;min-height:120px;font:12px/1.55 var(--mono);resize:vertical}
+.dlgfoot{display:flex;align-items:center;gap:8px;padding:10px 22px 18px}
+.dlgfoot .note{font-size:10.5px;color:var(--faint);margin-right:auto}
+#aboutdlg .dlgbody p{font-size:13px;color:var(--muted);margin:6px 0}
 </style>
 </head>
 <body>
-<div id="rail">
-  <div class="brand">🐦</div>
-  <div class="brandname">Mingbird</div>
-  <button class="navbtn active" data-page="chat">💬 <span data-i18n="chat">Chat</span></button>
-  <button class="navbtn" data-page="sessions">🕘 <span data-i18n="history">History</span></button>
-  <button class="navbtn" data-page="settings">⚙ <span data-i18n="settings">Settings</span></button>
-  <div class="spacer"></div>
-  <button class="navbtn" id="themebtn">🌓</button>
-  <button class="navbtn" id="aboutbtn">ℹ</button>
-</div>
-<div id="main">
-  <!-- 对话页 -->
-  <div class="page active" id="page-chat">
-    <div style="flex:1;display:flex;flex-direction:column;min-width:0">
-      <div id="topbar">
-        <span class="title">Mingbird</span>
-        <span class="kicker" id="ver"></span>
-        <label data-i18n="model">Model</label>
-        <select id="model"></select>
-        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" id="think"> <span data-i18n="thinking">Thinking</span></label>
-        <span id="sessiontag" style="margin-left:auto;color:var(--muted);font-size:12px"></span>
-      </div>
-      <div id="chat"></div>
-      <div id="inputdock">
-        <textarea id="input" placeholder="Type a task or chat… (Ctrl+Enter to send · 输入任务或对话)"></textarea>
-        <div id="inputrow">
-          <button class="primary" id="send" data-i18n="send">Send</button>
-          <button id="stop" disabled class="danger" data-i18n="stop">Stop</button>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12.5px"><input type="checkbox" id="resume" checked> <span data-i18n="resume">Resume</span></label>
-          <span style="flex:1"></span>
-          <button id="newchat" data-i18n="newchat">New chat</button>
-          <button id="clear" data-i18n="clear">Clear</button>
-        </div>
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="logo">🐦</div>
+      <div>
+        <div class="brandname" data-i18n="brand">鸣鸟</div>
+        <div class="brandver" id="ver">MINGBIRD</div>
       </div>
     </div>
-    <div id="planpanel">
-      <div class="kicker" data-i18n="plan">Plan · todo</div>
-      <div id="planlist">—</div>
+    <button id="newchat" class="btn primary wide">＋ <span data-i18n="newchat">新对话</span></button>
+    <div class="searchbox">
+      <span class="mag">⌕</span>
+      <input id="sessearch" data-i18n-ph="search" placeholder="搜索对话">
     </div>
-  </div>
-  <!-- 会话页 -->
-  <div class="page" id="page-sessions">
-    <div class="pagehead"><span class="title" data-i18n="history_t">Session history</span></div>
-    <div style="flex:1;display:flex;min-height:0;padding:0 18px 12px">
-      <div id="sesslist" style="flex:1"></div>
-      <div style="width:280px;display:flex;flex-direction:column;gap:8px;padding:12px;border-left:1px solid var(--border)">
-        <button id="sess-load" data-i18n="load_resume">Load & resume this session</button>
-        <button id="sess-view" data-i18n="view">View transcript</button>
-        <div id="sessview" style="flex:1;overflow-y:auto;font:12px Consolas,monospace;white-space:pre-wrap"></div>
+    <div id="sesslist" class="sesslist"></div>
+    <div class="sidefoot">
+      <button class="linkbtn" id="settingsbtn" data-i18n="settings">设置</button>
+      <button class="linkbtn" id="aboutbtn" data-i18n="about">关于</button>
+      <button class="linkbtn" id="langbtn">EN/中</button>
+      <button class="iconbtn" id="themebtn" title="theme">◐</button>
+    </div>
+  </aside>
+
+  <main id="main">
+    <header id="topbar">
+      <div>
+        <div class="title" id="convtitle" data-i18n="newchat">新对话</div>
+        <div class="sub" id="convsub" data-i18n="tagline">本地优先 · 小模型优先</div>
+      </div>
+      <div class="pills">
+        <button class="pill" id="modelpill"><span id="modelname">…</span><span>▾</span></button>
+        <button class="pill" id="thinkpill">思考 · <span id="thinkval">默认</span></button>
+        <button class="pill" id="offlinepill"><span id="offlinetext">● 联网</span></button>
+        <button class="pill planchip hidden" id="planchip">计划 0/0 ▸</button>
+      </div>
+    </header>
+
+    <div id="chat"></div>
+
+    <div id="composer">
+      <textarea id="input" rows="3" data-i18n-ph="placeholder"
+                placeholder="输入任务或对话…(Enter 发送 · Shift+Enter 换行)"></textarea>
+      <div class="composerbar">
+        <label class="check"><input type="checkbox" id="resume" checked>
+          <span data-i18n="resume">续跑</span></label>
+        <span class="grow"></span>
+        <span class="hint">Enter <span data-i18n="send">发送</span> · Shift+Enter <span data-i18n="newline">换行</span></span>
+        <button id="stop" class="btn danger hidden" data-i18n="stop">停止</button>
+        <button id="send" class="sendbtn" title="send">↑</button>
       </div>
     </div>
-  </div>
-  <!-- 设置页 -->
-  <div class="page" id="page-settings">
-    <div class="pagehead"><span class="title" data-i18n="settings_t">Settings</span></div>
-    <div style="max-width:640px;padding:6px 18px">
-      <div class="row"><label data-i18n="ctx_l">Context window</label>
-        <select id="p-ctx"><option>16384</option><option>32768</option><option>65536</option><option>131072</option><option>262144</option></select>
-        <span style="color:var(--muted);font-size:12px" data-i18n="ctx_note">small models: bigger = more memory</span></div>
-      <div class="row"><label data-i18n="temp_l">Temperature</label><input type="number" id="p-temp" step="0.1" min="0" max="2" style="width:80px">
-        <span style="color:var(--muted);font-size:12px" data-i18n="temp_note">empty = Ollama default</span></div>
-      <div class="row"><label data-i18n="np_l">Output limit</label>
-        <select id="p-np"><option>512</option><option>1024</option><option>2048</option><option>4096</option><option>8192</option></select></div>
-      <div class="row"><label data-i18n="think_l">Thinking</label>
-        <select id="p-think"><option value="" data-i18n="think_def">default</option><option value="1" data-i18n="think_on">on</option><option value="0" data-i18n="think_off">off</option></select>
-        <span style="color:var(--muted);font-size:12px" data-i18n="think_note">default = let Ollama decide</span></div>
-      <div class="row"><label data-i18n="sys_l">Custom system prompt</label><input type="checkbox" id="p-sysen"></div>
-      <textarea id="p-systext" placeholder="override system prompt…"></textarea>
-      <div style="margin-top:14px"><button class="primary" id="p-save" data-i18n="save">Save</button></div>
-      <p style="color:var(--muted);font-size:12px" data-i18n="prefs_note">Settings are shared with the desktop app (gui_prefs.json) and applied to the next task.</p>
+
+    <footer id="statusbar">
+      <div class="ctxbar"><i id="ctxfill"></i></div>
+      <span id="ctxtext">上下文: - / -</span>
+      <span id="ollamadot">Ollama …</span>
+      <span id="modelbl">联网 · 本地推理</span>
+    </footer>
+  </main>
+
+  <aside id="planpanel">
+    <div id="planhead">
+      <span class="t" data-i18n="plan">计划</span>
+      <span id="plancount">0/0</span>
+      <button id="planclose" title="close">×</button>
     </div>
-  </div>
-  <div id="statusbar">
-    <div id="ctxbar"><div id="ctxfill"></div></div>
-    <span id="ctxtext">ctx: - / -</span>
-    <span id="ollamadot">Ollama …</span>
-    <span id="langbtn" style="cursor:pointer;text-decoration:underline">EN/中文</span>
-  </div>
+    <div id="planbar"><div id="planfill"></div></div>
+    <div id="planlist"></div>
+    <div id="planfoot">todo.json · <span data-i18n="live">实时</span></div>
+  </aside>
 </div>
 
-<dialog id="askdlg">
-  <h3 id="asktitle">⚠ Outside-workspace access</h3>
-  <p id="askbody" style="white-space:pre-wrap;font-size:13px"></p>
-  <div style="display:flex;gap:8px;justify-content:flex-end">
-    <button id="ask-allow1">Allow once</button>
-    <button id="ask-allowall">Allow all (this task)</button>
-    <button id="ask-deny" class="danger">Deny</button>
+<div id="modelmenu" class="menu hidden"></div>
+
+<dialog id="settingsdlg">
+  <div class="dlghead"><span class="t" data-i18n="settings">设置</span>
+    <button class="dlgclose" data-close="settingsdlg">×</button></div>
+  <div class="dlgbody">
+    <div class="section" data-i18n="gen">生成参数</div>
+    <div class="card">
+      <div class="frow"><label data-i18n="ctx_l">上下文窗口</label>
+        <select id="p-ctx">
+          <option>16384</option><option>32768</option><option>65536</option>
+          <option>131072</option><option>262144</option><option>524288</option>
+          <option>1048576</option></select>
+        <span class="note" data-i18n="ctx_note">小模型：越大越占内存</span></div>
+      <div class="frow"><label data-i18n="temp_l">温度</label>
+        <input type="number" id="p-temp" step="0.1" min="0" max="2" style="width:90px">
+        <span class="note" data-i18n="temp_note">留空 = 用 Ollama 默认</span></div>
+      <div class="frow"><label data-i18n="np_l">输出上限</label>
+        <select id="p-np">
+          <option>512</option><option>1024</option><option>2048</option>
+          <option>4096</option><option>8192</option><option>16384</option>
+          <option>32768</option></select>
+        <span class="note" data-i18n="np_note">-1 = 不限（桌面端）</span></div>
+      <div class="frow"><label data-i18n="think_l">思考</label>
+        <select id="p-think">
+          <option value="" data-i18n="think_def">默认</option>
+          <option value="1" data-i18n="think_on">开</option>
+          <option value="0" data-i18n="think_off">关</option></select>
+        <span class="note" data-i18n="think_note">默认 = 由模型决定</span></div>
+    </div>
+    <div class="section" data-i18n="cloud_api">云端 API（可选）</div>
+    <div class="card">
+      <label class="check"><input type="checkbox" id="p-clouden">
+        <span data-i18n="cloud_enable">启用云端模型（仅联网可用）</span></label>
+      <div class="frow"><label data-i18n="endpoint">端点</label>
+        <input type="text" id="p-cloudbase" placeholder="https://api.example.com/v1" style="flex:1"></div>
+      <div class="frow"><label data-i18n="model">模型</label>
+        <input type="text" id="p-cloudmodel" placeholder="deepseek-chat" style="flex:1"></div>
+      <div class="frow"><label>API Key</label>
+        <input type="text" id="p-cloudkey" placeholder="已保存 · 留空不修改" style="flex:1"></div>
+      <div style="font-size:10.5px;color:var(--faint)" data-i18n="cloud_note">
+        启用后仅联网可用；api_key 只存本机 config.json。</div>
+    </div>
+    <div class="section" data-i18n="sys_l">系统提示</div>
+    <div class="card">
+      <label class="check"><input type="checkbox" id="p-sysen">
+        <span data-i18n="sys_enable">启用自定义系统提示（替代内置）</span></label>
+      <textarea class="sys" id="p-systext" placeholder="override system prompt…"></textarea>
+    </div>
+  </div>
+  <div class="dlgfoot">
+    <span class="note" data-i18n="prefs_note">与桌面版共用设置，下一个任务生效。</span>
+    <button class="btn" data-close="settingsdlg" data-i18n="cancel">取消</button>
+    <button class="btn primary" id="p-save" data-i18n="save">保存</button>
   </div>
 </dialog>
 
 <dialog id="aboutdlg">
-  <h1>🐦 Mingbird</h1>
-  <p class="kicker">local-first · small-model-first agent harness</p>
-  <p>A local AI agent that runs on the laptop you already own.<br>鸣鸟：让你笔记本上的本地小模型真的干活。</p>
-  <p style="color:var(--muted);font-size:12px" id="aboutver"></p>
-  <form method="dialog"><button style="display:block;margin:0 auto">OK</button></form>
+  <div class="dlghead"><span class="t">鸣鸟 · Mingbird</span>
+    <button class="dlgclose" data-close="aboutdlg">×</button></div>
+  <div class="dlgbody">
+    <p data-i18n="about_line1">本地优先、小模型优先的 AI agent。数据不出本机。</p>
+    <p style="font-family:var(--mono);font-size:12px" id="aboutver"></p>
+  </div>
+  <div class="dlgfoot"><span class="note">Apache-2.0</span>
+    <button class="btn primary" data-close="aboutdlg" data-i18n="close">关闭</button></div>
+</dialog>
+
+<dialog id="askdlg">
+  <div class="dlghead"><span class="t" id="asktitle">⚠ 越界操作确认</span></div>
+  <div class="dlgbody">
+    <p id="askbody" style="white-space:pre-wrap;font-size:13px;color:var(--muted)"></p>
+  </div>
+  <div class="dlgfoot">
+    <span class="note"></span>
+    <button class="btn danger" id="ask-deny" data-i18n="deny">拒绝</button>
+    <button class="btn" id="ask-allowall" data-i18n="allow_all">允许全部（本轮）</button>
+    <button class="btn primary" id="ask-allow1" data-i18n="allow_once">允许一次</button>
+  </div>
 </dialog>
 
 <script>
 const I18N = {
-  en: {chat:"Chat", history:"History", settings:"Settings", settings_t:"Settings", history_t:"Session history",
-       thinking:"Thinking", send:"Send", stop:"Stop", resume:"Resume", newchat:"New chat", clear:"Clear",
-       model:"Model", plan:"Plan · todo", load_resume:"Load & resume this session", view:"View transcript",
-       save:"Save", ctx_l:"Context window", temp_l:"Temperature", np_l:"Output limit", think_l:"Thinking",
-       think_def:"default", think_on:"on", think_off:"off",
-       temp_note:"empty = Ollama default", think_note:"default = let Ollama decide",
-       sys_l:"Custom system prompt", ctx_note:"small models: bigger = more memory", prefs_note:"Settings are shared with the desktop app and applied to the next task.",
-       you:"You", outside:"⚠ Outside-workspace access", session:"session", plan:"Plan · todo",
-       load_resume:"Load & resume this session", view:"View transcript", save:"Save",
-       settings_t:"Settings", history_t:"Session history", ctx_l:"Context window",
-       temp_l:"Temperature", np_l:"Output limit", think_l:"Thinking", sys_l:"Custom system prompt",
-       welcome:"👋 Welcome — local-first, small-model-first agent. Type a task to start.",
-       offline:"[ Ollama offline — auto-retries ]"},
-  zh: {chat:"对话", history:"历史", settings:"设置", settings_t:"设置", history_t:"历史会话",
-       thinking:"思考", send:"发送", stop:"停止", resume:"续跑", newchat:"新对话", clear:"清空",
-       model:"模型", plan:"计划 · todo", load_resume:"载入并续跑此会话", view:"查看对话记录",
-       save:"保存", ctx_l:"上下文窗口", temp_l:"温度", np_l:"输出上限", think_l:"思考",
-       think_def:"默认", think_on:"开", think_off:"关",
-       temp_note:"留空 = 用 Ollama 默认", think_note:"默认 = 由 Ollama 决定(thinking 模型默认开思考)",
-       sys_l:"自定义系统提示", ctx_note:"小模型：越大越占内存", prefs_note:"设置与桌面版共用，对下一个任务生效。",
-       you:"用户", outside:"⚠ 越界操作确认", session:"会话", plan:"计划 · todo",
-       load_resume:"载入并续跑此会话", view:"查看对话记录", save:"保存",
-       settings_t:"设置", history_t:"历史会话", ctx_l:"上下文窗口",
-       temp_l:"温度", np_l:"输出上限", think_l:"思考", sys_l:"自定义系统提示",
-       welcome:"👋 欢迎 — 本地优先、小模型优先的 agent。输入任务即可开始。",
-       offline:"[ Ollama 离线 — 启动后自动重试 ]"}
+  zh: {brand:"鸣鸟", newchat:"新对话", search:"搜索对话", settings:"设置", about:"关于",
+       tagline:"本地优先 · 小模型优先", model:"模型", thinking:"思考",
+       think_def:"默认", think_on:"开", think_off:"关", plan:"计划", live:"实时",
+       resume:"续跑", send:"发送", stop:"停止", placeholder:"输入任务或对话…(Enter 发送 · Shift+Enter 换行)", newline:"换行",
+       you:"你", assistant:"鸣鸟", welcome:"有什么可以帮你？",
+       welcome_sub:"本地优先 · 小模型优先 · 数据不出本机",
+       online:"● 联网", offline:"● 断网", online_mode:"联网 · 本地推理",
+       offline_mode:"断网 · 零出站", ctx:"上下文", today:"今天", yesterday:"昨天",
+       earlier:"更早", empty:"还没有对话", nosess:"没有匹配的对话",
+       gen:"生成参数", ctx_l:"上下文窗口", temp_l:"温度", np_l:"输出上限",
+       think_l:"思考", sys_l:"系统提示", sys_enable:"启用自定义系统提示（替代内置）",
+       ctx_note:"小模型：越大越占内存", temp_note:"留空 = 用 Ollama 默认",
+       np_note:"-1 = 不限（桌面端）", think_note:"默认 = 由模型决定",
+       prefs_note:"与桌面版共用设置，下一个任务生效。", save:"保存", cancel:"取消",
+       close:"关闭", about_line1:"本地优先、小模型优先的 AI agent。数据不出本机。",
+       deny:"拒绝", allow_all:"允许全部（本轮）", allow_once:"允许一次",
+       outside:"⚠ 越界操作确认", busy:"⚠ 忙：先停止当前任务",
+       loaded:"已载入会话", no_plan:"(尚无计划 — agent 会先建 todo 再执行)",
+       off_note:"[ 断网模式：联网工具与云端已禁用 — 零出站 ]",
+       cloud_api:"云端 API（可选）", cloud_enable:"启用云端模型（仅联网可用）",
+       endpoint:"端点", cloud_note:"启用后仅联网可用；api_key 只存本机 config.json。",
+       cloud_mode:"联网 · 云端模型",
+       cloud_offline_note:"云端模型需联网：先切回本地模型再开断网",
+       cloud_incomplete:"请先在设置里填写云端端点与模型名"},
+  en: {brand:"Mingbird", newchat:"New chat", search:"Search chats", settings:"Settings",
+       about:"About", tagline:"Local-first · small-model-first", model:"Model",
+       thinking:"Thinking", think_def:"default", think_on:"on", think_off:"off",
+       plan:"Plan", live:"live", resume:"Resume", send:"Send", stop:"Stop",
+       placeholder:"Type a task or chat… (Enter to send · Shift+Enter for newline)", newline:"New line",
+       you:"You", assistant:"Mingbird", welcome:"What can I help you with?",
+       welcome_sub:"Local-first · small-model-first · data never leaves this machine",
+       online:"● Online", offline:"● Offline", online_mode:"Online · local inference",
+       offline_mode:"Offline · zero egress", ctx:"Context", today:"Today",
+       yesterday:"Yesterday", earlier:"Earlier", empty:"No conversations yet",
+       nosess:"No matching chats", gen:"Generation", ctx_l:"Context window",
+       temp_l:"Temperature", np_l:"Max output", think_l:"Thinking",
+       sys_l:"System prompt", sys_enable:"Use a custom system prompt (replaces built-in)",
+       ctx_note:"small models: bigger = more memory", temp_note:"empty = Ollama default",
+       np_note:"-1 = unlimited (desktop)", think_note:"default = model decides",
+       prefs_note:"Shared with the desktop app; applies to the next task.",
+       save:"Save", cancel:"Cancel", close:"Close",
+       about_line1:"A local-first, small-model-first AI agent. Data stays on this machine.",
+       deny:"Deny", allow_all:"Allow all (this run)", allow_once:"Allow once",
+       outside:"⚠ Outside-workspace access", busy:"⚠ Busy — stop the current task first",
+       loaded:"Loaded session", no_plan:"(no plan yet — the agent creates a todo list first)",
+       off_note:"[ Offline mode: web tools and cloud are disabled ]",
+       cloud_api:"Cloud API (optional)", cloud_enable:"Enable cloud model (online only)",
+       endpoint:"Endpoint", cloud_note:"Cloud needs network; api_key stays in the local config.",
+       cloud_mode:"Online · cloud model",
+       cloud_offline_note:"Cloud models need network; switch to a local model first",
+       cloud_incomplete:"Fill in the cloud endpoint and model in Settings first"}
 };
 let LANG = localStorage.getItem("mb_lang") || (navigator.language.startsWith("zh") ? "zh" : "en");
+const $ = id => document.getElementById(id);
+function t(k){ return (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || k; }
 function applyLang(){
   document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  $("convtitle").textContent = curSession ? ($("convtitle").dataset.raw || t("newchat")) : t("newchat");
+  $("convsub").textContent = curSession ? t("loaded") : t("tagline");
+  $("thinkval").textContent = thinkState === null ? t("think_def") : (thinkState ? t("think_on") : t("think_off"));
+  updateOfflineUI(lastOffline);
+  renderSessions();
+  renderPlan();
+  $("modelbl").textContent = lastOffline ? t("offline_mode") : t("online_mode");
 }
-function t(k){ return (I18N[LANG] && I18N[LANG][k]) || (I18N.en[k]) || k; }
-applyLang();
-document.getElementById("langbtn").onclick = () => {
-  LANG = LANG === "en" ? "zh" : "en"; localStorage.setItem("mb_lang", LANG); applyLang();
-};
 
+/* ---------------- theme ---------------- */
 const THEME_ORDER = ["auto","light","dark"];
 let uiMode = localStorage.getItem("mb_ui_mode") || "auto";
 function sysDark(){ return window.matchMedia("(prefers-color-scheme: dark)").matches; }
@@ -219,189 +444,411 @@ function applyTheme(){
   document.documentElement.setAttribute("data-theme", mode);
 }
 applyTheme();
-document.getElementById("themebtn").onclick = () => {
-  uiMode = THEME_ORDER[(THEME_ORDER.indexOf(uiMode)+1)%3];
-  localStorage.setItem("mb_ui_mode", uiMode); applyTheme();
-};
-document.querySelectorAll(".navbtn[data-page]").forEach(b => {
-  b.onclick = () => {
-    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-    document.querySelectorAll(".navbtn").forEach(n => n.classList.remove("active"));
-    document.getElementById("page-" + b.dataset.page).classList.add("active");
-    b.classList.add("active");
-    if (b.dataset.page === "sessions") loadSessions();
-    if (b.dataset.page === "settings") loadPrefs();
-  };
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (uiMode === "auto") applyTheme();
 });
+$("themebtn").onclick = () => {
+  uiMode = THEME_ORDER[(THEME_ORDER.indexOf(uiMode)+1)%3];
+  localStorage.setItem("mb_ui_mode", uiMode);
+  applyTheme();
+  fetch("/api/prefs", {method:"POST", headers:{"Content-Type":"application/json"},
+       body: JSON.stringify({ui_mode: uiMode})});
+};
 
-const $ = id => document.getElementById(id);
+/* ---------------- chat rendering ---------------- */
 const chat = $("chat");
-function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+let curBody = null, curText = "", renderQueued = false;
+let thinkEl = null, thinkBuf = "";
+
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function md(s){
   let h = esc(s);
   h = h.replace(/```(\w*)\n([\s\S]*?)```/g, (m,l,c)=>"<pre><code>"+c+"</code></pre>");
   h = h.replace(/`([^`\n]+)`/g, "<code>$1</code>");
   h = h.replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>");
   h = h.replace(/^### (.+)$/gm, "<b>$1</b>");
+  h = h.replace(/^## (.+)$/gm, "<b>$1</b>");
   return h;
 }
-function addMsg(who, html){
+function scrollBottom(){ chat.scrollTop = chat.scrollHeight; }
+function addMsg(who, text, asHtml){
   const div = document.createElement("div");
-  div.className = "msg " + who;
-  div.innerHTML = '<div class="who">' + (who==="user" ? "👤 "+t("you") : "🐦 Mingbird") + "</div>" +
-                  '<div class="body">' + html + "</div>";
-  chat.appendChild(div); chat.scrollTop = chat.scrollHeight;
-  return div.querySelector(".body");
+  div.className = "msg " + (who === "user" ? "user" : "asst");
+  const label = who === "user" ? t("you") : t("assistant");
+  div.innerHTML = '<div class="who">' + esc(label) + '</div><div class="body"></div>';
+  const body = div.querySelector(".body");
+  if (asHtml) body.innerHTML = text; else body.textContent = text;
+  chat.appendChild(div);
+  scrollBottom();
+  return body;
 }
-let thinkEl = null, thinkBuf = "";
+function addNote(text){
+  const d = document.createElement("div");
+  d.className = "noteline"; d.textContent = text;
+  chat.appendChild(d); scrollBottom();
+}
+function ensureAssistant(){
+  if (!curBody){
+    thinkClose();
+    curBody = addMsg("assistant", "", false);
+    curBody.dataset.done = "0";
+    curText = "";
+  }
+  return curBody;
+}
+function scheduleRender(){
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => {
+    renderQueued = false;
+    if (!curBody) return;
+    curBody.innerHTML = md(curText);
+    scrollBottom();
+  });
+}
 function thinkStart(){
   thinkBuf = "";
   const det = document.createElement("details");
-  det.className = "think";
-  det.innerHTML = "<summary>🤔 " + t("thinking") + "</summary><div class='tbody'></div>";
-  chat.appendChild(det); chat.scrollTop = chat.scrollHeight;
+  det.className = "think"; det.open = true;
+  det.innerHTML = "<summary>🤔 " + esc(t("thinking")) + "</summary><div class='tbody'></div>";
+  chat.appendChild(det);
   thinkEl = det.querySelector(".tbody");
+  scrollBottom();
+  return det;
 }
 function thinkChunk(txt){
-  if(!thinkEl) thinkStart();
-  thinkBuf += txt; thinkEl.textContent = thinkBuf; chat.scrollTop = chat.scrollHeight;
+  const det = thinkEl ? thinkEl.closest("details") : thinkStart();
+  thinkBuf += txt;
+  thinkEl.textContent = thinkBuf;
+  scrollBottom();
 }
-function thinkClose(){ thinkEl = null; }
+function thinkClose(){
+  if (thinkEl){
+    const det = thinkEl.closest("details");
+    if (det) det.open = false;
+  }
+  thinkEl = null;
+}
 function toolChip(name, args){
   const chip = document.createElement("span");
   chip.className = "toolchip";
-  chip.textContent = "⚙ " + name + " " + JSON.stringify(args).slice(0, 90);
-  (chat.lastElementChild || chat).appendChild(chip);
-  chat.scrollTop = chat.scrollHeight;
+  chip.textContent = "⚙ " + name + (args ? " " + String(args).slice(0,80) : "");
+  const host = curBody ? curBody.parentElement : chat;
+  host.appendChild(chip);
+  scrollBottom();
+}
+function welcome(){
+  chat.innerHTML = "";
+  const box = document.createElement("div");
+  box.className = "msg asst";
+  box.innerHTML = '<div class="who">' + esc(t("assistant")) + '</div>' +
+    '<div class="body"><b style="font-size:19px">' + esc(t("welcome")) + '</b><br>' +
+    '<span style="color:var(--muted);font-size:13px">' + esc(t("welcome_sub")) + '</span></div>';
+  chat.appendChild(box);
 }
 
-// ---------- SSE ----------
-let es = null, curBody = null, curDone = false;   // thinkEl/thinkBuf 已在上方声明,重复 let = SyntaxError 全脚本失效
+/* ---------------- SSE ---------------- */
+let es = null;
 function connect(){
   es = new EventSource("/api/events");
   es.onmessage = e => {
     const evt = JSON.parse(e.data);
     if (evt.type === "tok"){
-      if (!curBody || curDone){ thinkClose(); curBody = addMsg("assistant",""); curBody.dataset.done="0"; }
-      curBody.innerHTML += md(evt.data);
-      chat.scrollTop = chat.scrollHeight;
+      ensureAssistant();
+      curText += evt.data;
+      scheduleRender();
     } else if (evt.type === "think"){
       thinkChunk(evt.data);
     } else if (evt.type === "ask"){
-      showAsk(evt.data);
+      showAsk(evt.data, evt.ask_id);
     } else if (evt.type === "dispatch"){
-      const d = typeof evt.data === "string" ? JSON.parse(evt.data) : evt.data;
-      const chip = document.createElement("span");
-      chip.className = "toolchip";
-      chip.textContent = "⚙ " + (d.kind || d.event || "dispatch");
-      chat.appendChild(chip);
+      let d = evt.data;
+      try { d = typeof d === "string" ? JSON.parse(d) : d; } catch(e){}
+      toolChip(d.kind || d.event || "dispatch", d.name || "");
     } else if (evt.type === "ctx"){
       $("ctxfill").style.width = Math.min(evt.data.pct, 100) + "%";
-      $("ctxtext").textContent = "ctx: " + evt.data.used + " / " + evt.data.total;
+      $("ctxtext").textContent = t("ctx") + ": " + evt.data.used + " / " + evt.data.total;
     } else if (evt.type === "note"){
-      const n = document.createElement("div");
-      n.className = "msg assistant"; n.style.color = "var(--muted)";
-      n.textContent = evt.data; chat.appendChild(n); chat.scrollTop = chat.scrollHeight;
+      addNote(evt.data);
     } else if (evt.type === "exit"){
-      if (curBody) curBody.dataset.done = "1";
-      $("send").disabled = false; $("stop").disabled = true;
-      refreshStatus();
+      if (curBody){ curBody.dataset.done = "1"; curBody = null; }
+      $("send").disabled = false; $("stop").classList.add("hidden");
+      refreshStatus(); loadSessions(); refreshPlan();
     }
   };
 }
-function showAsk(req){
+function showAsk(req, askId){
   const dlg = $("askdlg");
-  $("asktitle").textContent = req.question || t("outside");
-  $("askbody").textContent = typeof req === "string" ? req : (req.info || req.command || req.path || "");
+  $("asktitle").textContent = (req && req.question) || t("outside");
+  $("askbody").textContent = typeof req === "string" ? req :
+      (req ? (req.info || req.command || req.path || JSON.stringify(req)) : "");
   dlg.showModal();
-  const answer = a => { dlg.close(); fetch("/api/ask", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({answer:a})}); };
+  const answer = a => {
+    dlg.close();
+    fetch("/api/ask", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({answer:a, id:askId})});
+  };
   $("ask-allow1").onclick = () => answer("allow");
   $("ask-allowall").onclick = () => answer("allow_all");
   $("ask-deny").onclick = () => answer("deny");
 }
 
-// ---------- actions ----------
+/* ---------------- send ---------------- */
 $("send").onclick = send;
+$("stop").onclick = () => fetch("/api/stop", {method:"POST"});
 $("input").addEventListener("keydown", e => {
-  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); }
+  if (e.key !== "Enter" || e.shiftKey || e.isComposing) return;
+  e.preventDefault(); send();
+});
+$("input").addEventListener("input", () => {
+  const el = $("input");
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 220) + "px";
 });
 function send(){
   const prompt = $("input").value.trim();
   if (!prompt) return;
   $("input").value = "";
-  addMsg("user", md(prompt));
-  thinkClose();
+  $("input").style.height = "auto";
+  addMsg("user", md(prompt), true);
+  curBody = null; curText = ""; thinkClose();
   fetch("/api/chat", {method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({prompt, model: $("model").value, resume: $("resume").checked})})
-    .then(r => { if (r.status === 409) addMsg("assistant", "⚠ busy — stop the current task first"); });
-  $("send").disabled = true; $("stop").disabled = false;
+    body: JSON.stringify({prompt, model: modelSel, resume: $("resume").checked})})
+    .then(r => { if (r.status === 409) addNote(t("busy")); });
+  $("send").disabled = true;
+  $("stop").classList.remove("hidden");
+  if (!curSession) setHeader(t("newchat"), t("tagline"));
 }
-$("stop").onclick = () => fetch("/api/stop", {method:"POST"});
-$("newchat").onclick = () => { fetch("/api/newchat", {method:"POST"}); chat.innerHTML = ""; addMsg("assistant", t("welcome")); };
-$("clear").onclick = () => chat.innerHTML = "";
-$("aboutbtn").onclick = () => { $("aboutver").textContent = "Mingbird " + (window.__ver || ""); $("aboutdlg").showModal(); };
 
-// ---------- sessions page ----------
-let sessSel = null;
+/* ---------------- sessions ---------------- */
+let sessions = [], curSession = null, sessSel = null;
+function relTime(ts){
+  const d = new Date(ts * 1000), now = new Date();
+  const hm = String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+  const day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()/1000;
+  if (ts >= day0) return hm;
+  if (ts >= day0 - 86400) return hm;
+  return (String(d.getMonth()+1).padStart(2,"0")) + "-" + String(d.getDate()).padStart(2,"0");
+}
+function groupOf(ts){
+  const now = new Date();
+  const day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()/1000;
+  if (ts >= day0) return "today";
+  if (ts >= day0 - 86400) return "yesterday";
+  return "earlier";
+}
+function renderSessions(){
+  const box = $("sesslist");
+  box.innerHTML = "";
+  const q = ($("sessearch").value || "").trim().toLowerCase();
+  const rows = sessions.filter(s => !q ||
+      (s.title || "").toLowerCase().includes(q) || (s.name || "").toLowerCase().includes(q));
+  if (!rows.length){
+    const d = document.createElement("div");
+    d.className = "sessgroup";
+    d.textContent = sessions.length ? t("nosess") : t("empty");
+    box.appendChild(d); return;
+  }
+  let last = "";
+  for (const s of rows){
+    const g = groupOf(s.mtime);
+    if (g !== last){
+      last = g;
+      const h = document.createElement("div");
+      h.className = "sessgroup"; h.textContent = t(g);
+      box.appendChild(h);
+    }
+    const div = document.createElement("div");
+    div.className = "sessitem" + (s.name === curSession ? " sel" : "");
+    const dotCls = s.status === "done" ? "done" : (s.status === "interrupted" ? "run" : "");
+    div.innerHTML = '<div class="sessrow"><span class="sessdot ' + dotCls + '"></span>' +
+      '<span class="sesstitle"></span><span class="sesstime"></span></div>' +
+      '<div class="sesssub"></div>';
+    div.querySelector(".sesstitle").textContent = s.title || s.name;
+    div.querySelector(".sesstime").textContent = relTime(s.mtime);
+    div.querySelector(".sesssub").textContent = (s.task && s.task !== s.title) ? s.task : s.name;
+    div.onclick = () => openSession(s);
+    box.appendChild(div);
+  }
+}
 function loadSessions(){
   fetch("/api/sessions").then(r=>r.json()).then(d => {
-    const box = $("sesslist"); box.innerHTML = "";
-    (d.sessions || []).forEach(n => {
-      const div = document.createElement("div");
-      div.className = "sessitem"; div.textContent = n;
-      div.onclick = () => { box.querySelectorAll(".sessitem").forEach(x=>x.classList.remove("sel")); div.classList.add("sel"); sessSel = n; };
-      box.appendChild(div);
-    });
-  });
+    sessions = d.sessions || [];
+    renderSessions();
+  }).catch(()=>{});
 }
-$("sess-load").onclick = () => {
-  if (!sessSel) return;
-  const name = sessSel.replace(/\.json$/, "");
-  // 服务端记住会话:下一次发送以 --append 续跑;同时把历史消息渲染到聊天区
+function openSession(s){
+  curSession = s.name; sessSel = s.name;
   fetch("/api/session", {method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({name})}).then(()=>loadSessionTranscript(name));
-  addMsg("assistant", "▶ " + (t("load_resume") || "load") + ": " + name);
-  document.querySelector('.navbtn[data-page="chat"]').click();
-};
-function loadSessionTranscript(name){
-  fetch("/api/session?name=" + encodeURIComponent(name)).then(r=>r.json()).then(d => {
-    chat.innerHTML = "";
-    (d.messages || []).forEach(m => {
-      const who = m.role === "user" ? "user" : (m.role === "assistant" ? "assistant" : null);
-      if (!who) return;                       // tool/system 消息不在对话流渲染
-      addMsg(who, md(String(m.content || "")));
+    body: JSON.stringify({name: s.name})});
+  setHeader(s.title || s.name, s.name);
+  chat.innerHTML = "";
+  curBody = null; curText = ""; thinkClose();
+  fetch("/api/session?name=" + encodeURIComponent(s.name)).then(r=>r.json()).then(d => {
+    const msgs = d.messages || [];
+    let any = false;
+    msgs.forEach(m => {
+      if (!m || (m.role !== "user" && m.role !== "assistant")) return;
+      const c = String(m.content || "");
+      if (!c) return;
+      addMsg(m.role, md(c), true);
+      any = true;
     });
-    if (!(d.messages || []).length) addMsg("assistant", t("welcome"));
+    if (!any) addNote(t("empty"));
   });
+  renderSessions();
 }
-$("sess-view").onclick = () => {
-  if (!sessSel) return;
-  const name = sessSel.replace(/\.json$/, "");
-  fetch("/api/session?name=" + encodeURIComponent(name)).then(r=>r.json()).then(d => {
-    const lines = (d.messages || []).map(m =>
-      "[" + m.role + "] " + String(m.content || "").slice(0, 400));
-    $("sessview").textContent = lines.length ? lines.join("\n\n") : ("selected: " + name);
-  }).catch(() => { $("sessview").textContent = "selected: " + name; });
+function setHeader(title, sub){
+  $("convtitle").dataset.raw = title;
+  $("convtitle").textContent = title;
+  $("convsub").textContent = sub;
+}
+$("sessearch").addEventListener("input", renderSessions);
+$("newchat").onclick = () => {
+  fetch("/api/newchat", {method:"POST"});
+  curSession = null; sessSel = null; curBody = null; curText = "";
+  thinkClose(); welcome();
+  setHeader(t("newchat"), t("tagline"));
+  $("planchip").classList.add("hidden");
+  $("app").classList.remove("plan-open");
+  renderSessions();
 };
 
-// ---------- thinking 快切(三态:默认=不带 think 字段由 ollama 决定 / 开 / 关) ----------
-let thinkState = null;   // null=默认(复选框呈 indeterminate 半选态), true=开, false=关
-function applyThinkUI(){
-  const el = $("think");
-  el.indeterminate = (thinkState === null);
-  el.checked = (thinkState === true);
-  el.title = thinkState === null ? t("think_def") : (thinkState === true ? t("think_on") : t("think_off"));
+/* ---------------- model / think / offline ---------------- */
+let models = [], modelSel = "", lastOffline = false, thinkState = null;
+let cloud = {enabled: false, base_url: "", model: "", has_key: false};
+function renderModelMenu(){
+  const m = $("modelmenu");
+  m.innerHTML = "";
+  if (!models.length){
+    const d = document.createElement("div");
+    d.style.cssText = "padding:8px 10px;color:var(--faint);font-size:12px";
+    d.textContent = "Ollama offline";
+    m.appendChild(d); return;
+  }
+  if (cloud.base_url && cloud.model){
+    const cb = document.createElement("button");
+    cb.textContent = "☁ " + cloud.model + (cloud.enabled ? "  ✓" : "");
+    if (cloud.enabled) cb.classList.add("sel");
+    cb.onclick = () => { setCloud(true); m.classList.add("hidden"); };
+    m.appendChild(cb);
+    const sep = document.createElement("div");
+    sep.style.cssText = "height:1px;background:var(--border);margin:5px 4px";
+    m.appendChild(sep);
+  }
+  models.forEach(name => {
+    const b = document.createElement("button");
+    b.textContent = name;
+    if (name === modelSel && !cloud.enabled) b.classList.add("sel");
+    b.onclick = () => {
+      modelSel = name;
+      if (cloud.enabled) setCloud(false);
+      updateModelName();
+      m.classList.add("hidden");
+    };
+    m.appendChild(b);
+  });
 }
-$("think").addEventListener("click", (e) => {
-  e.preventDefault();   // 手动循环三态,不走原生二态切换
+$("modelpill").onclick = (e) => {
+  e.stopPropagation();
+  const m = $("modelmenu");
+  renderModelMenu();
+  const r = $("modelpill").getBoundingClientRect();
+  m.style.left = Math.max(8, r.right - 240) + "px";
+  m.style.top = (r.bottom + 6) + "px";
+  m.classList.toggle("hidden");
+};
+document.addEventListener("click", () => $("modelmenu").classList.add("hidden"));
+$("thinkpill").onclick = () => {
   thinkState = thinkState === null ? true : (thinkState === true ? false : null);
-  applyThinkUI();
+  updateThinkUI();
   fetch("/api/prefs", {method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({think: thinkState})});
-});
-applyThinkUI();   // 开局即呈"默认"半选态,待 loadPrefs/状态同步覆盖
+};
+function updateThinkUI(){
+  $("thinkval").textContent = thinkState === null ? t("think_def") :
+      (thinkState ? t("think_on") : t("think_off"));
+  $("thinkpill").classList.toggle("active", thinkState !== null);
+}
+function setCloud(on){
+  fetch("/api/cloud", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({enabled: on})}).then(r=>r.json()).then(d => {
+      cloud = d.cloud || cloud;
+      if (on && !cloud.enabled) addNote(t("cloud_incomplete"));
+      updateModelName(); updateOfflineUI(lastOffline);
+    });
+}
+function updateModelName(){
+  $("modelname").textContent = cloud.enabled ? ("☁ " + cloud.model)
+      : (modelSel || t("model"));
+}
+$("offlinepill").onclick = () => {
+  if (cloud.enabled){ addNote(t("cloud_offline_note")); return; }
+  const next = !lastOffline;
+  fetch("/api/offline", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({offline: next})}).then(r=>r.json()).then(d => {
+      lastOffline = !!d.offline; updateOfflineUI(lastOffline);
+      if (lastOffline) addNote(t("off_note"));
+    });
+};
+function updateOfflineUI(off){
+  const cloudOn = !!cloud.enabled;
+  $("offlinetext").textContent = off ? t("offline") : t("online");
+  $("offlinepill").classList.toggle("danger", !!off && !cloudOn);
+  $("offlinepill").disabled = cloudOn;
+  $("offlinepill").classList.toggle("active", cloudOn);
+  $("modelbl").textContent = off ? t("offline_mode")
+      : (cloudOn ? t("cloud_mode") : t("online_mode"));
+}
 
-// ---------- settings ----------
+/* ---------------- plan ---------------- */
+let plan = [], planOpen = false;
+function refreshPlan(){
+  fetch("/api/plan").then(r=>r.json()).then(d => {
+    plan = Array.isArray(d.plan) ? d.plan : [];
+    renderPlan();
+  }).catch(()=>{});
+}
+function renderPlan(){
+  const total = plan.length;
+  const done = plan.filter(x => x && x.done).length;
+  const chip = $("planchip");
+  if (!total){
+    chip.classList.add("hidden");
+    planOpen = false;
+    $("app").classList.remove("plan-open");
+    $("planlist").innerHTML = "";
+    return;
+  }
+  chip.classList.remove("hidden");
+  chip.textContent = t("plan") + " " + done + "/" + total + (planOpen ? "  ▾" : "  ▸");
+  chip.classList.toggle("active", planOpen);
+  $("plancount").textContent = done + "/" + total;
+  $("planfill").style.width = (total ? done * 100 / total : 0) + "%";
+  const list = $("planlist");
+  list.innerHTML = "";
+  const firstOpen = plan.findIndex(x => x && !x.done);
+  plan.forEach((x, i) => {
+    const d = document.createElement("div");
+    d.className = "planitem" + (x.done ? " done" : (i === firstOpen ? " cur" : ""));
+    d.innerHTML = '<span class="mk">' + (x.done ? "✓" : "○") + '</span><span></span>';
+    d.lastElementChild.textContent = (i+1) + ". " + (x.item || "");
+    list.appendChild(d);
+  });
+}
+$("planchip").onclick = () => {
+  planOpen = !planOpen;
+  $("app").classList.toggle("plan-open", planOpen);
+  renderPlan();
+};
+$("planclose").onclick = () => { planOpen = false; $("app").classList.remove("plan-open"); renderPlan(); };
+
+/* ---------------- settings ---------------- */
+$("settingsbtn").onclick = () => { loadPrefs(); $("settingsdlg").showModal(); };
+document.querySelectorAll("[data-close]").forEach(b => {
+  b.onclick = () => $(b.dataset.close).close();
+});
+$("aboutbtn").onclick = () => { $("aboutver").textContent = "Mingbird " + (window.__ver || ""); $("aboutdlg").showModal(); };
 $("p-save").onclick = () => {
   const tv = $("p-temp").value.trim();
   const prefs = {ctx: parseInt($("p-ctx").value),
@@ -409,46 +856,86 @@ $("p-save").onclick = () => {
                  num_predict: parseInt($("p-np").value),
                  think: $("p-think").value === "" ? null : ($("p-think").value === "1"),
                  sys_enable: $("p-sysen").checked, sys_text: $("p-systext").value};
-  fetch("/api/prefs", {method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify(prefs)}).then(()=>{ $("p-save").textContent = "✓"; setTimeout(()=>$("p-save").textContent=t("save"), 1200); });
+  const cloudBody = {enabled: $("p-clouden").checked,
+                     base_url: $("p-cloudbase").value.trim(),
+                     model: $("p-cloudmodel").value.trim(),
+                     api_key: $("p-cloudkey").value.trim()};
+  Promise.all([
+    fetch("/api/prefs", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(prefs)}),
+    fetch("/api/cloud", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(cloudBody)}).then(r=>r.json())
+  ]).then(([, cd]) => {
+      cloud = cd.cloud || cloud;
+      thinkState = prefs.think; updateThinkUI();
+      if (cloudBody.enabled && !cloud.enabled) addNote(t("cloud_incomplete"));
+      $("p-cloudkey").value = "";
+      updateModelName(); updateOfflineUI(lastOffline); refreshStatus();
+      $("p-save").textContent = "✓";
+      setTimeout(() => { $("p-save").textContent = t("save"); }, 1200);
+    });
 };
 function loadPrefs(){
   fetch("/api/status").then(r=>r.json()).then(d => {
     const p = d.prefs || {};
     $("p-ctx").value = p.ctx || 131072;
     $("p-temp").value = (p.temp === null || p.temp === undefined) ? "" : p.temp;
-    $("p-np").value = p.num_predict || 2048;
+    $("p-np").value = p.num_predict && p.num_predict > 0 ? p.num_predict : 2048;
     $("p-think").value = p.think === true ? "1" : (p.think === false ? "0" : "");
-    $("p-sysen").checked = !!p.sys_enable; $("p-systext").value = p.sys_text || "";
+    $("p-sysen").checked = !!p.sys_enable;
+    $("p-systext").value = p.sys_text || "";
     thinkState = p.think === true ? true : (p.think === false ? false : null);
-    applyThinkUI();
+    updateThinkUI();
+    cloud = d.cloud || cloud;
+    $("p-clouden").checked = !!cloud.enabled;
+    $("p-cloudbase").value = cloud.base_url || "";
+    $("p-cloudmodel").value = cloud.model || "";
+    $("p-cloudkey").value = "";
+    $("p-cloudkey").placeholder = cloud.has_key
+        ? (LANG === "zh" ? "已保存 · 留空不修改" : "saved · leave blank to keep")
+        : "sk-…";
   });
 }
 
-// ---------- status poll ----------
-let _lastModels = "";
+/* ---------------- status ---------------- */
+let lastModels = "";
 function refreshStatus(){
   fetch("/api/status").then(r=>r.json()).then(d => {
     window.__ver = d.version;
-    $("ver").textContent = d.version || "";
-    $("sessiontag").textContent = (t("session") || "session") + ": " + (d.session || "—");
+    $("ver").textContent = "MINGBIRD  " + (d.version || "");
+    lastOffline = !!d.offline;
+    cloud = d.cloud || cloud;
+    updateOfflineUI(lastOffline);
+    updateModelName();
     $("ollamadot").textContent = "Ollama " + (d.ollama_ok ? "✓" : "✗");
     $("ollamadot").className = d.ollama_ok ? "ok" : "bad";
-    const sel = $("model");
     const joined = (d.models || []).join("|");
-    if (joined !== _lastModels) {
-      _lastModels = joined;
-      if (d.models && d.models.length){
-        sel.disabled = false;
-        sel.innerHTML = d.models.map(m => `<option>${m}</option>`).join("");
-        sel.value = d.models[0];
-      } else {
-        sel.disabled = true;
-        sel.innerHTML = `<option>${t("offline") || "[ Ollama offline ]"}</option>`;
+    if (joined !== lastModels){
+      lastModels = joined;
+      models = d.models || [];
+      if (models.length && (!modelSel || !models.includes(modelSel))){
+        modelSel = models[0];
       }
     }
+    updateModelName();
   }).catch(()=>{});
 }
-addMsg("assistant", t("welcome"));   // 首屏欢迎语(与"新对话"一致)
-refreshStatus(); setInterval(refreshStatus, 10000); connect();
+
+/* ---------------- boot ---------------- */
+$("langbtn").onclick = () => {
+  LANG = LANG === "en" ? "zh" : "en";
+  localStorage.setItem("mb_lang", LANG);
+  applyLang();
+};
+applyLang();
+welcome();
+loadSessions();
+refreshStatus();
+refreshPlan();
+setInterval(refreshStatus, 10000);
+setInterval(refreshPlan, 2000);
+setInterval(loadSessions, 30000);
+connect();
 </script>
+</body>
+</html>

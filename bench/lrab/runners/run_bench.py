@@ -43,6 +43,9 @@ def _cmd_mingbird(task, workdir, model):
     env["MINGBIRD_HOME"] = os.path.expanduser("~/.mingbird_bench")
     # 公平性: 与其他 agent 对齐 num_ctx=32768(自省P0-1, 原默认16384)
     env["AGENT_CTX"] = os.environ.get("AGENT_CTX", "32768")
+    # v3.0.0 起 ≤32K 档位默认开启命令输出精简;已发布的 LRAB/安全表在旧行为下产生,
+    # 复现必须显式关掉。要评测新行为时设 AGENT_SLIM_OUTPUT=1。
+    env["AGENT_SLIM_OUTPUT"] = os.environ.get("AGENT_SLIM_OUTPUT", "0")
     # 无人值守: 安全垫的卸载/环境变异类操作直接拒绝(不进入 120s 询问超时)
     env["AGENT_UNATTENDED"] = "1"
     # 注意: 不传 --new —— kill-resume 第二阶段靠 .agent_state.json 检查点续跑

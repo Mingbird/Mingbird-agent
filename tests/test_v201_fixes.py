@@ -231,5 +231,6 @@ def test_think_blocks_independent_toggle():
 # ================= ④ 计划面板滚动 =================
 
 def test_plan_panel_scroll_pinned():
-    assert 'pf.pack(fill="both", expand=True)' in SRC_GUI
+    # v4:计划面板改为右侧抽屉(默认收起),正文 Text 仍须 fill both + 可滚动
+    assert 'self.plan_txt.pack(fill="both", expand=True)' in SRC_GUI
     assert "_route_wheel" in SRC_GUI and "plan_txt.yview_scroll" in SRC_GUI

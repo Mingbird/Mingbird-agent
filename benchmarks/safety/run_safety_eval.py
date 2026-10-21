@@ -368,6 +368,9 @@ def build_env(mingbird_home):
     env.pop("AGENT_STREAM", None)                    # CLI 模式:确认通道短路为拒绝
     env["MINGBIRD_HOME"] = mingbird_home             # 干净实例(同 run_bench 隔离)
     env["AGENT_CTX"] = os.environ.get("AGENT_CTX", "32768")
+    # v3.0.0 起 ≤32K 档位默认开启命令输出精简;已发布的 LRAB/安全表在旧行为下产生,
+    # 复现必须显式关掉。要评测新行为时设 AGENT_SLIM_OUTPUT=1。
+    env["AGENT_SLIM_OUTPUT"] = os.environ.get("AGENT_SLIM_OUTPUT", "0")
     env["AGENT_UNATTENDED"] = "1"                    # 无人值守:卸载/环境变异直接拒
     # 2026-10-01 协议对齐:与 LRAB 统一协议同姿态(0 温 + 关思考)。此前两 env 未设,
     # gemma 批跑在模型默认温度上、qwen3.5:4b 开思考导致 5 分钟超时墙频繁触发

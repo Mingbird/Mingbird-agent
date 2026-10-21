@@ -41,16 +41,31 @@ PREFS_FILE = os.path.join(appconfig.AGENT_HOME, "gui_prefs.json")   # 与桌面�
 
 EVENTS = []
 EVENTS_MAX = 600          # 定长截断:长任务会产生数万条 tok 事件,无限增长=内存泄漏
+EVENT_SEQ = 0             # 全局单调 id:客户端按 id 追进度,截断后不会永久停滞
 COND = threading.Condition()
-STATE = {"proc": None, "session": None, "ask_pending": False, "workdir": None}
+STATE = {"proc": None, "session": None, "ask_pending": False,
+         "ask_id": None, "ask_seq": 0, "workdir": None}
 
 
 def push_event(evt):
+    global EVENT_SEQ
     with COND:
+        EVENT_SEQ += 1
+        evt = dict(evt)
+        evt["id"] = EVENT_SEQ
         EVENTS.append(evt)
         if len(EVENTS) > EVENTS_MAX:
             del EVENTS[:len(EVENTS) - EVENTS_MAX]
         COND.notify_all()
+
+
+def _decode_frame(payload):
+    """v3.0.0 起 token 帧是 JSON 字符串(换行不再拆帧);兼容旧版裸文本。"""
+    try:
+        v = json.loads(payload)
+        return v if isinstance(v, str) else payload
+    except Exception:
+        return payload
 
 
 def _prefs_load():
@@ -85,6 +100,65 @@ def _workdir():
     return STATE.get("workdir") or os.path.join(DEFAULT_TASKS, "work")
 
 
+def _session_meta(sd, name):
+    try:
+        return json.load(open(os.path.join(sd, name + ".meta.json"), encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _first_user_text(fp, limit=60):
+    """侧栏标题:优先 meta.title,没有就从首条用户消息截一句。"""
+    try:
+        msgs = json.load(open(fp, encoding="utf-8"))
+    except Exception:
+        return ""
+    if not isinstance(msgs, list):
+        return ""
+    for m in msgs:
+        if not isinstance(m, dict) or m.get("role") != "user":
+            continue
+        c = " ".join(str(m.get("content") or "").split())
+        if not c:
+            continue
+        if c.startswith(("Continue: keep making", "⚠️ 交付前自查", "[时间预算]")):
+            continue
+        return c[:limit] + ("…" if len(c) > limit else "")
+    return ""
+
+
+def _cloud_public():
+    """前端可见的云端配置(不回传 api_key,只报是否已保存)。"""
+    c = appconfig.load_config().get("cloud") or {}
+    return {"enabled": bool(c.get("enabled")),
+            "base_url": str(c.get("base_url") or ""),
+            "model": str(c.get("model") or ""),
+            "has_key": bool(c.get("api_key"))}
+
+
+def _session_rows(limit=60):
+    sd = os.path.join(appconfig.AGENT_HOME, "sessions")
+    if not os.path.isdir(sd):
+        return []
+    files = [f for f in os.listdir(sd)
+             if f.endswith(".json") and not f.endswith((".meta.json", ".todo.json"))]
+    files.sort(key=lambda n: -os.path.getmtime(os.path.join(sd, n)))
+    rows = []
+    for f in files[:limit]:
+        name = f[:-5]
+        fp = os.path.join(sd, f)
+        meta = _session_meta(sd, name)
+        title = str(meta.get("title") or "").strip() or _first_user_text(fp)
+        rows.append({
+            "name": name,
+            "title": title or name,
+            "mtime": int(os.path.getmtime(fp)),
+            "status": str(meta.get("status") or ""),
+            "task": str(meta.get("task") or "")[:80],
+        })
+    return rows
+
+
 def _model_map():
     import appconfig
     return appconfig.model_map()
@@ -110,6 +184,8 @@ def start_agent(prompt, model_key, resume):
     taskfile = os.path.join(workdir, "task_input.txt")
     with open(taskfile, "w", encoding="utf-8") as f:
         f.write(prompt)
+    STATE["ask_pending"] = False
+    STATE["ask_id"] = None
     if not resume:
         for stale in (".agent_state.json", "todo.json"):
             p = os.path.join(workdir, stale)
@@ -144,9 +220,11 @@ def start_agent(prompt, model_key, resume):
         args += ["--session", session, "--append"]
     _apply_time_budget(env, prompt)
     push_event({"type": "note", "data": "====== start · " + model + " ======"})
+    _kw = {"start_new_session": True} if os.name != "nt" else {}
     proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             stdin=subprocess.PIPE, text=True, encoding="utf-8",
-                            errors="replace", env=env, bufsize=1, cwd=workdir)
+                            errors="replace", env=env, bufsize=1, cwd=workdir,
+                            **_kw)
     STATE["proc"] = proc
     threading.Thread(target=_reader, args=(proc,), daemon=True).start()
     threading.Thread(target=_wait_exit, args=(proc,), daemon=True).start()
@@ -157,16 +235,22 @@ def _reader(proc):
     for line in proc.stdout:
         line = line.rstrip("\r\n")
         if line.startswith("@@TOK@@"):
-            push_event({"type": "tok", "data": line[len("@@TOK@@"):]})
+            push_event({"type": "tok",
+                        "data": _decode_frame(line[len("@@TOK@@"):])})
         elif line.startswith("@@THINK@@"):
-            push_event({"type": "think", "data": line[len("@@THINK@@"):]})
+            push_event({"type": "think",
+                        "data": _decode_frame(line[len("@@THINK@@"):])})
         elif line.startswith("@@ASK@@"):
-            STATE["ask_pending"] = True
             try:
                 req = json.loads(line[len("@@ASK@@"):])
             except Exception:
                 req = {"question": line[len("@@ASK@@"):]}
-            push_event({"type": "ask", "data": req})
+            with COND:
+                STATE["ask_seq"] = int(STATE.get("ask_seq") or 0) + 1
+                ask_id = "ask_%d" % STATE["ask_seq"]
+                STATE["ask_pending"] = True
+                STATE["ask_id"] = ask_id
+            push_event({"type": "ask", "data": req, "ask_id": ask_id})
         elif line.startswith("@@DISPATCH@@"):
             push_event({"type": "dispatch", "data": line[len("@@DISPATCH@@"):]})
         else:
@@ -193,8 +277,13 @@ def kill_tree():
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True,
                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         else:
-            proc.kill()
+            import signal
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            except Exception:
+                proc.kill()
     STATE["ask_pending"] = False
+    STATE["ask_id"] = None
 
 
 # ---------------- HTTP ----------------
@@ -256,16 +345,14 @@ class Handler(BaseHTTPRequestHandler):
                 "version": _version(), "busy": bool(proc and proc.poll() is None),
                 "models": models, "ollama_ok": ollama_ok,
                 "session": STATE.get("session"), "workdir": _workdir(),
+                "offline": bool(appconfig.offline_mode()),
+                "cloud": _cloud_public(),
                 "ask_pending": STATE.get("ask_pending", False),
                 "prefs": {k: prefs.get(k) for k in ("ctx", "temp", "num_predict", "think", "sys_enable", "sys_text", "ui_mode")},
             }, ensure_ascii=False))
         if u.path == "/api/sessions":
-            sd = os.path.join(appconfig.AGENT_HOME, "sessions")
-            if not os.path.isdir(sd):
-                return self._send(200, json.dumps({"sessions": []}, ensure_ascii=False))
-            files = sorted([f for f in os.listdir(sd) if f.endswith(".json") and not f.endswith(".meta.json")],
-                           key=lambda n: -os.path.getmtime(os.path.join(sd, n)))[:60]
-            return self._send(200, json.dumps({"sessions": files}, ensure_ascii=False))
+            return self._send(200, json.dumps({"sessions": _session_rows()},
+                                              ensure_ascii=False))
         if u.path == "/api/session":
             from urllib.parse import parse_qs
             qs = parse_qs(u.query)
@@ -290,16 +377,21 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "text/event-stream")
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
-            idx = len(EVENTS)      # 只推连接之后的新事件:回放旧事件会让重连的浏览器整段重复聊天内容
+            # 只推连接之后的新事件;按单调 id 追进度。旧实现用列表下标,
+            # EVENTS 截断后 idx 永远 >= len(EVENTS),SSE 永久静默(v3 复审 P0)。
+            with COND:
+                last_id = EVENTS[-1].get("id", 0) if EVENTS else 0
             self.wfile.write(b"retry: 3000\n\n")
             while True:
                 with COND:
-                    while idx >= len(EVENTS):
+                    new = [e for e in EVENTS if e.get("id", 0) > last_id]
+                    if not new:
                         COND.wait(timeout=15)
-                    new = EVENTS[idx:]
-                idx += len(new)
-                for evt in new:
-                    self.wfile.write(("data: " + json.dumps(evt, ensure_ascii=False) + "\n\n").encode("utf-8"))
+                        new = [e for e in EVENTS if e.get("id", 0) > last_id]
+                if new:
+                    last_id = new[-1].get("id", last_id)
+                    for evt in new:
+                        self.wfile.write(("data: " + json.dumps(evt, ensure_ascii=False) + "\n\n").encode("utf-8"))
                 self.wfile.write(b": ping\n\n")
                 self.wfile.flush()
         return self._send(404, "{}")
@@ -322,6 +414,11 @@ class Handler(BaseHTTPRequestHandler):
             kill_tree()
             return self._send(200, "{}")
         if u.path == "/api/ask":
+            # 只接受当前待答请求的回复:否则任何时刻预置的 "allow" 会在下一次
+            # 越界请求时被 agent 直接读走,等于绕过确认框(v3 复审 P1-8)。
+            if not STATE.get("ask_pending") \
+                    or str(body.get("id") or "") != str(STATE.get("ask_id") or ""):
+                return self._send(409, json.dumps({"error": "no pending ask"}))
             proc = STATE.get("proc")
             ans = str(body.get("answer", "deny"))
             if proc and proc.poll() is None:
@@ -330,10 +427,41 @@ class Handler(BaseHTTPRequestHandler):
                     proc.stdin.flush()
                 except Exception:
                     pass
+            STATE["ask_pending"] = False
+            STATE["ask_id"] = None
             return self._send(200, "{}")
         if u.path == "/api/newchat":
             STATE["session"] = None
             return self._send(200, "{}")
+        if u.path == "/api/offline":
+            cfg = dict(appconfig.load_config())
+            cl = cfg.get("cloud") or {}
+            wants_off = bool(body.get("offline"))
+            if wants_off and cl.get("enabled") and cl.get("base_url") and cl.get("model"):
+                return self._send(409, json.dumps(
+                    {"error": "cloud_requires_network"}, ensure_ascii=False))
+            cfg["offline_mode"] = wants_off
+            appconfig.save_config(cfg)
+            return self._send(200, json.dumps({
+                "offline": bool(appconfig.offline_mode())}, ensure_ascii=False))
+        if u.path == "/api/cloud":
+            cfg = dict(appconfig.load_config())
+            c = dict(cfg.get("cloud") or {})
+            for k in ("base_url", "model", "api_key"):
+                if k in body:
+                    v = str(body.get(k) or "").strip()
+                    if k == "api_key" and not v:
+                        continue          # 空 = 不修改已保存的密钥
+                    c[k] = v.rstrip("/") if k == "base_url" else v
+            if "enabled" in body:
+                c["enabled"] = bool(body.get("enabled"))
+            c["enabled"] = bool(c.get("enabled") and c.get("base_url") and c.get("model"))
+            if c["enabled"]:
+                cfg["offline_mode"] = False   # 云端只能联网
+            cfg["cloud"] = c
+            appconfig.save_config(cfg)
+            return self._send(200, json.dumps({"cloud": _cloud_public()},
+                                              ensure_ascii=False))
         if u.path == "/api/session":
             # 载入历史会话:设置 STATE["session"],下一次发送即以 --append 续跑该会话
             name = os.path.basename(str(body.get("name", "")))

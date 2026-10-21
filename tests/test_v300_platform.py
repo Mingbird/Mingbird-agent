@@ -76,6 +76,14 @@ def test_prompt_block_simulated_macos():
         pp._PROFILE = None
 
 
+def test_prompt_block_unattended_wording():
+    """无人值守下是硬拒不是确认——提示词不能教模型"继续干活即可"。"""
+    import platform_profile as pp
+    b = pp.prompt_block(full=True, unattended=True)
+    assert "无人值守" in b and "拒绝" in b
+    assert "用户确认" not in b
+
+
 def test_prompt_block_minimal_is_single_line():
     import platform_profile as pp
     pp._PROFILE = None
@@ -169,6 +177,24 @@ def test_coerce_boolean_garbage_errors_symmetrically():
     assert err2 is None and out2["done"] is False
 
 
+def test_coerce_empty_optional_number_passthrough():
+    """可选数值参数填空串 = 未提供(v2.1.5 行为):不得报错。"""
+    import ollama_agent as A
+    out, err = A._coerce_args("read_file",
+                              {"path": "x", "start_line": "", "end_line": ""})
+    assert err is None
+    assert out["start_line"] == "" and out["end_line"] == ""
+
+
+def test_coerce_accepts_one_zero_and_plus_numbers():
+    """布尔 "1"/"0" 与 +N / 下划线数字是常见编码,三态复核后纳入。"""
+    import ollama_agent as A
+    out, err = A._coerce_args("todo", {"action": "update", "index": "+1", "done": "1"})
+    assert err is None and out["index"] == 1 and out["done"] is True
+    out2, err2 = A._coerce_args("todo", {"action": "update", "index": "1_000", "done": "0"})
+    assert err2 is None and out2["index"] == 1000 and out2["done"] is False
+
+
 def test_coerce_unknown_tool_untouched():
     import ollama_agent as A
     args = {"anything": "1"}
@@ -214,43 +240,71 @@ def test_risk_classify_registry_confirms_or_blocks(tmp_path, monkeypatch):
     assert A._risk_classify("reg add HKCU\\Software\\X /v y", str(tmp_path)) is None
 
 
+def test_gate_registry_reaches_risk_ring(tmp_path, monkeypatch):
+    """reg add/delete 此前已在 _DANGER_CMD 里被硬拒,新分级环永远看不到
+    (v3.0.0 复审 P1-1)。现在应与 setx 同门:无人值守拒、允许开关放行。"""
+    import ollama_agent as A
+    monkeypatch.setenv("AGENT_ALLOW_ENV_MUTATION", "0")
+    monkeypatch.setattr(A, "_UNATTENDED", True)
+    r = A._gate_check("run_bash",
+                      {"command": "reg add HKCU\\Software\\X /v y /t REG_SZ /d z"},
+                      str(tmp_path))
+    assert r and "安全垫" in r and "命令含危险操作" not in r
+    r2 = A._gate_check("run_bash", {"command": "reg delete HKLM\\Bad /f"},
+                       str(tmp_path))
+    assert r2 and "安全垫" in r2 and "命令含危险操作" not in r2
+    monkeypatch.setenv("AGENT_ALLOW_ENV_MUTATION", "1")
+    assert A._gate_check("run_bash",
+                         {"command": "reg add HKCU\\Software\\X /v y"},
+                         str(tmp_path)) is None
+
+
 # ================= ⑤ 命令输出精简(P1-7 一期:上下文紧张触发,含手动开关) =================
 
-def test_slim_output_default_off(fresh_appconfig):
-    assert fresh_appconfig.slim_output_mode() is False
+def test_slim_output_default_auto(fresh_appconfig):
+    # None = 自动:≤32K 才开。三态是 v3.0.0 复审后的修复。
+    assert fresh_appconfig.slim_output_mode() is None
 
 
 def test_slim_output_env_and_config(fresh_appconfig, monkeypatch):
-    monkeypatch.setenv("AGENT_SLIM_OUTPUT", "1")
-    fresh_appconfig._cache = None
-    assert fresh_appconfig.slim_output_mode() is True
+    for v, want in (("1", True), ("0", False), ("true", True), ("off", False)):
+        monkeypatch.setenv("AGENT_SLIM_OUTPUT", v)
+        fresh_appconfig._cache = None
+        assert fresh_appconfig.slim_output_mode() is want, v
     monkeypatch.setenv("AGENT_SLIM_OUTPUT", "")
-    fresh_appconfig._cache = None
     cfg = fresh_appconfig.load_config()
-    cfg["slim_output"] = True
-    fresh_appconfig.save_config(cfg)
-    fresh_appconfig._cache = None
-    assert fresh_appconfig.slim_output_mode() is True
+    for v, want in (("on", True), ("off", False), ("auto", None),
+                    (True, True), (False, None)):
+        cfg["slim_output"] = v
+        fresh_appconfig.save_config(cfg)
+        fresh_appconfig._cache = None
+        assert fresh_appconfig.slim_output_mode() is want, v
 
 
 def test_agent_loop_pins_slim_output_wiring():
-    """自动条件=上下文档位≤32K + 手动开关。不按模型大小自动——小模型配长上下文/
-    大模型配短上下文都常见,档位才反映真实预算(用户 10-21 二次纠偏定案);≤4B 的
-    edit_file 等协议降级仍由 _small_model 驱动,与输出瘦身解耦。"""
-    assert ("_SMALL_MODEL_MODE = (appconfig.slim_output_mode() or CTX_BUDGET <= 32768)") in SRC_OA
-    # 模型大小不再喂给输出瘦身标志(防回归)
+    """三态:auto(≤32K)/强制开/强制关;不按模型大小自动。≤4B 的 edit_file
+    等协议降级仍由 _small_model 驱动,与输出瘦身解耦。"""
+    assert "_slim_pref = appconfig.slim_output_mode()" in SRC_OA
+    assert ("_SLIM_OUTPUT_MODE = (CTX_BUDGET <= 32768 if _slim_pref is None else _slim_pref)"
+            in SRC_OA)
     assert "bool(_small_model) or appconfig.slim_output_mode()" not in SRC_OA
 
 
-def test_slim_output_triggers_on_small_ctx_budget(fresh_appconfig):
-    """档位 ≤32K 时,任何模型都自动瘦身;档位大且开关关时不瘦身。"""
+def test_slim_output_effective_three_state(fresh_appconfig):
+    """auto:≤32K 开、大档位关;显式 on/off 覆盖档位(基准可复现旧数据)。"""
     import ollama_agent as A
     saved = A.CTX_BUDGET
+    def eff(pref, ctx):
+        return (ctx <= 32768 if pref is None else pref)
     try:
         A.CTX_BUDGET = 32768
-        assert (fresh_appconfig.slim_output_mode() or A.CTX_BUDGET <= 32768) is True
+        assert eff(fresh_appconfig.slim_output_mode(), A.CTX_BUDGET) is True
         A.CTX_BUDGET = 131072
-        assert (fresh_appconfig.slim_output_mode() or A.CTX_BUDGET <= 32768) is False
+        assert eff(fresh_appconfig.slim_output_mode(), A.CTX_BUDGET) is False
+        assert eff(True, A.CTX_BUDGET) is True       # 强制开
+        assert eff(False, A.CTX_BUDGET) is False     # 强制关
+        A.CTX_BUDGET = 16384
+        assert eff(False, A.CTX_BUDGET) is False     # 小档位也能关(旧版关不掉)
     finally:
         A.CTX_BUDGET = saved
 
@@ -260,9 +314,14 @@ def test_slim_output_triggers_on_small_ctx_budget(fresh_appconfig):
 def test_gui_delegates_platform_cmds():
     assert "platform_profile.open_folder_cmd(path)" in SRC_GUI
     assert "platform_profile.open_doc_cmd(path)" in SRC_GUI
+    # 便携模式:MINGBIRD_HOME 下 GUI 与 agent 必须读同一个 home
+    assert "AGENT_HOME = appconfig.AGENT_HOME" in SRC_GUI
+    # 会话侧边栏不得把 .todo.json 快照当成一个会话列出来
+    assert 'f.endswith((".meta.json", ".todo.json"))' in SRC_GUI
 
 
-def test_gui_slim_output_checkbox_and_i18n():
-    assert "命令输出精简(超长输出只留末尾,小上下文档位最受益)" in SRC_GUI   # 复选框
-    assert '_cfg["slim_output"] = bool(slimout.get())' in SRC_GUI          # 存进 config 层
-    assert '_T["命令输出精简(超长输出只留末尾,小上下文档位最受益)"]' in SRC_GUI  # 英文词条
+def test_gui_slim_output_tristate_and_i18n():
+    assert "命令输出精简" in SRC_GUI
+    assert '_slim_map = {None: _t("自动(≤32K)"), True: _t("开"), False: _t("关")}' in SRC_GUI
+    assert '_cfg["slim_output"] = ("auto" if _slim_pick is None' in SRC_GUI
+    assert '_T["自动(≤32K)"] = "Auto (≤32K)"' in SRC_GUI

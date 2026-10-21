@@ -3,9 +3,13 @@
 """Mingbird UI design tokens & dual-theme engine (Tk/ttkbootstrap).
 
 双主题对等:light/dark 两套完整令牌;ui_mode = auto(跟随系统) | light | dark。
-Tokens 命名:bg/surface/elevated/text/muted/primary/accent/border/sel。
+Tokens 命名:bg/sidebar surface/elevated/text/muted/faint/primary/accent/border/sel。
+v4 UI(侧边栏 + 对话 + 计划抽屉)在旧令牌之上补 side/faint/soft/track/danger/ok;
+旧键全部保留,旧对话框与 ttk 主题不受影响。
 """
 import os
+import subprocess
+import sys
 
 try:
     import winreg
@@ -13,29 +17,64 @@ except ImportError:
     winreg = None
 
 PRIMARY_LIGHT = "#0F8A7E"   # 鸣翠
-PRIMARY_DARK = "#1FA396"
-ACCENT = "#F2A93B"          # 冠金
+PRIMARY_DARK = "#3FBFAF"
+ACCENT = "#E8A33D"          # 冠金
 
 THEMES = {
     "light": {
-        "ttk_theme": "flatly", "bg": "#F6F5F2", "surface": "#FFFFFF",
-        "elevated": "#EFEDE8", "text": "#23282C", "muted": "#7A838B",
-        "primary": PRIMARY_LIGHT, "primary_text": "#FFFFFF",
-        "accent": ACCENT, "border": "#DCD8D0", "sel": "#DDEEEB",
-        "user_bubble": "#E4F1EF", "code_bg": "#F0EFEB",
+        "ttk_theme": "flatly",
+        "bg": "#F7F6F2", "side": "#F1F0EA", "surface": "#FFFFFF",
+        "card": "#FFFFFF", "elevated": "#EFEDE8",
+        "text": "#1E2226", "muted": "#6F767D", "faint": "#9AA0A6",
+        "primary": PRIMARY_LIGHT, "primary_hover": "#0C786D",
+        "primary_text": "#FFFFFF",
+        "accent": ACCENT, "border": "#E4E2DA", "sel": "#DDEEEB",
+        "soft": "#E1F0EC", "track": "#E4E2DA",
+        "user_bubble": "#E6F1EE", "user": "#E6F1EE",
+        "code_bg": "#F2F1EC",
+        "danger": "#C4554D", "danger_fill": "#C4554D", "ok": "#2E9E6B",
+        "warn": "#B7791F",
     },
     "dark": {
-        "ttk_theme": "darkly", "bg": "#1E2226", "surface": "#262B31",
-        "elevated": "#2E343B", "text": "#E8EAED", "muted": "#98A2AB",
-        "primary": PRIMARY_DARK, "primary_text": "#0E1512",
-        "accent": ACCENT, "border": "#3A4148", "sel": "#204441",
-        "user_bubble": "#24403C", "code_bg": "#191D21",
+        "ttk_theme": "darkly",
+        "bg": "#141619", "side": "#0E1012", "surface": "#1B1E22",
+        "card": "#1F2327", "elevated": "#22262B",
+        "text": "#E8EBEE", "muted": "#98A0A8", "faint": "#6F777F",
+        "primary": PRIMARY_DARK, "primary_hover": "#55D0C0",
+        "primary_text": "#0E1512",
+        "accent": "#E8B15C", "border": "#2A2F35", "sel": "#204441",
+        "soft": "#1B3A36", "track": "#2A2F35",
+        "user_bubble": "#1D3A35", "user": "#1D3A35",
+        "code_bg": "#24282D",
+        "danger": "#E07A72", "danger_fill": "#B3403A", "ok": "#4CC38A",
+        "warn": "#E8B15C",
     },
 }
 
 
 def system_prefers_dark():
-    """跟随系统:读 Windows AppsUseLightTheme;非 Windows/读不到默认 dark。"""
+    """跟随系统:Windows 读注册表;macOS 问 defaults;Linux 问 gsettings。
+    读不到时保守回到深色(旧行为),不影响显式 light/dark 选择。"""
+    if sys.platform == "darwin":
+        try:
+            r = subprocess.run(["defaults", "read", "-g", "AppleInterfaceStyle"],
+                               capture_output=True, timeout=2)
+            return r.returncode == 0 and b"Dark" in r.stdout
+        except Exception:
+            return True
+    if sys.platform.startswith("linux"):
+        try:
+            r = subprocess.run(
+                ["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"],
+                capture_output=True, timeout=2)
+            out = (r.stdout or b"").lower()
+            if b"dark" in out:
+                return True
+            if b"default" in out or b"light" in out:
+                return False
+        except Exception:
+            pass
+        return True
     if winreg is None:
         return True
     try:
@@ -71,10 +110,10 @@ def apply_tokens(style, root, tk_mod, mode, widgets=None):
         style.configure("TFrame", background=t["surface"])
         style.configure("TLabel", background=t["surface"], foreground=t["text"])
         style.configure("card.TFrame", background=t["bg"])
-        style.configure("rail.TFrame", background=t["elevated"])
-        style.configure("rail.TLabel", background=t["elevated"], foreground=t["text"])
+        style.configure("rail.TFrame", background=t["side"])
+        style.configure("rail.TLabel", background=t["side"], foreground=t["text"])
         style.configure("secondary.TLabel", background=t["surface"], foreground=t["muted"])
-        style.configure("status.TFrame", background=t["elevated"])
+        style.configure("status.TFrame", background=t["side"])
     except Exception:
         pass
     # 裸 Tk 控件逐个上色

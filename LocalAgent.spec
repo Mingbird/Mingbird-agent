@@ -2,7 +2,7 @@
 from PyInstaller.utils.hooks import collect_data_files
 
 datas = [('skills', 'skills'), ('AGENTS.md', '.'), ('README.md', '.'), ('RELEASE_NOTES.md', '.'), ('LICENSE', '.'), ('VERSION', '.'), ('CHANGELOG.md', '.'),
-         ('stt', 'stt'), ('app.ico', '.')]
+         ('stt', 'stt'), ('app.ico', '.'), ('app.png', '.')]
 datas += collect_data_files('ttkbootstrap')
 datas += collect_data_files('tkinterdnd2')   # tkdnd 拖拽扩展的二进制
 

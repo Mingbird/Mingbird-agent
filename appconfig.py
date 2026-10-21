@@ -26,11 +26,10 @@ DEFAULTS = {
                                                # = OpenAI 兼容本地服务(LM Studio :1234/v1、
                                                #   llama.app :9931/v1、llama-server :8080/v1、
                                                #   Jan/vLLM 等),api_key 可空
-    "slim_output": False,                      # v3.0.0 命令输出精简:超长命令输出只留
-                                               # 末尾(run_bash/run_python,省上下文)。
-                                               # 自动条件=上下文档位≤32K(agent_loop,
-                                               # 档位才反映真实预算,与模型大小无关);
-                                               # 此项=其余场景的手动开关,默认关
+    "slim_output": "auto",                     # 命令输出精简三态:auto/on/off。
+                                               # auto=上下文档位 ≤32K 自动开;on/off
+                                               # 强制开关(基准复现/用户偏好)。超长
+                                               # 输出只留末尾(run_bash/run_python)
 }
 
 _cache = None
@@ -78,14 +77,27 @@ def offline_mode():
     return bool(load_config().get("offline_mode", False))
 
 def slim_output_mode():
-    """v3.0.0 命令输出精简(手动开关):环境变量 AGENT_SLIM_OUTPUT > config.json slim_output。
-    开启时 run_bash/run_python 超长输出只保留末尾。自动条件(上下文档位≤32K)在
-    agent_loop 判定——档位才反映真实预算,与模型大小无关(小模型配长上下文/
-    大模型配短上下文都常见);本开关供其余场景手动开启,默认关=行为与旧版一致。"""
+    """命令输出精简的手动三态:None=自动(≤32K 开), True=强制开, False=强制关。
+
+    优先级:环境变量 AGENT_SLIM_OUTPUT(1/0) > config.json slim_output(auto/on/off)。
+    v3.0.0 首版把手动值当成"只能额外开",≤32K 时无法关闭,基准也无法复现旧数据;
+    三态让自动规则仍默认生效,同时保留明确出口(2026-10-21 复审修复)。"""
     env = os.environ.get("AGENT_SLIM_OUTPUT", "").strip().lower()
-    if env:
-        return env in ("1", "true", "yes", "on")
-    return bool(load_config().get("slim_output", False))
+    if env in ("1", "true", "yes", "on"):
+        return True
+    if env in ("0", "false", "no", "off"):
+        return False
+    v = load_config().get("slim_output", "auto")
+    if isinstance(v, bool):
+        # v3.0.0 旧值兼容:True=强制开;False 当时是"手动关"(实际被 OR 盖掉),
+        # 现在按"自动"解释,避免升级后行为突然变化。
+        return True if v else None
+    v = str(v).strip().lower()
+    if v in ("on", "true", "1", "yes"):
+        return True
+    if v in ("off", "false", "0", "no"):
+        return False
+    return None
 
 def cloud_provider():
     """v1.8.0 云端 provider 配置(OpenAI 兼容端点)。返回 dict 或 {}。

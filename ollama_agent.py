@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """自建本地 AI Agent — 小模型特化版
 针对本地小模型优化:
-- 极简前置开销(SYSTEM ~120 token + 核心工具 ~480 token,共 ~600 token)
+- 极简前置开销(SYSTEM + 核心工具估算 ~1250 token,平台块另动态注入)
 - 渐进式披露:核心工具默认就绪,高级工具按需 enable,技能按需 load
 - 修复:上下文用量读取(ollama 返回 prompt_eval_count,不是 usage.prompt_tokens)
 - 容错:瞬时 API 错误指数退避重试,连续失败则优雅退出
@@ -20,6 +20,8 @@
                     {"type":"openai","base_url":...}=LM Studio/llama.app/
                     llama-server/Jan/vLLM 等 OpenAI 兼容本地服务(v2.1.1)
   AGENT_SYSTEM_FILE 自定义系统提示文件路径
+  AGENT_SLIM_OUTPUT 命令输出精简三态:1=强制开,0=强制关,未设置=自动
+                    (上下文档位 ≤32K 自动开);config.json slim_output 同义
 
 用法:
   python ollama_agent.py <model> <taskfile> <workdir> [--session NAME] [--new] [--append]
@@ -134,22 +136,35 @@ STREAM = os.environ.get("AGENT_STREAM") == "1"   # GUI 开流式时置 1
 # 默认 0=关闭:不注入任何消息、不写任何文件,行为与未启用版本完全一致。
 # 这是 harness 能力(与 checkpoint 同类):若在公开基准批次启用,必须在 METHODS 披露。
 BUDGET_SEC = float(os.environ.get("AGENT_TIME_BUDGET_SEC", "0") or 0)
-# 小模型(≤4B)工具输出瘦身开关。agent_loop 按模型参数量置位(模块级全局,run_tool 读取)。
-# 依据:agent-mini 4b 在 LH-01/02 反常强(LH 0.93/0.94)——轻量上下文负担是小模型的杠杆。
-_SMALL_MODEL_MODE = False
+# 命令输出精简开关(模块级全局,run_tool 读取)。agent_loop 每个任务置位:
+# 手动三态(slim_output: auto/on/off)优先;auto 时按上下文档位 ≤32K 开启。
+# 依据:长命令输出是上下文大头;档位才反映真实预算,与模型参数量无关(v3.0.0 定案)。
+_SLIM_OUTPUT_MODE = False
 
 def _stream_tok(tok):
-    """把流式 token 打成一行的 @@TOK@@ 前缀,供 GUI 实时渲染(逐 token flush)。"""
+    """流式 token 一帧一行。JSON 编码保证 token 内的换行不会拆帧;
+    GUI/WebUI 用 _parse_stream_frame 解码(兼容旧版裸文本帧)。"""
     try:
-        print("@@TOK@@" + tok, flush=True)
+        print("@@TOK@@" + json.dumps(tok, ensure_ascii=False), flush=True)
     except Exception:
         pass
 
 def _stream_think(tok):
     try:
-        print("@@THINK@@" + tok, flush=True)
+        print("@@THINK@@" + json.dumps(tok, ensure_ascii=False), flush=True)
     except Exception:
         pass
+
+
+def _parse_stream_frame(payload):
+    """解码 @@TOK@@/@@THINK@@ 载荷。旧版直接拼原文;新版是 JSON 字符串。"""
+    try:
+        v = json.loads(payload)
+        if isinstance(v, str):
+            return v
+    except Exception:
+        pass
+    return payload
 
 def _find_ollama_exe():
     """定位 ollama.exe:配置/环境变量指定 > PATH > 常见安装目录。不写死任何用户名/机器信息。"""
@@ -260,7 +275,11 @@ def system_prompt():
     # v3.0.0:平台信息块(aider 式)。动态注入,SYSTEM 常量与出厂 prefill 钉子不动。
     # 小模型在 Windows cmd 里写 ls/grep、在 POSIX 里写 C:\ 路径是高频翻车点,
     # 平台真相此前从未告知模型。
-    base += "\n" + _pp.prompt_block()
+    # 子 agent 没有命令工具(_CHILD_SYSTEM 明说),平台命令块只会浪费 token;
+    # 无人值守下危险操作是硬拒,措辞必须相应调整(复审 P2-7)。
+    if _child_sandbox is None:
+        base += "\n" + _pp.prompt_block(
+            unattended=(os.environ.get("AGENT_UNATTENDED") == "1"))
     return base
 
 def _decode_console(raw):
@@ -402,7 +421,7 @@ TOOLS = CORE_TOOLS  # 默认核心;enable_tools 后追加
 # 小模型常把 number/boolean 参数传成字符串(todo index="1"/done="true",Cline ollama
 # issue 群的同类坑),按内置 schema 静默校正;校正不了返回结构化错误喂回模型
 # (错误里带参数名+期望类型+收到的值,模型可自救)。MCP 工具 schema 动态,不在此列。
-_NUM_RE = re.compile(r"^-?\d+(\.\d+)?$")
+_NUM_RE = re.compile(r"^[+-]?\d[\d_]*(\.[\d_]+)?$")
 _ARG_TYPES = {d["function"]["name"]: {k: v.get("type")
                for k, v in d["function"].get("parameters", {}).get("properties", {}).items()}
               for d in CORE_TOOLS + ADVANCED_TOOLS}
@@ -424,10 +443,14 @@ def _coerce_args(name, args):
         if not isinstance(v, str):
             continue
         s = v.strip()
+        if s == "":
+            # 可选字段填空串 = 未提供:旧版工具按 falsy 兜底(如 read_file 全量读取)。
+            # v3.0.0 首版会报错,回归为放行(小模型高频写法)。
+            continue
         if want == "number" and _NUM_RE.match(s):
             out[k] = float(s) if "." in s else int(s)
-        elif want == "boolean" and s.lower() in ("true", "false"):
-            out[k] = s.lower() == "true"
+        elif want == "boolean" and s.lower() in ("true", "false", "1", "0"):
+            out[k] = s.lower() in ("true", "1")
         else:
             return args, (f"[tool error: {name} 参数 {k} 需要 {want} 类型"
                           f"(收到字符串: {s[:40]}),请修正后重试。]")
@@ -1311,7 +1334,7 @@ def child_system_prompt():
 
 _SYSTEM_DIRS = ("\\windows\\", "\\program files\\", "\\system32\\", "/windows/", "/program files/", "/usr", "/etc/", "/bin/", "/root")
 _DANGER_CMD = ("rm -rf", "rm -fr", "format c:", "format c:\\", "del /s /q c:", "rd /s /q c:\\", "diskpart", "mkfs", "shutdown", "taskkill /f /im",
-               "curl | bash", "curl | sh", "wget | bash", "reg add", "reg delete", "netsh", "sc create", "certutil", "del c:\\*",
+               "curl | bash", "curl | sh", "wget | bash", "netsh", "sc create", "certutil", "del c:\\*",
                # 注:sc create 建服务=持久化后门路径→环1硬拒;sc delete 走环2 询问/无人值守拒(不对称是有意的)
                "rm -rf /", "rm -fr /", "sudo rm",
                "vssadmin delete", "bcdedit", "cipher /w", "format ", "del /f /s /q c:", "wipefs", "of=/dev/",
@@ -1355,7 +1378,7 @@ def _risk_classify(cmd, workdir):
         if os.environ.get("AGENT_ALLOW_ENV_MUTATION") == "1":
             return None
         if _UNATTENDED:
-            return ("[安全垫:检测到系统环境变更(setx/计划任务/服务删除),无人值守模式下默认拒绝。"
+            return ("[安全垫:检测到系统环境变更(setx/计划任务/服务删除/注册表写入),无人值守模式下默认拒绝。"
                     "确需执行:设置 AGENT_ALLOW_ENV_MUTATION=1 后重试。]")
         allow, allok, msg = _ask_user_confirm("run_bash", f"env-mutate: {cmd[:60]}", workdir, "修改系统环境")
         return None if allow else (msg or "[安全垫:系统环境变更被拒绝]")
@@ -1841,9 +1864,9 @@ def run_tool(name, args, workdir, crawl_state=None):
                     except Exception: out_s, err_s = "", ""
                     return _format_bash_out(proc.returncode or 1,
                                             (out_s or "")[:4000] + f"\n[已超时:{BASH_TIMEOUT} 秒上限,进程树已终止 · timed out after {BASH_TIMEOUT}s]",
-                                            err_s or "", small_model=_SMALL_MODEL_MODE)
+                                            err_s or "", small_model=_SLIM_OUTPUT_MODE)
                 return _format_bash_out(proc.returncode, out_s or "", err_s or "",
-                                        small_model=_SMALL_MODEL_MODE)
+                                        small_model=_SLIM_OUTPUT_MODE)
             finally:
                 try: os.remove(script)
                 except Exception: pass
@@ -1890,10 +1913,10 @@ def run_tool(name, args, workdir, crawl_state=None):
                 note = f"\n[已超时:{BASH_TIMEOUT} 秒上限,进程树已终止 · timed out after {BASH_TIMEOUT}s]"
                 return _format_bash_out(proc.returncode or 1,
                                         (out_s or "")[:4000] + note,
-                                        err_s or "", small_model=_SMALL_MODEL_MODE)
+                                        err_s or "", small_model=_SLIM_OUTPUT_MODE)
             rc = proc.returncode
             out = _format_bash_out(rc, out_s or "", err_s or "",
-                                   small_model=_SMALL_MODEL_MODE)
+                                   small_model=_SLIM_OUTPUT_MODE)
             if _snapped:
                 out += f"\n[已自动备份可回滚: {'、'.join(_snapped)} → 同名.bak]"
             # 常见 Linux 绝对路径幻觉(/workspace /data /tmp 等),给提示
@@ -3302,8 +3325,8 @@ def _save_elapsed(workdir, sec):
 
 
 def _format_bash_out(returncode, stdout, stderr, small_model=False):
-    """run_bash 结果格式化。小模型(≤4B)做输出瘦身:只保留末尾(测试摘要/报错在末尾),
-    显著降低长视野修复流水线里"反复跑测试"的上下文成本,并给出取全文的逃生通道。"""
+    """run_bash 结果格式化。命令输出精简(上下文预算紧张时)只保留末尾——
+    测试摘要/报错通常在末尾,可显著降低长流水线的上下文成本,并给出取全文的逃生通道。"""
     out = f"[exit {returncode}]\nSTDOUT:\n{stdout[-5000:]}\nSTDERR:\n{stderr[-2000:]}"
     # exit 9009 + 零输出 = Windows 找不到该命令。典型:python3 是应用执行别名桩,
     # 静默退出 9009 且 stdout/stderr 全空——不解释就是 7 连败空转(WF-08 12b 实证:
@@ -3314,7 +3337,7 @@ def _format_bash_out(returncode, stdout, stderr, small_model=False):
                 "heredoc/cat/grep 等 bash 专用语法在此也不可用,写文件请用 create_file 工具。]")
     if small_model and (len(stdout) > 2500 or len(stderr) > 1200):
         out = (f"[exit {returncode}]\nSTDOUT(末尾):\n{stdout[-2500:]}\nSTDERR(末尾):\n{stderr[-1200:]}"
-               "\n[输出已瘦身(小模型上下文减负),只保留末尾的摘要/报错。"
+               "\n[超长命令输出已精简(只保留末尾的摘要/报错;上下文预算紧张时的保护)。"
                "需要完整输出时:run_bash 执行 `命令 > out.txt 2>&1` 再 read_file 分段读。]")
     return out
 
@@ -3594,7 +3617,7 @@ def _maybe_parallel_dispatch(model, messages, workdir, session):
 
 def agent_loop(model, messages, workdir, session, budget_sec=None):
     global _active_tools
-    global _SMALL_MODEL_MODE   # v3.0.0:命令输出精简在下方按"开关/档位"赋值;
+    global _SLIM_OUTPUT_MODE   # v3.0.0:命令输出精简在下方按"开关/档位"赋值;
                                # 子 agent 派发路径不经此行(其自身走 agent_loop)
     _allow_all.clear()   # "允许全部(本轮)"以任务为界:新任务重新计数
     fails = 0
@@ -3631,8 +3654,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     test_guard_warns = 0
     if _child_sandbox is not None:
         # 子 agent 派发的都是确定性机械任务,永不按"问答"处理:问答路径会换掉沙箱
-        # 系统提示(_CHILD_SYSTEM)、卸掉产出工具,并把小模型瘦身(_SMALL_MODEL_MODE)
-        # 一并关掉。子 agent 的分类只取决于自身任务文本,不能依赖提示模板里恰好
+        # 系统提示(_CHILD_SYSTEM)、卸掉产出工具。命令输出精简是上下文预算
+        # 开关,与问答/子 agent 判定无关。子 agent 的分类只取决于自身任务文本,不能依赖提示模板里恰好
         # 含有任务动词(TASK_TEMPLATE 的英文约束句)这种脆弱事实。
         qa = False
     else:
@@ -3668,7 +3691,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     # AGENT_SLIM_OUTPUT)。不按模型大小自动——小模型配长上下文/大模型配短上下文
     # 都是常见搭配(10-21 用户定案:档位才反映真实预算);≤4B 的 edit_file 禁用等
     # 协议降级仍由 _small_model 驱动,不受影响。run_tool 读取:超长输出只留末尾。
-    _SMALL_MODEL_MODE = (appconfig.slim_output_mode() or CTX_BUDGET <= 32768)
+    _slim_pref = appconfig.slim_output_mode()   # None=自动, True=强制开, False=强制关
+    _SLIM_OUTPUT_MODE = (CTX_BUDGET <= 32768 if _slim_pref is None else _slim_pref)
     if _small_model:
         _disabled_tools.add("edit_file")
     # Task #72:霰弹枪编辑守护(同文件连续成功编辑但不收敛 → 策略提示,不禁用)
@@ -4116,7 +4140,10 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     # ①有附带正文 → 直接以 ✍ 上屏;②summary 为空且无正文 →
                     # 补一次无工具小调用,让模型给用户几句总结(以 ✍ 上屏并存档)。
                     if content and not _semantically_empty(content):
-                        print(f"[{i}] ✍ {content[:2000]}", flush=True)
+                        # STREAM 下本轮 content 已逐 token 上屏;再打 ✍ 会让 GUI
+                        # 重复渲染,并把之后的协议行并进同一气泡。非流式才补发。
+                        if not STREAM:
+                            print(f"[{i}] ✍ {content[:2000]}", flush=True)
                     elif not str(args.get("summary","") or "").strip() \
                             and not qa and _child_sandbox is None and not _FG_OFF:
                         try:

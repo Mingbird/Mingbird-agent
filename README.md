@@ -8,7 +8,7 @@
 >
 > You've been told local models need a big discrete GPU. On an ordinary laptop — integrated graphics, 16–32 GB of RAM — the same 2–9B models that stall in cloud-style frameworks deliver finished artifacts here, because the failures you have seen are harness defects, not model defects. Measured end to end; all 288 cells public.
 
-Current release **v3.0.0** · 📄 Paper: [Mingbird: A Local-First Agent Harness Enabling Small Open Models to Complete Real Tasks](https://doi.org/10.48550/arXiv.2610.02001) · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 602 tests
+Current release **v3.1.1** · 📄 Paper: [Mingbird: A Local-First Agent Harness Enabling Small Open Models to Complete Real Tasks](https://doi.org/10.48550/arXiv.2610.02001) · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 625 tests
 
 **English UI (dark theme)**
 
@@ -33,7 +33,7 @@ Every mechanism comes from "small models can't do X, so the harness does it for 
 | …stay on target in long tasks | delivery self-check gate: before claiming done, it re-reads the original task and verifies its work |
 | …resist destructive impulses | a five-ring safety net catches them (see [Safety](#safety)) |
 
-Nothing is hardcoded: the engine, endpoint, GPU environment variables, and model aliases are detected at runtime or configured in `~/.ollama_agent/config.json` (see [AGENTS.md](AGENTS.md)); since v2.1.1 the engine can be Ollama or any OpenAI-compatible local server (LM Studio, llama.app, llama-server, Jan, vLLM); since v3.0.0 the harness is platform-aware — per-task injection of the real OS/shell/command facts from a single `platform_profile` source. The quality floor is held up by a 602-test regression suite — 435 unit + 26 integration + 141 added since v1.9.1, the prefill zero-growth assertion among them. The suite contains **no live-Ollama end-to-end test**: nothing in it needs a running backend or a network. The benchmark runners under `bench/` and `benchmarks/` are separate programs and are not part of the pytest suite.
+Nothing is hardcoded: the engine, endpoint, GPU environment variables, and model aliases are detected at runtime or configured in `~/.ollama_agent/config.json` (see [AGENTS.md](AGENTS.md)); since v2.1.1 the engine can be Ollama or any OpenAI-compatible local server (LM Studio, llama.app, llama-server, Jan, vLLM); since v3.0.0 the harness is platform-aware — per-task injection of the real OS/shell/command facts from a single `platform_profile` source. The quality floor is held up by a 625-test regression suite — 435 unit + 26 integration + 164 added since v1.9.1, the prefill zero-growth assertion among them. The suite contains **no live-Ollama end-to-end test**: nothing in it needs a running backend or a network. The benchmark runners under `bench/` and `benchmarks/` are separate programs and are not part of the pytest suite.
 
 ## The problem we set out to solve
 
@@ -147,15 +147,16 @@ outbound by construction — not by policy.
 
 ### Cloud model (optional)
 
-**v1.8.2: cloud model picker.** Next to the 🔒 toggle there is a cloud-model
-box (with a `?` for guidance). It is only selectable when you are online
-**and** a cloud model is configured; picking it clears the local-model box
-(and vice versa — one model per conversation). In offline mode the box is
-disabled and the cloud path is architecturally dead, not just hidden.
+**v3.0.0: configure it in Settings.** Open **Settings → Inference engine**
+and pick **Cloud API**, then fill the endpoint, API key and model name. Cloud
+and local models are mutually exclusive: picking a cloud model clears the
+local selection, and the offline toggle is disabled while the cloud model is
+active (cloud inference requires the network). The `☁` pill in the header
+switches back to a local model at any time.
 
-Configuration is deliberately minimal — edit `config.json` (default
-`~/.ollama_agent/`; portable/isolated installs use the `MINGBIRD_HOME`
-directory) and add a `cloud` section for any OpenAI-compatible endpoint:
+`config.json` (default `~/.ollama_agent/`; portable/isolated installs use the
+`MINGBIRD_HOME` directory) is still supported for scripted setups — the same
+`cloud` section works for any OpenAI-compatible endpoint:
 
 ```json
 "cloud": {

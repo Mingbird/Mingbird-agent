@@ -21,25 +21,32 @@ only** — nothing is reachable from the network, there is no account and no
 telemetry. Do not tunnel or port-forward it: the Web UI has no authentication
 and is designed to stay on your machine.
 
-## What works in the browser
+## Layout
 
-- **Chat page** — pick a model, type a task, `Ctrl+Enter` (or `Cmd+Enter`) to
-  send. Output streams token by token; thinking is visible in a collapsible
-  block and folds away when the answer starts. `Stop` kills the run,
-  `Resume` continues the interrupted task, `New chat` starts a fresh session.
-- **History page** — lists past sessions; *Load & resume* continues a session
-  in the browser (the next message appends to it), *View transcript* shows the
-  raw messages.
-- **Settings page** — context window, temperature (empty = ollama default),
-  output limit, thinking selector (default/on/off; default = no think field,
-  ollama decides), custom system prompt. Stored in
-  `~/.ollama_agent/gui_prefs.json`,
-  **shared with the desktop app**: change it in one place, the other picks it
-  up on the next task.
-- **Plan (todo) panel** — the agent's live todo list, same as the desktop
-  side panel.
-- **Themes & language** — auto/light/dark theme, English/中文 toggle, both
-  remembered locally.
+The browser UI mirrors the desktop app: a conversation sidebar on the left,
+chat and composer in the centre, and a plan drawer on the right.
+
+- **Conversation sidebar** — past sessions grouped by Today / Yesterday /
+  Earlier, with instant search. Click one to load it (the next message appends
+  to that session), or use **New chat** for a fresh one.
+- **Chat** — choose a model from the header pill, type a task, and press
+  `Enter` (`Shift+Enter` for a new line; IME composition is guarded). Output streams token by token; thinking is
+  visible in a collapsible block and folds away when the answer starts.
+  **Stop** kills the run; **Resume** continues the interrupted task.
+- **Header pills** — model, thinking (default/on/off), online/offline, and the
+  plan chip. The plan chip only appears when the agent has a todo list; click
+  it to open the right-hand drawer with progress and the current item.
+- **Settings** — a modal with context window, temperature (empty = Ollama
+  default), output limit, thinking selector, custom system prompt, and the
+  optional **Cloud API** protocol. Prefs are stored in
+  `~/.ollama_agent/gui_prefs.json` (shared with the desktop app); the engine and
+  cloud provider live in `config.json` and are shared too.
+- **Cloud API (optional)** — Settings → Cloud API: endpoint, API key and model
+  name for any OpenAI-compatible service. Cloud and local models are mutually
+  exclusive; when a cloud model is active the offline toggle is disabled,
+  because cloud inference needs the network. The `☁` pill switches back.
+- **Themes & language** — auto/light/dark and English/中文 in the sidebar
+  footer, remembered locally.
 - **Time-box** — write "40 minutes" / "限时 40 分钟" in the task text and the
   run steers to wind down on time, same as the desktop.
 
@@ -68,4 +75,5 @@ is the same engine, so behavior matches the desktop.
 |---|---|
 | Sessions | `~/.ollama_agent/sessions/*.json` |
 | Settings (both frontends) | `~/.ollama_agent/gui_prefs.json` |
+| Engine & cloud provider (both) | `~/.ollama_agent/config.json` |
 | Task working directory | `~/agent_tasks/work` (per-run switching is desktop-only for now; the Web UI always uses the default) |

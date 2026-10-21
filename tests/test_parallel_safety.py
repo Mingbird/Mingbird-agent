@@ -362,7 +362,9 @@ class TestChildModeInstall:
         _tail = "\n" + _pp.prompt_block()
         assert A.system_prompt() == A.SYSTEM + _tail      # 主 agent = 出厂常量 + 动态平台块
         A.install_child_mode(str(tmp_path))
-        assert A.system_prompt() == A._CHILD_SYSTEM + _tail
+        # 子 agent 只有文件工具、没有命令工具,平台命令块无意义且浪费 token:
+        # v3.0.0 复审后子 agent 提示不加平台块(2026-10-21 P2-7)。
+        assert A.system_prompt() == A._CHILD_SYSTEM
         assert len(A._CHILD_SYSTEM) < len(A.SYSTEM)       # 子 agent 提示更小
 
     def test_main_agent_prompt_has_no_dispatch_text(self):

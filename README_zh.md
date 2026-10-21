@@ -8,7 +8,7 @@
 >
 > 都说本地模型得配大独显。其实一台普通笔记本——核显、16–32 GB 内存——就够了：那些在云风格框架里跑不动的 2–9B 小模型，在这里能交付完整产物，因为你见过的那些失败是 harness 缺陷，不是模型缺陷。端到端实测，288 格数据全部公开。
 
-当前版本 **v3.0.0** · 📄 论文：[Mingbird: A Local-First Agent Harness Enabling Small Open Models to Complete Real Tasks](https://doi.org/10.48550/arXiv.2610.02001) · 持续维护中（[CHANGELOG](CHANGELOG_zh.md)）· 一键断网模式 · CI 构建 Linux/macOS 产物 · 602 项测试
+当前版本 **v3.1.1** · 📄 论文：[Mingbird: A Local-First Agent Harness Enabling Small Open Models to Complete Real Tasks](https://doi.org/10.48550/arXiv.2610.02001) · 持续维护中（[CHANGELOG](CHANGELOG_zh.md)）· 一键断网模式 · CI 构建 Linux/macOS 产物 · 625 项测试
 
 **中文界面（浅色主题）**
 
@@ -33,7 +33,7 @@
 | …长任务不跑偏 | 交付自查门禁：宣称完成前回读任务原文核对 |
 | …抵住破坏性冲动 | 五环安全网兜住（见[安全](#安全)） |
 
-没有任何东西是写死的：本地引擎、端点、GPU 环境变量、模型别名，全部运行时识别或在 `~/.ollama_agent/config.json` 配置（见 [AGENTS.md](AGENTS.md)）；v2.1.1 起引擎可以是 Ollama 或任何 OpenAI 兼容本地服务（LM Studio、llama.app、llama-server、Jan、vLLM）；v3.0.0 起具备平台感知——每任务从 `platform_profile` 单一事实源注入真实的系统/Shell/命令对照。质量底线由 602 项回归测试守住——435 项单测 + 26 项集成 + v1.9.1 起新增 141 项，prefill 零增长断言也在其中。这套测试里**没有真调 Ollama 的端到端用例**：不需要任何后端或网络即可跑完。`bench/` 与 `benchmarks/` 下的基准运行器是独立程序，不属于 pytest 套件。
+没有任何东西是写死的：本地引擎、端点、GPU 环境变量、模型别名，全部运行时识别或在 `~/.ollama_agent/config.json` 配置（见 [AGENTS.md](AGENTS.md)）；v2.1.1 起引擎可以是 Ollama 或任何 OpenAI 兼容本地服务（LM Studio、llama.app、llama-server、Jan、vLLM）；v3.0.0 起具备平台感知——每任务从 `platform_profile` 单一事实源注入真实的系统/Shell/命令对照。质量底线由 625 项回归测试守住——435 项单测 + 26 项集成 + v1.9.1 起新增 164 项，prefill 零增长断言也在其中。这套测试里**没有真调 Ollama 的端到端用例**：不需要任何后端或网络即可跑完。`bench/` 与 `benchmarks/` 下的基准运行器是独立程序，不属于 pytest 套件。
 
 ## 我们要解决的问题
 
@@ -132,9 +132,9 @@ Linux & macOS（实验性，CI 构建）：从 [最新版 Release](https://githu
 
 ### 云端模型（可选）
 
-**v1.8.2：云端模型选择框。** 🔒 开关右侧有一个云端模型框（带 `?` 引导）。只有联网**且**已配置云端模型时才可选；选中它会清空左侧本地模型框（反向同理——一次只和一个模型对话）。断网模式下该框禁用，云端通路是架构级断死的，不只是藏起来。
+**v3.0.0：在设置里直接配置。** 打开 **设置 → 推理引擎**，引擎选 **云端 API**，填端点、API Key 与模型名即可。云端与本地模型互斥：选中云端会清空本地选择；云端生效期间断网开关置灰（云端推理必须联网）。顶部 `☁` 胶囊可随时切回本地模型。
 
-配置刻意保持极简——直接编辑 `config.json`（默认 `~/.ollama_agent/`；便携/隔离安装为 `MINGBIRD_HOME` 指定目录），加入 `cloud` 段（任意 OpenAI 兼容端点）：
+`config.json`（默认 `~/.ollama_agent/`；便携/隔离安装为 `MINGBIRD_HOME` 指定目录）仍支持脚本化配置，加入 `cloud` 段（任意 OpenAI 兼容端点）：
 
 ```json
 "cloud": {

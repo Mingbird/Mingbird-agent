@@ -202,7 +202,7 @@ def _scripted_loop(oa, workdir, calls, task="修复 m08.py 里的 bug,并运行�
         oa._disabled_tools.clear()
         oa._disabled_tools.update(saved_tools[1])
         oa._disabled_tools.discard("edit_file")
-        oa._SMALL_MODEL_MODE = False
+        oa._SLIM_OUTPUT_MODE = False
 
 
 _EDIT_OK = "[edited m08.py (已备份),.bak 备份可用]"
@@ -343,14 +343,14 @@ def test_bash_out_small_model_caps_and_keeps_tail(oa):
     full = oa._format_bash_out(0, "x" * 9000, "y" * 3000, small_model=False)
     slim = oa._format_bash_out(0, "x" * 9000, "y" * 3000, small_model=True)
     assert len(slim) < len(full)
-    assert "已瘦身" in slim and "read_file" in slim      # 附逃生通道提示
+    assert "已精简" in slim and "read_file" in slim      # 附逃生通道提示
     assert ("y" * 1200) in slim                          # 摘要/报错在末尾,必须保留
     assert ("x" * 2500) in slim and ("x" * 2501) not in slim
     assert slim.endswith("分段读。]")                    # 逃生通道提示放在最末(注意力最好)
 
 
 def test_small_model_mode_flag_default_off(oa):
-    assert oa._SMALL_MODEL_MODE is False
+    assert oa._SLIM_OUTPUT_MODE is False
 
 
 # ---- Task #73:任务时限——提示词解析(表驱动) ----

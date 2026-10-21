@@ -54,22 +54,30 @@ _COMMAND_MAPS = {
 _OS_LABELS = {"windows": "Windows", "macos": "macOS", "linux": "Linux"}
 
 
-def prompt_block(full=True):
+def prompt_block(full=True, unattended=False):
     """平台信息块。
 
     full=True(任务模式):平台/Shell/命令对照/路径分隔符/确认声明,3 行。
     full=False(问答模式):单行精简——聊天只有只读工具,shell 命令对照无意义,
     但平台与路径分隔符对"帮我看下 D:\\xxx 这类文件"仍有用。
+    unattended=True:无人值守(基准/批处理)下危险操作是硬拒而非确认,
+    提示词必须说清楚,否则模型会把拒绝当成偶发故障反复重试。
     """
     p = profile()
     label = _OS_LABELS[p["id"]]
     if not full:
         return f"平台:{label},路径分隔符 {p['path_sep']}"
     cmds = " / ".join(_COMMAND_MAPS[p["id"]])
+    if unattended:
+        guard = ("- 命令在沙箱外执行;递归删除/卸载/改系统环境在无人值守模式下会被直接拒绝,"
+                 "不要反复重试,改用工作目录内的安全路径")
+    else:
+        guard = ("- 命令在沙箱外执行;递归删除/卸载/改系统环境会触发用户确认"
+                 "——这是正常防护不是故障,继续干活即可")
     return "\n".join([
         f"平台:{label} · 命令 shell={p['shell']}(支持 && 串联执行)",
         f"- 命令对照:{cmds};路径分隔符 {p['path_sep']},含空格的路径加引号",
-        "- 命令在沙箱外执行;递归删除/卸载/改系统环境会触发用户确认——这是正常防护不是故障,继续干活即可",
+        guard,
     ])
 
 

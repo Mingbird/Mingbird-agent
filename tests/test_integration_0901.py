@@ -4,7 +4,7 @@
 覆盖 alt-0901 × todo-0901 × par-0901 的整合点(a-e):
   a. par 的 TodoProvider 工厂注册 todo-0901 的 todo.json 存储适配器
   b. 子 agent(child mode)不受主 agent 的 todo finish 门禁约束
-  c. _SMALL_MODEL_MODE 在 child mode 下按子模型参数量置位(子 agent 永不判为问答)
+  c. _SLIM_OUTPUT_MODE 按上下文档位/手动三态置位(与子模型参数量无关)
   d. 派发回执消息不污染类别路由/问答判定;恢复场景不双发
   e. 出厂默认全关(不设 env / 不写 config 时行为与 v1.2.0 一致)
 
@@ -44,18 +44,18 @@ class _StubSandbox:
 @pytest.fixture
 def child_mode():
     """把当前进程置为"子 agent 模式"(不真正安装沙箱,只装判定所需的桩)。"""
-    saved = (A._child_sandbox, A._SMALL_MODEL_MODE)
+    saved = (A._child_sandbox, A._SLIM_OUTPUT_MODE)
     A._child_sandbox = _StubSandbox()
     try:
         yield A._child_sandbox
     finally:
-        A._child_sandbox, A._SMALL_MODEL_MODE = saved
+        A._child_sandbox, A._SLIM_OUTPUT_MODE = saved
 
 
 def _scripted_loop(workdir, calls, task="修复 m08.py 里的 bug,并运行测试验证。",
                    model="gemma4:12b", system="sys", session=None, capture=None):
     """按脚本驱动 agent_loop(仿 test_guards 的做法),不触网、不调 ollama。
-    capture:可选 dict,循环结束后(还原全局开关前)记录 _SMALL_MODEL_MODE 等现场。"""
+    capture:可选 dict,循环结束后(还原全局开关前)记录 _SLIM_OUTPUT_MODE 等现场。"""
     saved = (A.call_chat, A.run_tool, A.mcp_manifest, A.mcp_tool_defs)
     it = {"i": 0}
 
@@ -87,13 +87,13 @@ def _scripted_loop(workdir, calls, task="修复 m08.py 里的 bug,并运行测�
                 {"role": "user", "content": task}]
         out = A.agent_loop(model, msgs, workdir, session)
         if capture is not None:
-            capture["small_model_mode"] = A._SMALL_MODEL_MODE
+            capture["small_model_mode"] = A._SLIM_OUTPUT_MODE
             capture["messages"] = out
         return out
     finally:
         A.call_chat, A.run_tool, A.mcp_manifest, A.mcp_tool_defs = saved
         A._disabled_tools.discard("edit_file")
-        A._SMALL_MODEL_MODE = False
+        A._SLIM_OUTPUT_MODE = False
 
 
 # ---------------- a. TodoProvider 工厂注册 todo-0901 的存储适配器 ----------------
@@ -201,7 +201,7 @@ class TestChildFinishGateExemption:
         assert len(_rejections(msgs)) == 2
 
 
-# ---------------- c. 子 agent 永不判为问答;_SMALL_MODEL_MODE 按子模型置位 ----------------
+# ---------------- c. 子 agent 永不判为问答;_SLIM_OUTPUT_MODE 按子模型置位 ----------------
 
 class TestChildModeClassification:
     QA_LIKE_TASK = "这是什么?"       # 无任务动词、含问句提示 → 主 agent 会判为问答
@@ -343,7 +343,7 @@ class TestFactoryDefaultsOff:
         assert A._budget_nudge(0, 10 ** 9, set()) is None
 
     def test_small_model_mode_default_false(self):
-        assert A._SMALL_MODEL_MODE is False
+        assert A._SLIM_OUTPUT_MODE is False
 
     def test_dispatch_env_hard_gate_blocks_even_when_enabled(self, wd, monkeypatch):
         monkeypatch.setenv("AGENT_PARALLEL", "0")
