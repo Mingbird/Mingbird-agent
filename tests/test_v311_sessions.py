@@ -14,9 +14,12 @@ SRC_GUI = open(os.path.join(_HERE, "agent_gui.py"), encoding="utf-8").read()
 
 
 def _stub_app(monkeypatch, tmp_path, session="s1", running=False):
-    """不经过 Tk 的 AgentGUI 桩:只挂文件操作所需的属性。"""
+    """不经过 Tk 的 AgentGUI 桩:只挂文件操作所需的属性。
+    _t 钉成恒等:提示断言永远对中文源键,不受 runner 语言环境影响(CI 上
+    _LANG 落 en 会把"运行中"翻成英文,中文断言必挂)。"""
     import agent_gui as G
     monkeypatch.setattr(G, "SESSION_DIR", str(tmp_path))
+    monkeypatch.setattr(G, "_t", lambda s: s)
     app = object.__new__(G.AgentGUI)
     app.session = session
     app.proc = None
