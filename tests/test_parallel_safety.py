@@ -356,10 +356,14 @@ class TestChildModeInstall:
 
     def test_child_system_prompt_is_minimal_and_replaces_main(self, tmp_path, restore):
         A = restore
-        assert A.system_prompt() == A.SYSTEM          # 主 agent 提示不变
+        # v3.0.0:system_prompt() 在静态常量后动态追加平台块(_TASK_WORKDIR 未设时)。
+        # 出厂 SYSTEM 常量本身不变——该断言的"主提示不变"红线由下方 startswith 守住。
+        import platform_profile as _pp
+        _tail = "\n" + _pp.prompt_block()
+        assert A.system_prompt() == A.SYSTEM + _tail      # 主 agent = 出厂常量 + 动态平台块
         A.install_child_mode(str(tmp_path))
-        assert A.system_prompt() == A._CHILD_SYSTEM
-        assert len(A._CHILD_SYSTEM) < len(A.SYSTEM)   # 子 agent 提示更小
+        assert A.system_prompt() == A._CHILD_SYSTEM + _tail
+        assert len(A._CHILD_SYSTEM) < len(A.SYSTEM)       # 子 agent 提示更小
 
     def test_main_agent_prompt_has_no_dispatch_text(self):
         """prefill 预算硬约束:系统提示里不得出现任何"派子 agent"常驻文字。"""

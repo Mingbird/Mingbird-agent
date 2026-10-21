@@ -16,6 +16,7 @@ import ttkbootstrap as tb
 import subprocess, threading, os, queue, sys, re, glob, json, time, shutil
 import voice_input
 import appconfig   # 统一配置层:Ollama 地址/模型映射等由用户配置,不硬编码
+import platform_profile   # v3.0.0:平台差异单一事实源(文件管理器/编辑器/低配等共用)
 _dedupe_model_entries = appconfig.dedupe_model_entries   # digest 去重(GUI/WebUI 共用,勿放类体内)
 
 # 可选拖拽支持:装了 tkinterdnd2 即可把文件直接拖进聊天框;未装则静默降级,
@@ -37,21 +38,13 @@ AGENT_PY  = os.path.join(AGENT_DIR, "ollama_agent.py")
 
 
 def _file_manager_cmd(path):
-    """Open a directory in the platform file manager."""
-    if os.name == "nt":
-        return ["explorer", os.path.normpath(path)]
-    if sys.platform == "darwin":
-        return ["open", path]
-    return ["xdg-open", path]
+    """Open a directory in the platform file manager.(v3.0.0:收敛到 platform_profile)"""
+    return platform_profile.open_folder_cmd(path)
 
 
 def _open_doc_cmd(path):
-    """Open a document with the platform default text viewer."""
-    if os.name == "nt":
-        return ["notepad", path]
-    if sys.platform == "darwin":
-        return ["open", "-t", path]
-    return ["xdg-open", path]
+    """Open a document with the platform default text viewer.(v3.0.0:同上)"""
+    return platform_profile.open_doc_cmd(path)
 # ============ 国际化:自动检测语言(OS 中文→中文,否则英文),可用 AGENT_LANG 强制 ============
 def _os_ui_lang_zh():
     """v2.0.0:OS 界面语言探测。GUI 程序在 mac/win 上拿不到 shell 的 LANG 环境变量
@@ -239,6 +232,7 @@ def _first_msg_title(msg, limit=15):
 # 零出站(netstat 可验证);联网=本地+搜索+已配置的 MCP/云端 provider。
 _T["任务完成"] = "Task complete"
 _T["不限"] = "Unlimited"
+_T["低配模式(精简命令输出,小模型省上下文)"] = "Low-spec mode (compact command output; saves context for small models)"
 # v2.1.1 多引擎(OpenAI 兼容本地服务)
 _T["本地引擎:"] = "Local engine:"
 _T["自定义 OpenAI 兼容"] = "Custom OpenAI-compatible"
@@ -1677,6 +1671,11 @@ class AgentGUI:
                          width=8, state="readonly")
         np.set(_t("不限") if prefs["num_predict"] == -1 else prefs["num_predict"])
         np.pack(side="left", padx=6)
+        # v3.0.0 低配模式:config 层开关(agent 子进程直接读 config.json),
+        # 效果=run_bash/run_python 输出精简,给小模型上下文省 token
+        lowspec = tk.BooleanVar(value=appconfig.low_spec_mode())
+        tb.Checkbutton(body, text=_t("低配模式(精简命令输出,小模型省上下文)"),
+                       variable=lowspec, bootstyle="round-toggle").pack(anchor="w", pady=(4,0))
         sys_en = tk.BooleanVar(value=prefs["sys_enable"])
         tb.Checkbutton(body, text=_t("启用自定义系统提示(替代内置,可大幅改造行为)"),
                        variable=sys_en, bootstyle="round-toggle").pack(anchor="w", pady=(8,2))
@@ -1699,6 +1698,8 @@ class AgentGUI:
             else:
                 _cfg["local_backend"] = {"type": "openai", "base_url": _base,
                                          "api_key": key.get().strip()}
+            # v3.0.0:低配模式进 config 层(agent 子进程同源读取)
+            _cfg["low_spec"] = bool(lowspec.get())
             appconfig.save_config(_cfg)
             _raw_t = temp.get().strip()
             if _raw_t == "":

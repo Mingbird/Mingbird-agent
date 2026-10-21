@@ -27,6 +27,7 @@
 """
 import json, subprocess, os, sys, urllib.request, time, re, asyncio, glob
 import appconfig   # 统一配置层:Ollama 地址/路径/环境变量/模型映射,全部可配置
+import platform_profile as _pp   # v3.0.0:平台差异单一事实源(平台块/执行环境/GUI 消费)
 
 # 强制 UTF-8 输出(GUI 按 UTF-8 读子进程 stdout;PyInstaller 启动默认可能是 GBK → 中文乱码)
 try:
@@ -256,6 +257,10 @@ def system_prompt():
     # 拒绝越界)。动态行不进 SYSTEM 常量,出厂 prefill 钉子不变。
     if _TASK_WORKDIR:
         base += f"\n当前工作目录(所有命令与相对路径都在它之下运行):{_TASK_WORKDIR}"
+    # v3.0.0:平台信息块(aider 式)。动态注入,SYSTEM 常量与出厂 prefill 钉子不动。
+    # 小模型在 Windows cmd 里写 ls/grep、在 POSIX 里写 C:\ 路径是高频翻车点,
+    # 平台真相此前从未告知模型。
+    base += "\n" + _pp.prompt_block()
     return base
 
 def _decode_console(raw):
@@ -392,6 +397,43 @@ ADVANCED_TOOLS = [
  _f("mcp_call","Call a tool exposed by an MCP server", P(server={"type":"string"},tool={"type":"string"},args={"type":"object"}),["server","tool"]),
 ]
 TOOLS = CORE_TOOLS  # 默认核心;enable_tools 后追加
+
+# ---------------- v3.0.0 工具参数类型校正(PydanticAI 式校验回喂) ----------------
+# 小模型常把 number/boolean 参数传成字符串(todo index="1"/done="true",Cline ollama
+# issue 群的同类坑),按内置 schema 静默校正;校正不了才返回结构化错误喂回模型
+# (错误里带参数名+期望类型+收到的值,模型可自救)。MCP 工具 schema 动态,不在此列。
+_TYPE_OK = {"number": (int, float), "boolean": (bool,), "string": (str,),
+            "array": (list,), "object": (dict,)}
+_NUM_RE = re.compile(r"^-?\d+(\.\d+)?$")
+_ARG_TYPES = {d["function"]["name"]: {k: v.get("type")
+               for k, v in d["function"].get("parameters", {}).get("properties", {}).items()}
+              for d in CORE_TOOLS + ADVANCED_TOOLS}
+
+def _coerce_args(name, args):
+    """返回 (校正后的 args, 错误文本或 None)。只做字符串→数字/布尔的高频错型校正:
+    可解析 → 静默校正;字符串解析不了 number/boolean → 结构化错误喂回(带参数名+
+    期望类型,模型可自救);非标量(list/dict,如 todo 的 index 批量列表)与其余
+    形态一律放行,由工具自身校验兜底——schema 不表达运行时宽容特性。"""
+    types = _ARG_TYPES.get(name)
+    if not types or not isinstance(args, dict):
+        return args, None
+    out = dict(args)
+    for k, want in types.items():
+        if k not in out or want not in _TYPE_OK:
+            continue
+        v = out[k]
+        if not isinstance(v, str):
+            continue   # 已对型(bool 是 int 子类的边界也被覆盖:非 str 即不折腾)
+        s = v.strip()
+        if want == "number":
+            if _NUM_RE.match(s):
+                out[k] = float(s) if "." in s else int(s)
+            else:
+                return args, (f"[tool error: {name} 参数 {k} 需要 {want} 类型"
+                              f"(收到字符串: {s[:40]}),请修正后重试。]")
+        elif want == "boolean" and s.lower() in ("true", "false"):
+            out[k] = s.lower() == "true"
+    return out, None
 
 SYSTEM = """You are an autonomous AI agent in a workspace directory.
 JUDGE INTENT FIRST — 先判断用户意图,再决定怎么做:
@@ -1294,7 +1336,7 @@ _UNINSTALL_RE = re.compile(
     r"\bemerge\s+--unmerge\b|\bwsl\s+--uninstall\b|\bmsiexec\s+/x\b|"
     r"\bscoop\s+uninstall\b|\bwinget\s+remove\b|\bdpkg\s+(-r|--remove|--purge)\b|\brpm\s+-e\b|"
     r"\bapt(-get)?\s+autoremove\b|\bmake\s+uninstall\b", re.I)
-_ENV_MUTATE_RE = re.compile(r"\bsetx\b|\bschtasks\s+/(create|delete|change)\b|\bsc\s+delete\b|\bsystemctl\s+(stop|disable|mask)\b|\bcrontab\s+-r\b|\blaunchctl\s+(remove|disable|unload)\b", re.I)
+_ENV_MUTATE_RE = re.compile(r"\bsetx\b|\bschtasks\s+/(create|delete|change)\b|\bsc\s+delete\b|\breg\s+(add|delete|import)\b|\bsystemctl\s+(stop|disable|mask)\b|\bcrontab\s+-r\b|\blaunchctl\s+(remove|disable|unload)\b", re.I)
 _RECURSE_DELETE_RE = re.compile(
     r"\bremove-item\b[^&|;]*-recurse|\brd\s+/s\b|\bdel\s+/s\b(?!\s*q\s*c:)|\brmdir\s+/s\b|"
     r"\brm\s+(-[a-z]*r[a-z]*|--recursive)\b|\brm\s+-\w+\s+-\w*r\b", re.I)
@@ -1605,6 +1647,10 @@ def run_tool(name, args, workdir, crawl_state=None):
         }
         if name in _TOOL_ALIASES:
             name = _TOOL_ALIASES[name]
+        # v3.0.0:参数类型校正(字符串数字/布尔→真类型),错型给结构化反馈
+        args, _tc_err = _coerce_args(name, args)
+        if _tc_err:
+            return _tc_err
         gate = _gate_check(name, args, workdir)
         if gate:
             # 子 agent 严重违规(虚拟机/系统区写、不可逆命令)→ 立即终止该子 agent
@@ -1775,9 +1821,7 @@ def run_tool(name, args, workdir, crawl_state=None):
             with os.fdopen(fd, "w", encoding="utf-8") as _f:
                 _f.write(code)
             try:
-                _env = dict(os.environ)
-                _env.setdefault("PYTHONUTF8", "1")
-                _env.setdefault("PYTHONIOENCODING", "utf-8")
+                _env = _pp.exec_env()   # v3.0.0:收敛到 platform_profile(UTF-8 内建)
                 proc = subprocess.Popen(_python_hook_cmd(script),
                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                         cwd=workdir, env=_env,
@@ -1817,9 +1861,8 @@ def run_tool(name, args, workdir, crawl_state=None):
             # 子进程 UTF-8 内建(GBK 修复):交付版不依赖机器全局 hack(如 sitecustomize),
             # python 子进程的 stdout 编码由这里统一保证,否则含非 ASCII 输出的脚本在
             # GBK 控制台下 UnicodeEncodeError(批次 1 agent-mini 同型环境税的前车之鉴)
-            _env = dict(os.environ)
-            _env.setdefault("PYTHONUTF8", "1")
-            _env.setdefault("PYTHONIOENCODING", "utf-8")
+            # v3.0.0:环境拼装收敛到 platform_profile.exec_env(行为不变)
+            _env = _pp.exec_env()
             # 读端编码健壮性(35b GAIA L1-03/04/05 三格毒杀实证):cmd 内建命令/
             # 非 python 程序在中文 Windows 上输出 GBK 字节,按 utf-8 硬解曾把
             # reader 线程炸死(run_bash 挂掉)。v2.0.0 起改为字节捕获 +
@@ -3553,6 +3596,8 @@ def _maybe_parallel_dispatch(model, messages, workdir, session):
 
 def agent_loop(model, messages, workdir, session, budget_sec=None):
     global _active_tools
+    global _SMALL_MODEL_MODE   # v3.0.0:低配模式(config low_spec/AGENT_LOW_SPEC)在下方
+                               # 与 ≤4B 自动降级并集生效;子 agent 派发覆盖为更严格值
     _allow_all.clear()   # "允许全部(本轮)"以任务为界:新任务重新计数
     fails = 0
     fail_count = {}           # 工具名 -> 连续失败次数(同工具无成功则累计)
@@ -3608,7 +3653,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     repeat_count = 0
     if qa:
         # 问答:换聊天级系统提示(根治:任务向 prefill 是"加戏"死循环的根源)
-        _cs = CHAT_SYSTEM + (f"\n当前工作目录:{_TASK_WORKDIR}" if _TASK_WORKDIR else "")
+        _cs = CHAT_SYSTEM + (f"\n当前工作目录:{_TASK_WORKDIR}" if _TASK_WORKDIR else "") \
+              + "\n" + _pp.prompt_block(full=False)   # v3.0.0:问答单行平台事实(路径分隔符)
         messages = [{"role": "system", "content": _cs}] + \
                    [m for m in messages if m.get("role") != "system"]
         cats = None
@@ -3620,8 +3666,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     # 直接持久禁用,一律用 create_file 重写;run_bash 报错附教学提示(见错误处理段)。
     # 模型名解析参数量: gemma4:e2b→2 / qwen3.5:4b→4 / ornith-1.5:35b→35;解析失败视为大模型。
     _small_model = (not qa) and ((_model_params_b(model) or 99.0) <= 4.0)
-    global _SMALL_MODEL_MODE
-    _SMALL_MODEL_MODE = bool(_small_model)   # run_tool 读取:小模型 run_bash 输出瘦身
+    _SMALL_MODEL_MODE = bool(_small_model) or appconfig.low_spec_mode()   # v3.0.0:低配开关并入(自动≤4B 或用户显式开启);run_tool 读取:run_bash 输出瘦身
     if _small_model:
         _disabled_tools.add("edit_file")
     # Task #72:霰弹枪编辑守护(同文件连续成功编辑但不收敛 → 策略提示,不禁用)

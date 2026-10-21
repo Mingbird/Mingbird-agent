@@ -1,5 +1,18 @@
 # Changelog
 
+## v3.0.0 (2026-10-21)
+
+Platform-aware Mingbird — the model now knows which OS and shell it is working in, and every platform truth lives in one data-driven place. Tests: **600 green** (576 + 24 new).
+
+### ✨ New
+- **Platform profile module** (`platform_profile.py`): platform differences — prompt fragments, command mappings, subprocess environment, folder/editor openers — converge into a single source of truth instead of scattered `os.name` branches.
+- **Platform block in the system prompt** (aider-style): every task now states the real platform, shell and command mapping — on Windows: cmd.exe, `dir`/`type`/`findstr`/`copy`, backslash paths; on macOS/Linux: `ls`/`cat`/`grep`, forward slashes. Small models writing `ls`/`grep` inside Windows cmd was a top failure class, and the platform truth was never stated before. Chat mode gets a one-line variant (platform + path separator). The static factory prompt is untouched, byte for byte — the prefill pin stays 1250.
+- **Low-spec mode** (settings toggle or `AGENT_LOW_SPEC=1`): compact command output for small models — previously automatic only for ≤4B models and child agents, now a user switch that applies to the main agent.
+
+### 🔧 Fixes
+- **Tool-argument type repair** (PydanticAI-style feedback): small models often pass numbers/booleans as strings (`index: "1"`, `done: "true"`) — now silently coerced per the tool schema; an unparseable string returns a structured error naming the parameter, the expected type and the received value so the model can self-correct. Non-scalar shapes pass through untouched (todo's batch `index` list keeps working).
+- **Registry writes join the danger surface**: `reg add/delete/import` now goes through the same confirm-gate as `setx`/`schtasks` (read-only `reg query` untouched).
+
 ## v2.1.5 (2026-10-13)
 
 Fixes from issue #6 (bundled skills invisible in the Windows installer; reported by @LeftOwlRight). Tests: **576 green** (569 + 7 new).

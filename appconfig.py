@@ -26,6 +26,8 @@ DEFAULTS = {
                                                # = OpenAI 兼容本地服务(LM Studio :1234/v1、
                                                #   llama.app :9931/v1、llama-server :8080/v1、
                                                #   Jan/vLLM 等),api_key 可空
+    "low_spec": False,                         # v3.0.0 低配模式:run_bash/run_python 输出
+                                               # 精简(小模型上下文省着用);默认关=行为不变
 }
 
 _cache = None
@@ -71,6 +73,15 @@ def offline_mode():
     if env:
         return env in ("1", "true", "yes", "on")
     return bool(load_config().get("offline_mode", False))
+
+def low_spec_mode():
+    """v3.0.0 低配模式:环境变量 AGENT_LOW_SPEC > config.json low_spec。
+    开启时 run_bash/run_python 输出走精简格式(与子 agent 的 _SMALL_MODEL_MODE
+    同一通路),给小模型的上下文省 token。默认关=行为与既有版本一致。"""
+    env = os.environ.get("AGENT_LOW_SPEC", "").strip().lower()
+    if env:
+        return env in ("1", "true", "yes", "on")
+    return bool(load_config().get("low_spec", False))
 
 def cloud_provider():
     """v1.8.0 云端 provider 配置(OpenAI 兼容端点)。返回 dict 或 {}。
