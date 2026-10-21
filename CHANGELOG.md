@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.1.2 (2026-10-21)
+
+Audit-fix release from a source review of v3.1.1. Tests: **628 green** (625 + 3 new).
+
+### 🔧 Fixes
+- **Parallel dispatch could never be enabled from `config.json`**: `load_config()` only copies keys that exist in `DEFAULTS`, and no `parallel` key was there — a hand-written `parallel` section was silently dropped, and no environment variable maps to `enabled` either. `DEFAULTS` now carries the key, and a regression test pins the full `load_config → get_parallel_config` path. Runners that inject the config dict directly were unaffected.
+- **`AGENT_UNATTENDED=1` is now a global deny**: every human-confirmation channel — including the `AGENT_STREAM` `@@ASK@@` pop-up branch — denies immediately instead of waiting 120 s for a human that was promised absent. Previously only the danger-class checks honored the flag.
+- **Crawl guard counts bytes on both sides**: the budget is byte-based (2× file size) but consumption counted characters, giving CJK files roughly 3× the intended quota. Consumption is now UTF-8 bytes and the throttle note reads in bytes.
+- **Docs — prefill pin wording** (README ×2, CONTRIBUTING): the pin is an estimated-token equality (1250 under the v2.1.4 CJK-calibrated estimator) that fails on any change — growth or shrinkage. The old "797 tokens / single byte" phrasing was stale on both counts.
+
 ## v3.1.1 (2026-10-21)
 
 Platform-aware Mingbird — the model now knows which OS and shell it is working in, and every platform truth lives in one data-driven place. Tests: **625 green** (576 + 49 new).
