@@ -80,3 +80,22 @@ def test_no_model_name_hardcoded_anywhere():
                                 mod + ".py"), encoding="utf-8").read()
         for tag in ("gemma4", "qwen3.5", "ornith"):
             assert tag not in src, f"{mod} 硬编码了 {tag}"
+
+
+def test_load_config_keeps_parallel_section(tmp_path, monkeypatch):
+    """回归(v3.1.1 死路径):appconfig.load_config 只拷 DEFAULTS 已知键——
+    DEFAULTS 缺 parallel 键时,config.json 里手写的 parallel 段被静默丢弃,
+    enabled 永远 False、环境变量又没有 enabled 通道 → 整条链路打不开。
+    钉=DEFAULTS 必须含 parallel 键,且经 load_config 全链路能读到。"""
+    import json
+    import appconfig
+    cfgf = tmp_path / "config.json"
+    cfgf.write_text(json.dumps(
+        {"parallel": {"enabled": True, "hard_cap": 3}}), encoding="utf-8")
+    monkeypatch.setattr(appconfig, "CONFIG_FILE", str(cfgf))
+    monkeypatch.setattr(appconfig, "_cache", None)
+    cfg = appconfig.load_config()
+    assert cfg["parallel"] == {"enabled": True, "hard_cap": 3}
+    # 不传 config 走真实 appconfig 链路(get_parallel_config 的默认路径)
+    c = PC.get_parallel_config(config=None, environ={})
+    assert c["enabled"] is True and c["hard_cap"] == 3

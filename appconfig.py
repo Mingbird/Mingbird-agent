@@ -30,6 +30,10 @@ DEFAULTS = {
                                                # auto=上下文档位 ≤32K 自动开;on/off
                                                # 强制开关(基准复现/用户偏好)。超长
                                                # 输出只留末尾(run_bash/run_python)
+    "parallel": {},                            # 并行子agent派发配置段,parallel_config
+                                               # 深合并读此段。load_config 只拷本表已知
+                                               # 键——缺此键时 config.json 里的 parallel
+                                               # 段会被静默丢弃(整条链路打不开)
 }
 
 _cache = None

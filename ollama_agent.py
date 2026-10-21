@@ -1481,6 +1481,11 @@ def _ask_user_confirm(name, real_path, workdir, action="访问"):
     # (defense in depth:即使子进程以 AGENT_STREAM=1 启动,也不存在"允许"这条路)
     if _child_sandbox is not None:
         return False, False, f"[子agent安全门拦截: 子 agent 无越界权限(default-deny),{action}已拒绝。目标: {real_path}]"
+    # 无人值守=全局语义:没有任何人类在环,所有确认通道(含 AGENT_STREAM 的
+    # @@ASK@@ 弹窗分支)一律直接拒,不挂 120s 等一个不存在的回答。
+    if _UNATTENDED:
+        return False, False, (f"[安全门拦截: 无人值守模式(AGENT_UNATTENDED=1)下无人在环,"
+                              f"{action}一律拒绝。目标: {real_path}]")
     try:
         if os.environ.get("AGENT_STREAM") == "1" and sys.stdin and not sys.stdin.closed:
             req = {"tool": name, "path": real_path, "action": action,
@@ -1739,7 +1744,7 @@ def run_tool(name, args, workdir, crawl_state=None):
             else:
                 meta = ""
                 body = read_text(p)[:6000]
-            _c[1] += len(body)
+            _c[1] += len(body.encode("utf-8", "ignore"))   # 预算按字节(getsize),消耗同口径
             try:
                 _budget = min(max(_CRAWL_BUDGET_MULT * os.path.getsize(p),
                                   _CRAWL_BUDGET_FLOOR), _CRAWL_BUDGET_CAP)
@@ -1750,7 +1755,7 @@ def run_tool(name, args, workdir, crawl_state=None):
                 # 之后一行短提示;返回的是所请求区间的前 2000 字符——进度不断。
                 if not _c[3]:
                     _c[3] = 1
-                    note = (f"[crawl-guard: '{args['path']}' 累计已读取 {_c[1]} 字符,超出本文件"
+                    note = (f"[crawl-guard: '{args['path']}' 累计已读取 {_c[1]} 字节,超出本文件"
                             f"预算 {_budget}(按 {_CRAWL_BUDGET_MULT}×文件大小)。读取不会被拒绝,"
                             f"但本文件后续每次最多返回 {_CRAWL_THROTTLE} 字符。要高效处理此文件,"
                             f"用 run_bash 跑 python 脚本一次完成统计/搜索/聚合,例如:\n"
