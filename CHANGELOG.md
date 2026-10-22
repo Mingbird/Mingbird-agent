@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.1.3 (2026-10-22)
+
+Compaction-runner fix from live Ollama logs. Tests: **631 green** (628 + 3 new).
+
+### 🔧 Fixes
+- **L2/L3 compaction no longer spawns a second model instance**: the summarization call pinned `num_ctx=8000` (a v1.4.0 leftover), while the main loop runs at the conversation's context budget. Ollama keeps one runner per (model, options) — different `num_ctx` means a second llama-server load of the same model on every compaction, with eviction ping-pong on memory-tight setups (log signature: `predicted_num_ctx=8000` and the main budget alternating). The summary now rides the resident runner at the main context, which also stops Ollama from silently left-truncating long summary inputs at 8K.
+- **Compaction failures are no longer silent**: a failed summary call returned the messages unchanged but the caller had already consumed the compaction ladder (`_compact_lvl` only rises) — exactly the "context over budget but compaction never fires" failure shape. Failures now print the layer and reason.
+
 ## v3.1.2 (2026-10-21)
 
 Audit-fix release from a source review of v3.1.1. Tests: **628 green** (625 + 3 new).

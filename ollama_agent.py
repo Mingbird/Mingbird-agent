@@ -2488,7 +2488,8 @@ def compact_history(model, messages, level=3, todo_text=None, files_text=None):
         try:
             req = [{"role":"system","content":"用中文压缩成 ≤150 字摘要,保留目标、关键文件名、已做决定、错误和未完成事项,丢弃旧日志与已读全文。"},
                    {"role":"user","content": text}]
-            r = call_chat(model, req, ctx=8000, tools=[])
+            r = call_chat(model, req, tools=[])   # 不另设 num_ctx:骑主循环同 ctx 的
+            # resident runner——ollama 按 (模型,options) 起 runner,ctx 不同=再载一份模型
             summary = r.get("message",{}).get("content","") or "(summary failed)"
             if todo_text:
                 summary += "\n\n[当前计划(todo),以此为准继续]\n" + todo_text
@@ -2498,7 +2499,10 @@ def compact_history(model, messages, level=3, todo_text=None, files_text=None):
             print(f"[上下文压缩 L2: {len(messages)} → {len(out)} 条消息]", flush=True)
             _tl_mark_compacted()   # 转录层:缩短由压缩引起
             return out
-        except Exception:
+        except Exception as e:
+            # 压缩失败不能静默:调用方无论成败都会消耗压缩阶梯(_compact_lvl 只升不
+            # 降),失败必须留痕,否则就是"超上下文但不触发压缩"的无声复发。
+            print(f"[上下文压缩 L2 失败,本层跳过: {type(e).__name__} {str(e)[:120]}]", flush=True)
             return messages
     # level 3(原有行为):全量摘要 + 重建工作集
     if len(messages) <= 4: return messages
@@ -2507,7 +2511,7 @@ def compact_history(model, messages, level=3, todo_text=None, files_text=None):
     try:
         req = [{"role":"system","content":"用中文把下面这段 agent 对话压缩成 ≤150 字摘要,保留关键文件名、代码决策、错误信息和未完成事项。"},
                {"role":"user","content": text}]
-        r = call_chat(model, req, ctx=8000, tools=[])
+        r = call_chat(model, req, tools=[])   # 同 L2:不另设 num_ctx,避免第二个 runner
         summary = r.get("message",{}).get("content","") or "(summary failed)"
         if todo_text:
             summary += "\n\n[当前计划(todo),以此为准继续]\n" + todo_text
@@ -2517,7 +2521,8 @@ def compact_history(model, messages, level=3, todo_text=None, files_text=None):
         print(f"[上下文压缩 L3: {len(messages)} → {len(out)} 条消息]", flush=True)
         _tl_mark_compacted()       # 转录层:缩短由压缩引起
         return out
-    except Exception:
+    except Exception as e:
+        print(f"[上下文压缩 L3 失败,本层跳过: {type(e).__name__} {str(e)[:120]}]", flush=True)
         return messages
 
 # ---------------- 会话(JSON + 侧车元数据) ----------------

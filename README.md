@@ -8,7 +8,7 @@
 >
 > You've been told local models need a big discrete GPU. On an ordinary laptop — integrated graphics, 16–32 GB of RAM — the same 2–9B models that stall in cloud-style frameworks deliver finished artifacts here, because the failures you have seen are harness defects, not model defects. Measured end to end; all 288 cells public.
 
-Current release **v3.1.2** · 📄 Paper: [Mingbird: A Local-First Agent Harness Enabling Small Open Models to Complete Real Tasks](https://doi.org/10.48550/arXiv.2610.02001) · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 628 tests
+Current release **v3.1.3** · 📄 Paper: [Mingbird: A Local-First Agent Harness Enabling Small Open Models to Complete Real Tasks](https://doi.org/10.48550/arXiv.2610.02001) · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 631 tests
 
 **English UI (dark theme)**
 
@@ -33,7 +33,7 @@ Every mechanism comes from "small models can't do X, so the harness does it for 
 | …stay on target in long tasks | delivery self-check gate: before claiming done, it re-reads the original task and verifies its work |
 | …resist destructive impulses | a five-ring safety net catches them (see [Safety](#safety)) |
 
-Nothing is hardcoded: the engine, endpoint, GPU environment variables, and model aliases are detected at runtime or configured in `~/.ollama_agent/config.json` (see [AGENTS.md](AGENTS.md)); since v2.1.1 the engine can be Ollama or any OpenAI-compatible local server (LM Studio, llama.app, llama-server, Jan, vLLM); since v3.0.0 the harness is platform-aware — per-task injection of the real OS/shell/command facts from a single `platform_profile` source. The quality floor is held up by a 628-test regression suite — 435 unit + 26 integration + 167 added since v1.9.1, the prefill no-change assertion (any edit — growth or shrinkage — fails CI) among them. The suite contains **no live-Ollama end-to-end test**: nothing in it needs a running backend or a network. The benchmark runners under `bench/` and `benchmarks/` are separate programs and are not part of the pytest suite.
+Nothing is hardcoded: the engine, endpoint, GPU environment variables, and model aliases are detected at runtime or configured in `~/.ollama_agent/config.json` (see [AGENTS.md](AGENTS.md)); since v2.1.1 the engine can be Ollama or any OpenAI-compatible local server (LM Studio, llama.app, llama-server, Jan, vLLM); since v3.0.0 the harness is platform-aware — per-task injection of the real OS/shell/command facts from a single `platform_profile` source. The quality floor is held up by a 631-test regression suite — 435 unit + 26 integration + 170 added since v1.9.1, the prefill no-change assertion (any edit — growth or shrinkage — fails CI) among them. The suite contains **no live-Ollama end-to-end test**: nothing in it needs a running backend or a network. The benchmark runners under `bench/` and `benchmarks/` are separate programs and are not part of the pytest suite.
 
 ## The problem we set out to solve
 

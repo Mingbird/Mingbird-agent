@@ -14,15 +14,16 @@ model's context needs to pay for itself elsewhere. / 大改动请先开 issue �
 加静态文本的改动必须在别处把成本省回来。
 
 - Run the tests before submitting: `python -m pytest tests/ -q`
-  (628 tests — 435 unit + 26 integration + 167 added since v1.9.1 across issue fixes (#1/#4/#6), multi-engine
+  (631 tests — 435 unit + 26 integration + 170 added since v1.9.1 across issue fixes (#1/#4/#6), multi-engine
   backends, workspace & session systems, the installer skills-path cases, the v3.0.0 platform-aware
-  suite, and the v3.1.1 audit fixes (parallel config passthrough,
-  unattended global deny, crawl-guard byte accounting); includes the prefill
+  suite, the v3.1.1 audit fixes (parallel config passthrough,
+  unattended global deny, crawl-guard byte accounting), and the v3.1.3
+  compaction-runner fix; includes the prefill
   no-change assertion; the benchmark runners under `bench/` and `benchmarks/` are
   separate programs and are not collected by pytest). /
-  提交前请跑测试：`python -m pytest tests/ -q`（628 项——435 项单测 + 26 项集成 + v1.9.1 起新增 167 项，
+  提交前请跑测试：`python -m pytest tests/ -q`（631 项——435 项单测 + 26 项集成 + v1.9.1 起新增 170 项，
   覆盖 issue 修复（#1/#4/#6）、多引擎后端、工作区与会话系统、安装版技能路径、v3.0.0 平台感知套件、
-  v3.1.1 审计修复（并行配置直通、无人值守全局拒、爬行守卫字节口径）等，
+  v3.1.1 审计修复（并行配置直通、无人值守全局拒、爬行守卫字节口径）、v3.1.3 压缩 runner 修复等，
   含 prefill 不变式断言；`bench/` 与 `benchmarks/` 下的基准运行器是独立程序，
   不归 pytest 收集）。
 - Benchmark-related changes should keep the published protocol intact
