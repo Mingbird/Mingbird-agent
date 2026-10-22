@@ -2586,8 +2586,16 @@ def _transcript_flush(session, messages):
     try:
         if _TL_SESSION != session:
             _TL_SESSION = session
-            # 续跑(转录已存在):已载入消息视为已在转录中;新会话/旧版会话:从零建账
-            _TL_NEXT = len(messages) if os.path.exists(p) else 0
+            # 游标=转录文件实际行数,不能取 len(messages):--append 在 loop 之前
+            # 就把新用户消息拼进列表,按"已载入即已写过"起算会把它吞进基线
+            # (v3.1.4 实锤:多轮对话每条追问都从转录消失,上下文 33 条 vs 转录
+            # 30 条)。派生事实源的游标必须来自事实源自身,不是内存假设;压缩后
+            # 续跑(转录比上下文长)也由文件行数游标天然保住完整历史。
+            if os.path.exists(p):
+                with open(p, encoding="utf-8") as _f:
+                    _TL_NEXT = sum(1 for _ in _f)
+            else:
+                _TL_NEXT = 0
         if len(messages) > _TL_NEXT:
             with open(p, "a", encoding="utf-8") as f:
                 for m in messages[_TL_NEXT:]:
@@ -2818,9 +2826,11 @@ def _hint_hit(hint, low):
 _DISPATCH_NOTE_MARK = "[parallel-dispatch]"
 """并行派发回执消息的标记前缀(harness 注入消息识别用,定义见 _maybe_parallel_dispatch)。"""
 
-_HARNESS_NOTE_PREFIXES = ("⚠️", "Continue:", "[已拦截", "回答已经足够", _DISPATCH_NOTE_MARK)
-"""harness 注入的用户消息统一前缀:问答判定与类别路由都跳过它们,
-只认真实用户输入(否则回执/提示文本会被当成任务描述参与路由)。"""
+_HARNESS_NOTE_PREFIXES = ("⚠️", "Continue:", "[已拦截", "回答已经足够", "⏱", "提示:", "继续之前的对话", _DISPATCH_NOTE_MARK)
+"""harness 注入的用户消息统一前缀:问答判定/类别路由/原文回注都跳过它们,
+只认真实用户输入。不变式:任何新注入的 user 消息必须以表内前缀开头——
+v3.1.4 实锤:⏱ 预算提示/「提示:」教学/失败重定向提示曾漏带前缀,交付自查
+改取"最近一条真实输入"后它们立刻被误当任务原文回注。"""
 
 def _has_task_progress(messages):
     """本会话此前是否已经产生过"实际工作"(产出型工具调用)。
@@ -2875,12 +2885,13 @@ def _task_routing_text(messages):
 
 
 def _task_original_text(messages, max_chars=2000):
-    """任务原文 = 第一条"真实用户输入"(跳过 harness 注入/摘要/压缩标记)。
-    交付自查门禁在 finish 放行前回注它,让模型对照自查;多轮续跑的追加
-    指令不算原文(原始指令才是格式约束的权威来源)。超过 max_chars 取首尾
-    各一半加中略标记:格式要求句几乎总在题面首尾,全量回注对超长任务是
-    数千 token 的一次性开销。"""
-    for m in messages:
+    """任务原文 = 本次交付所响应的那条指令 = 最近一条"真实用户输入"(跳过
+    harness 注入/摘要/压缩标记)。交付自查门禁在 finish 放行前回注它,让模型
+    对照自查。v3.1.4 改定:此前取第一条,多轮对话里会把"你好"这类开场当题面
+    回注,真正要交付的指令反而被丢掉——单任务场景首条=末条不受影响;多轮场景
+    本次 finish 响应的恰恰是最后一条。超过 max_chars 取首尾各一半加中略标记:
+    格式要求句几乎总在题面首尾,全量回注对超长任务是数千 token 的一次性开销。"""
+    for m in reversed(messages):
         if m.get("role") == "user":
             text = str(m.get("content","") or "").strip()
             if not text:
@@ -3960,12 +3971,22 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         print(f"[{i}] ⚠️ {name} 被禁用后仍被调用 10 次,硬复位上下文", flush=True)
                         _tl_mark_compacted()
                         continue
-                    res = (f"[tool {name} 已被禁用(连续重复调用保护)。不要尝试用其他工具绕道读同一内容:"
-                           f"直接用 create_file 写产出文件,或已有信息足够就调用 finish。]")
+                    if name in _disabled_tools:
+                        # 反循环禁用:模型确曾滥用它,话术指向"换动作"
+                        res = (f"[tool {name} 已被禁用(连续重复调用保护)。不要尝试用其他工具绕道读同一内容:"
+                               f"直接用 create_file 写产出文件,或已有信息足够就调用 finish。]")
+                    else:
+                        # v3.1.4:工具不在列表 ≠ 反循环惩罚——两种真实成因(名字是模型
+                        # 幻觉的/名字真实但本次未装配该类别)都必须与"被禁用"区分:
+                        # 混用会让模型以为被限流去绕道,也让读日志的人误判反循环误伤。
+                        res = (f"[工具 {name} 当前不可用(不在本次装配的工具列表里——"
+                               f"可能本次未装配该类别,也可能这个名字并不存在)。"
+                               f"不要发明工具名:产出文件用 create_file,改文件用 edit_file/create_file,"
+                               f"读文件用 read_file;完整可用列表见你的工具定义。]")
                     if disabled_recall[name] == 3:
                         messages.append({"role": "user", "content":
-                            f"⚠️ 工具 {name} 已被禁用且你已多次尝试调用它。禁用是永久的,"
-                            f"该工具也不会再出现在工具列表里。现在就换动作:"
+                            f"⚠️ 工具 {name} 已不可用(被禁用或不在装配列表)且你已多次尝试调用它。"
+                            f"再次调用也不会执行,该工具不会再出现在你的工具列表里。现在就换动作:"
                             f"用 create_file 写产出文件推进,需要看已有产物就用 read_file/list_dir。"})
                 elif name not in ("finish",) and last_sig == (name, json.dumps(args, sort_keys=True, ensure_ascii=False)) and dup_warns < 3:
                     # 严格不重复同一命令:完全相同签名连续调用 → 拦截并提醒换策略
@@ -4014,7 +4035,13 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     # 假完成守护:没做任何实际工作就 finish → 拒绝并强制继续。
                     # v2.0.3(issue #3 Medium):正文非空的 finish 不算假完成——分析/
                     # 问答类任务(读文件→讲解)的交付就是正文本身,产物门槛不该拦它。
-                    if (not _FG_OFF and not productive_used and _semantically_empty(content)
+                    # v3.1.4 两条通用化:①qa 会话豁免(问答的交付是对话本身,产出门
+                    # 门槛属于任务模式);②门禁衡量"是否交付了任何东西",交付形态=
+                    # 文件/命令(productive_used)/正文(content)/实质性 summary——
+                    # 只查正文会把"把答案放进 summary"的讲解型交付误杀。
+                    if (not _FG_OFF and not qa and not productive_used
+                            and _semantically_empty(content)
+                            and _semantically_empty(str(args.get("summary", "") or ""))
                             and fake_finish_warns < 2):
                         fake_finish_warns += 1
                         print(f"[{i}] ⚠️ 拒绝假 finish:未使用任何产出型工具(create_file/edit_file/run_bash)", flush=True)
@@ -4032,14 +4059,17 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                             "3. 若这是分析/讲解类任务、本就不该产出文件:把结论直接作为正文"
                             "输出给用户(不是放在 summary 里),然后重新 finish。"
                             + _ws_note(workdir)})
-                        messages.append({"role":"tool","content":res})
+                        # 被拒绝的调用不得回填成功语义:res 含 [TASK_COMPLETE] 会同时
+                        # 骗到模型("已完成了?")和 GUI 日志解析器(提前判 done)。
+                        messages.append({"role":"tool","content":
+                            "[finish 被拒绝:未检测到任何交付。按上面三选一行动后再 finish。]"})
                         continue
                     # 测试验证守护:目录有 test_*.py 时,harness 亲自跑测试,不过则拒绝 finish。
                     # v2.1.2(issue #4):不再假定环境有 pytest——pytest → 缺件回退
                     # python -m unittest(标准库) → 连 python 都缺则跳过不拦;
                     # 判定读 stdout+stderr 合流;拒绝词不再把路指死在 pytest,
                     # 并如实披露 3 次上限(防止小模型为"让 pytest 可用"烧光预算)。
-                    if not _FG_OFF and glob.glob(os.path.join(workdir, "test_*.py")) and test_guard_warns < 3:
+                    if not qa and not _FG_OFF and glob.glob(os.path.join(workdir, "test_*.py")) and test_guard_warns < 3:
                         verdict, thint = _run_test_guard(workdir)
                         if verdict == "skip":
                             print(f"[{i}] 测试守护跳过:环境无 pytest/python,无法自动验证测试", flush=True)
@@ -4061,7 +4091,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                 f"运行方式选环境可用的:python -m pytest -q;"
                                 f"环境没有 pytest 就用 python -m unittest 或直接 python test_xxx.py。"
                                 f"全绿后再 finish(第 {test_guard_warns}/3 次拒绝,满 3 次后 finish 将放行)。"})
-                            messages.append({"role":"tool","content":res})
+                            messages.append({"role":"tool","content":
+                                "[finish 被拒绝:测试未全绿。修复实现与测试后再 finish。]"})
                             continue
                     # 产物核对门禁:finish summary 声称的产物逐一对照 workdir,缺失则拒绝。
                     # (裸 finish 曾让模型谎报"已写入/已生成"直接收货——谎报是低分直接死因)
@@ -4076,7 +4107,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                 + "\n请用 create_file/run_bash 真正生成它们;"
                                 "或修改 summary 只声称确实存在的文件,然后重新 finish。"
                                 + _ws_note(workdir)})
-                            messages.append({"role":"tool","content":res})
+                            messages.append({"role":"tool","content":
+                                "[finish 被拒绝:summary 点名的文件缺失。先生成或修正 summary 后再 finish。]"})
                             continue
                     # 计划完成度门禁:模型自建计划(todo)里点名要产出的文件,finish 时必须
                     # 真实存在。实证(WF-02 e2b):todo.json 里躺着没写的 change_log.md,
@@ -4095,7 +4127,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                 "①用 create_file 真正生成它们;②若计划已不符合实际,"
                                 "用 todo(action=create, items=[与实际一致的新计划]) 重建计划后重新 finish。"
                                 + _ws_note(workdir)})
-                            messages.append({"role":"tool","content":res})
+                            messages.append({"role":"tool","content":
+                                "[finish 被拒绝:计划点名的产物缺失。生成产物或重建计划后再 finish。]"})
                             continue
                     # 计划同步门禁:任务结束前必须把计划与实际进度对齐。否则 UI 的计划面板
                     # 永远停在"全部未勾",模型侧的计划也失去坐标(实证:e2b 8/8 格建了
@@ -4116,7 +4149,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                 "若仍有步骤没做,请继续执行后再 finish;"
                                 "重新 finish 时务必在 summary 里用两三句话向用户总结成果"
                                 "(完成了什么、产物是什么)。"})
-                            messages.append({"role":"tool","content":res})
+                            messages.append({"role":"tool","content":
+                                "[finish 暂缓:先把计划与实际进度同步(todo update)后再 finish。]"})
                             continue
                     # 交付自查门禁(语义漂移防护):finish 放行前把任务原文回注一次,
                     # 让模型逐条自查交付是否满足任务的全部要求。长任务执行到末尾,
@@ -4141,7 +4175,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                 "若全部满足:重新 finish,并在 summary 里用两三句话"
                                 "向用户总结成果(完成了什么、产物/答案是什么)。\n"
                                 "--- 原始任务指令 ---\n" + _orig + "\n--- 原始任务指令结束 ---"})
-                            messages.append({"role":"tool","content":res})
+                            messages.append({"role":"tool","content":
+                                "[finish 待自查:按上方要求核对原始任务指令后重新 finish。]"})
                             continue
                     # v2.0.2 收尾可见性:finish 附带的正文此前从不打印(工具轮的
                     # content 被 GUI 静默跳过),连过数道门后的"裸 finish"更是
@@ -4198,14 +4233,14 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                 # 越界路径族专项教学(2026-09-22 试点):小模型凭直觉
                                 # 去 C:\home\user\... 找输入文件,被拒后换路径重试。
                                 # 明确告诉它输入就在 cwd,并给一条可立即执行的动作。
-                                hint = ("被拒绝的路径在工作目录之外。任务的全部输入文件都已经在你的"
+                                hint = ("⚠️ 被拒绝的路径在工作目录之外。任务的全部输入文件都已经在你的"
                                         "工作目录里:立即执行 list_dir(path='.') 列出当前目录,"
                                         "直接读取列出的文件;不要再访问工作目录以外的任何路径。")
                             elif name == "run_bash":
-                                hint = ("不要 cd 到 /workspace 等绝对路径——工作目录已设定,直接运行命令或用相对路径;"
+                                hint = ("⚠️ 不要 cd 到 /workspace 等绝对路径——工作目录已设定,直接运行命令或用相对路径;"
                                         "先用 list_dir 确认目录内容,用 read_file/pwd 确认实际情况。")
                             else:
-                                hint = ("先用 list_dir / read_file 确认实际情况,重新构造参数;"
+                                hint = ("⚠️ 先用 list_dir / read_file 确认实际情况,重新构造参数;"
                                         "或换一个实现方式。")
                             messages.append({"role":"user","content":
                                 f"⚠️ 你已连续 {fail_count[name]} 次调用 {name} 失败。立刻停止重试,必须换策略:{hint}"})
@@ -4382,7 +4417,10 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                             "回答已经足够,用户是在问答。立即调用 finish 结束本轮,不要重复输出。"})
                     else:
                         messages.append({"role":"user","content":"Continue: keep making real progress with tools, or call finish only when fully verified/answered."})
-    print("===== MAX ITERATIONS =====", flush=True)
+    else:
+        # for-else:只有 200 轮真正耗尽才打此标签——问答收尾走 break 不是耗尽,
+        # 此前每轮正常问答结束都误打"MAX ITERATIONS"(假日志误导排障)。
+        print("===== MAX ITERATIONS =====", flush=True)
     save_session(session, messages, workdir)
     return messages
 

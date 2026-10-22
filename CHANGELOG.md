@@ -1,5 +1,19 @@
 # Changelog
 
+## v3.1.4 (2026-10-22)
+
+Conversation-hygiene release from a real 6-minute session post-mortem (a "describe your capabilities" ask cascaded into junk files and a misleading rejection). All fixes are class-level, not scenario-level. Tests: **642 green** (631 + 11 new).
+
+### 🔧 Fixes
+- **Follow-up messages no longer vanish from the transcript**: the resume cursor was initialized to `len(messages)`, silently swallowing the `--append` user message of every follow-up run (incident session: context 33 vs transcript 30). The cursor now counts the transcript file's actual lines — a derived fact source's cursor must come from the fact source itself. Compacted resumes (transcript longer than context) keep their full history.
+- **Harness-note prefix invariant enforced**: ⏱ budget nudges, `提示:` teaching notes, failure-redirect hints and the resume note carried no listed prefix — once the self-check gate started using the *last* real user input, a budget nudge could be re-injected as the "original instruction". Hints are now ⚠️-prefixed and the prefix list covers every injection.
+- **Delivery self-check reads the instruction being answered** — the last real user input, not the conversation's first message (which re-injected "你好" as the task while the actual ask was lost).
+- **Fake-finish gate: QA sessions exempt + a substantive summary counts as delivery** — an explanatory finish carrying its answer in the summary was previously rejected and pushed into creating files. Benchmark note: main arms ran under the old gate semantics; future protocol runs should record the harness version.
+- **Rejections no longer carry success semantics**: all six finish gates appended the finish tool result — containing `[TASK_COMPLETE]` — after rejecting it, feeding the model contradictory signals and marking the session meta `done` mid-run. Rejections/deferrals now append neutral results.
+- **Test-run gate exempts QA**: a chat finishing in a workdir that happens to contain `test_*.py` no longer runs the test suite to let a greeting end.
+- **"Tool unavailable" ≠ "anti-loop punishment"**: calling a tool outside the loaded list (hallucinated name, or real but not loaded this run) gets its own truthful wording instead of the misleading "disabled by repeat-call protection".
+- **`MAX ITERATIONS` only prints when the 200 turns are actually exhausted** (for/else); a normal chat ending is not an exhaustion.
+
 ## v3.1.3 (2026-10-22)
 
 Compaction-runner fix from live Ollama logs. Tests: **631 green** (628 + 3 new).

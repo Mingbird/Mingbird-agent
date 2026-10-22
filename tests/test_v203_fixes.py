@@ -111,8 +111,10 @@ def test_api_timeout_env_knob():
 
 
 def test_readonly_finish_passes_fake_gate_condition():
-    # 正文非空的 finish 不再被"假完成"门拦:分析/讲解类任务的交付就是正文
-    assert "not productive_used and _semantically_empty(content)" in SRC_OA
+    # 正文非空的 finish 不再被"假完成"门拦:分析/讲解类任务的交付就是正文。
+    # v3.1.4 追加两条豁免:qa 会话(not qa)+ 实质性 summary 也算交付。
+    assert "not _FG_OFF and not qa and not productive_used" in SRC_OA
+    assert '_semantically_empty(str(args.get("summary", "") or ""))' in SRC_OA
     assert "分析/讲解类任务" in SRC_OA
 
 

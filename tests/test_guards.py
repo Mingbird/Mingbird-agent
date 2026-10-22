@@ -165,10 +165,11 @@ def test_shotgun_hint_is_actionable_not_disable(oa):
 # ---- agent_loop 接线:脚本化驱动(假 call_chat/run_tool,无网络无模型) ----
 
 def _scripted_loop(oa, workdir, calls, task="修复 m08.py 里的 bug,并运行测试验证。", model="gemma4:12b",
-                   budget_sec=None, finish_content="done"):
+                   budget_sec=None, finish_content="done", finish_summary="all done"):
     """按脚本驱动 agent_loop。calls=[(name, args, result), ...],脚本用尽后回 finish。
-    返回最终 messages。MCP 探测被短路(不触网)。finish_content="" 模拟裸 finish
-    (v2.0.3:正文非空的 finish 视为文字交付,假完成门不再拦——测门必须用空正文)。"""
+    返回最终 messages。MCP 探测被短路(不触网)。finish_content=""/finish_summary=""
+    模拟裸 finish(v2.0.3:正文非空视为文字交付;v3.1.4:实质性 summary 同理——
+    测假完成门必须正文与 summary 双空)。"""
     saved = (oa.call_chat, oa.run_tool, oa.mcp_manifest, oa.mcp_tool_defs)
     saved_tools = (list(oa._active_tools), set(oa._disabled_tools))  # 模块级全局快照
     it = {"i": 0}
@@ -180,7 +181,7 @@ def _scripted_loop(oa, workdir, calls, task="修复 m08.py 里的 bug,并运行�
             return {"message": {"content": "", "tool_calls": [{"function": {"name": name, "arguments": args}}]},
                     "prompt_eval_count": 500}
         return {"message": {"content": finish_content, "tool_calls": [
-                    {"function": {"name": "finish", "arguments": {"summary": "all done"}}}]},
+                    {"function": {"name": "finish", "arguments": {"summary": finish_summary}}}]},
                 "prompt_eval_count": 500}
 
     def fake_run_tool(name, args, wd, crawl_state=None):
@@ -790,14 +791,19 @@ def test_parse_plain_text_rejected(oa):
 
 # ---- 交付自查门禁:finish 放行前回注任务原文(语义漂移防护) ----
 
-def test_task_original_text_takes_first_real_user_message(oa):
+def test_task_original_text_takes_last_real_user_message(oa):
+    """v3.1.4:原文=本次交付所响应的指令=最近一条真实用户输入(交付自查回注用)。
+    旧版取第一条,多轮对话里会把"你好"当题面、真正的指令被丢。"""
     msgs = [{"role": "system", "content": "s"},
             {"role": "user", "content": "原始任务:输出纯数字。"},
             {"role": "assistant", "content": ""},
             {"role": "user", "content": "⚠️ harness 注入,应被跳过"},
+            {"role": "user", "content": "⏱ 时间预算:已用约 75%,也应被跳过"},
             {"role": "user", "content": "[先前上下文摘要] 也应被跳过"},
-            {"role": "user", "content": "续跑追加指令,不是原文"}]
-    assert oa._task_original_text(msgs) == "原始任务:输出纯数字。"
+            {"role": "user", "content": "续跑追加指令:这次交付响应的是它"}]
+    assert oa._task_original_text(msgs) == "续跑追加指令:这次交付响应的是它"
+    # 单任务场景(只有一条真实输入)首=末,不受影响
+    assert oa._task_original_text(msgs[:2]) == "原始任务:输出纯数字。"
 
 
 def test_task_original_text_empty_when_no_real_user(oa):
@@ -950,9 +956,9 @@ def test_parse_placeholder_still_preferred_over_func_expr(oa):
 # ---- 假完成门禁拒绝消息带下一步可执行动作(LH-01 原则落实) ----
 
 def test_wiring_fake_finish_rejection_carries_next_action(oa, tmp_path):
-    # 脚本只发裸 finish(零实际工作、无正文)→ 被拒;拒绝消息必须给可执行的下一步
-    # v2.0.3:正文非空的 finish 是合法文字交付不再拦,所以这里显式用空正文
-    msgs = _scripted_loop(oa, str(tmp_path), [], finish_content="")
+    # 脚本只发裸 finish(零实际工作、正文与 summary 双空)→ 被拒;拒绝消息必须给可执行的下一步
+    # v2.0.3:正文非空的 finish 是合法文字交付不再拦;v3.1.4:实质性 summary 同理
+    msgs = _scripted_loop(oa, str(tmp_path), [], finish_content="", finish_summary="")
     rejects = [m for m in msgs if m.get("role") == "user"
                and "finish 被拒绝" in str(m.get("content", ""))]
     assert len(rejects) >= 1
