@@ -29,8 +29,10 @@ def _setup(tmp_path, monkeypatch):
     cnt = tmp_path / "starts.txt"
     cfgfile = tmp_path / "mcp.json"
     cfgfile.write_text(json.dumps({
-        "fake": {"command": sys.executable, "args": [SERVER],
-                 "env": {"FAKE_MCP_COUNT": str(cnt)}}}), encoding="utf-8")
+        "fake": {"command": sys.executable,
+                 "args": ["-u", SERVER],   # -u:子进程 stdio 全不缓冲(CI 稳定性)
+                 "env": {"FAKE_MCP_COUNT": str(cnt),
+                         "FAKE_MCP_LOG": str(tmp_path / "srv.log")}}}), encoding="utf-8")
     monkeypatch.setattr(A, "MCP_CONFIG", str(cfgfile))
     monkeypatch.setattr(A, "_BROKER_ENABLED", True)
     A._broker_close_all()
@@ -72,6 +74,8 @@ def test_manifest_reuses_broker_session(tmp_path, monkeypatch):
 
 
 def test_broker_off_falls_back_per_call(tmp_path, monkeypatch):
+    if importlib.util.find_spec("mcp") is None:
+        pytest.skip("mcp 库未装:单次路径依赖 mcp.ClientSession(CI 不装该依赖)")
     cnt = _setup(tmp_path, monkeypatch)
     monkeypatch.setattr(A, "_BROKER_ENABLED", False)
     assert "echo:" in A.mcp_call("fake", "echo", {"text": "a"})
