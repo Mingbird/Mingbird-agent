@@ -1,5 +1,19 @@
 # Changelog
 
+## v3.1.7 (2026-11-05)
+
+Tool-availability fixes from a user report: in chat, tools the model could see were refused as "unavailable"; the same gate also left a few ways around the offline guarantee. Root cause: execution validated against the session tool registry instead of the tools actually offered that turn. Tests: **687 green** (672 + 15 new).
+
+### 🔧 Fixes
+- **Chat-mode web search and page fetch work again**: the dispatch gate now validates against the tools offered this turn, plus anything `enable_tools` unlocked in the same turn.
+- **Offline mode is enforced at the tool bodies**: `web_search`, `web_search_multi`, `batch_tools` and `web_fetch` each return a clear message while offline, so a call that bypasses assembly cannot reach the network.
+- **Remote (HTTP) MCP servers are not probed or called while offline**: neither the manifest refresh nor `mcp_call` reaches them.
+- **Offline refusals no longer feed the anti-loop ladder**: a configuration state no longer escalates to a context hard reset.
+- **The gate stays narrow**: only online tools must be offered this turn; other tools keep the registry semantics, since the chat finishing path (`finish`) is not part of the chat offer list.
+
+### ✨ Notes
+- Chat and task mode stay different by design: chat is a read-only subset, task mode assembles by category. The rule now is simple — what the model can see it may call, and what it cannot see but could egress is refused.
+
 ## v3.1.6 (2026-11-05)
 
 Ecosystem-compatibility + debt-repayment release. The compaction window guard closes a real defect found in a 611-cell campaign log; the rest plugs Mingbird into the 2026 agent-ecosystem conventions (SKILL.md, AGENTS.md) and pays down its two oldest self-inflicted taxes: per-call MCP spawns and silent tool-argument failures. Tests: **672 green** (642 + 30 new).

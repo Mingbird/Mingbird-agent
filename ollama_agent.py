@@ -650,7 +650,19 @@ def _search_backends():
         return tuple(u.strip() for u in raw.split(",") if u.strip())
     return ("https://cn.bing.com/search", "https://www.baidu.com/s")
 
+def _offline_refuse(tool):
+    """断网模式下的统一出站闸(纵深防御,v3.1.7)。
+    装配层过滤(_filter_offline_tools/_chat_tool_defs)只是"不诱惑模型",不是安全
+    边界——模型幻觉、旧会话残留、batch_tools 内部串联都可能绕过装配层直达工具本体。
+    零出站承诺必须在"真正会发请求的函数入口"兑现,才对得起 netstat 可验。"""
+    if appconfig.offline_mode():
+        return (f"[{tool} 在断网模式下不可用(一键断网=零出站承诺)。"
+                f"请用工作区已有信息和你的知识回答;确需联网请用户关闭断网模式。]")
+    return None
+
 def web_search(query, max_results=5):
+    _r = _offline_refuse("web_search")
+    if _r: return _r
     import requests
     from bs4 import BeautifulSoup
     hd = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
@@ -686,6 +698,8 @@ def web_search(query, max_results=5):
 def web_search_multi(queries, max_results=3):
     """并行检索多个查询(线程池),合并结果。独立查询并发执行,显著提速。
     返回: 每个查询的结果块(带查询标签)。单个失败不影响整体。"""
+    _r = _offline_refuse("web_search_multi")
+    if _r: return _r
     if not queries:
         return "[web_search_multi: 需提供 queries 数组]"
     import concurrent.futures as _cf
@@ -710,6 +724,8 @@ def batch_tools(calls, workdir, crawl_state=None):
     - 文件/命令类工具串行执行(保依赖,避免 create 后立即 read 的竞态)
     每个子调用仍走 run_tool(含安全门/路径边界),单个失败不影响整体。
     限制: 最多 8 个;禁止嵌套 batch_tools。"""
+    _r = _offline_refuse("batch_tools")
+    if _r: return _r
     if not calls or not isinstance(calls, list):
         return "[batch_tools: 需提供 calls 数组,形如 [{tool, args}, ...]]"
     calls = calls[:8]   # 并发上限
@@ -750,6 +766,8 @@ def web_fetch(url, workdir=None):
     3) 磁盘缓存:同 URL 命中直接返回,不重复网络请求
     返回格式: 摘要文本 + '\n[全文已存: sources/xxx.txt,需要细节用 read_file 读取]'
     """
+    _r = _offline_refuse("web_fetch")
+    if _r: return _r
     key = _cache_key("fetch", url)
     cached = _cache_get(key)
     if cached:
@@ -881,6 +899,12 @@ def mcp_call(server, tool, args):
     cfg = load_mcp_servers().get(server)
     if not cfg:
         return f"[MCP server '{server}' not configured. Edit {MCP_CONFIG}: {{\"{server}\":{{\"command\":\"...\",\"args\":[...]}}}}]"
+    # v3.1.7:断网模式禁止远程(HTTP) MCP——装配层已把 url 型服务器整体跳过,但
+    # is_mcp_tool 在派发闸被豁免,模型若从旧会话/幻觉里调过来会直达网络。零出站
+    # 必须在真正发请求的这里拦(stdio 本地进程不受影响)。
+    if cfg.get("url") and appconfig.offline_mode():
+        return (f"[mcp_call error: 断网模式下禁用远程(HTTP) MCP 服务器 '{server}'"
+                f"(一键断网=零出站承诺)。请用工作区已有信息;确需联网请用户关闭断网模式。]")
     # v3.1.6:stdio 服务器优先走常驻 broker(spawn+握手只付一次);任何异常落回
     # 原单次路径——兜底永不丢。AGENT_MCP_BROKER=0 整体关闭。
     if _BROKER_ENABLED and not cfg.get("url"):
@@ -1296,7 +1320,10 @@ def mcp_manifest(force=False):
     # (连旧缓存都没有)时缓存期压到 60s 尽快重试。
     prev = _load_mcp_cache_disk()[1] or {}
     cand = {name: cfg for name, cfg in servers.items()
-            if isinstance(cfg, dict) and (cfg.get("command") or cfg.get("url"))}
+            if isinstance(cfg, dict) and (cfg.get("command") or cfg.get("url"))
+            # v3.1.7:断网模式下不探测远程(HTTP) MCP 服务器——探测本身就是一次出站,
+            # 而它发生在启动预热/每 300s 刷新,用户完全看不到。
+            and not (appconfig.offline_mode() and cfg.get("url"))}
     from concurrent.futures import ThreadPoolExecutor
     def _probe_one(name, cfg):
         # v3.1.6:已有常驻会话且活着 → 直接用会话的 tools/list(会话内缓存),
@@ -4093,6 +4120,8 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                 ct = tools_for_categories(cats, extra=allowed_extra)   # 任务:按类别加载(扁平 prefill)
             else:
                 ct = None                    # 全量(兜底)
+            # v3.1.7:本轮下发给模型的工具名快照——执行校验只认这份(见派发处的可得性闸)
+            _active_snapshot = {t["function"]["name"] for t in _active_tools}
             # 上下文事前估算:调用前估算消息+工具 token,超限主动压缩(不等 ollama 返回,
             # 500 时拿不到用量;opencode 同思路——请求前预算检查避免超限/错误)
             _est = _estimate_messages_tokens(messages, ct)
@@ -4287,12 +4316,31 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     print(f"[{i}] ⚡ 别名映射: {name} -> {_alias[name]}", flush=True)
                     name = _alias[name]
                     fn["name"] = name
-                if (name in _disabled_tools or name not in [t["function"]["name"] for t in _active_tools]) and not is_mcp_tool(name):
+                # v3.1.7:可得性校验以"本轮真正下发的工具表"为准,修两类错判:
+                #   假阴性:问答模式下发 web_search/web_fetch(ADVANCED,不在 _active_tools)
+                #          → 旧闸一律判"不可用",搜索/抓网页永远发不出去(用户实机撞到);
+                #   假阳性:离线模式已把它们剔出下发列表,但 tools_for_categories 先
+                #          append 进 _active_tools 再过滤 → 旧闸放行,零出站破功。
+                # 收窄原则:只有"联网工具"要求本轮确实下发(断网红线);其余工具沿用
+                # 原语义(_active_tools 为准),避免把问答收尾用的 finish 这类
+                # 不在问答下发清单里的控制工具误伤。
+                _offered = ({t["function"]["name"] for t in ct} if ct is not None
+                            else {t["function"]["name"] for t in _active_tools})
+                _offered |= ({t["function"]["name"] for t in _active_tools}
+                             - _active_snapshot)   # 本轮 enable_tools 刚解锁的也算已下发
+                _allowed = {t["function"]["name"] for t in _active_tools} | _offered
+                _offline_blk = (appconfig.offline_mode() and name in _ONLINE_TOOLS
+                                and name not in _offered)
+                _blocked = name in _disabled_tools or name not in _allowed or _offline_blk
+                if _blocked and not is_mcp_tool(name):
                     # 拒绝循环升级:被禁用工具仍被反复调用时,拒绝消息本身也在喂死循环
                     # (WF-08 4b 实证:todo 禁用后被拒 ~150 次,模型从未换动作烧满预算)。
                     # 3 次注入强提示,10 次硬复位上下文(复位后工具面不再含被禁工具)。
-                    disabled_recall[name] = disabled_recall.get(name, 0) + 1
-                    if disabled_recall[name] >= 10:
+                    # v3.1.7:断网拦截不计入该梯——那是用户配置状态,不是模型滥用,
+                    # 拿"硬复位清上下文"惩罚它只会白白烧掉用户的工作进度。
+                    if not _offline_blk:
+                        disabled_recall[name] = disabled_recall.get(name, 0) + 1
+                    if not _offline_blk and disabled_recall[name] >= 10:
                         _task0 = next((str(m.get("content", "")) for m in messages
                                        if m.get("role") == "user"), "")
                         messages = [messages[0],
@@ -4314,11 +4362,17 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         # v3.1.4:工具不在列表 ≠ 反循环惩罚——两种真实成因(名字是模型
                         # 幻觉的/名字真实但本次未装配该类别)都必须与"被禁用"区分:
                         # 混用会让模型以为被限流去绕道,也让读日志的人误判反循环误伤。
-                        res = (f"[工具 {name} 当前不可用(不在本次装配的工具列表里——"
-                               f"可能本次未装配该类别,也可能这个名字并不存在)。"
-                               f"不要发明工具名:产出文件用 create_file,改文件用 edit_file/create_file,"
-                               f"读文件用 read_file;完整可用列表见你的工具定义。]")
-                    if disabled_recall[name] == 3:
+                        if appconfig.offline_mode() and name in _ONLINE_TOOLS:
+                            # v3.1.7:断网模式是用户显式承诺的零出站,话术要把成因说清
+                            res = (f"[工具 {name} 在断网模式下不可用(一键断网=零出站承诺,"
+                                   f"联网工具本次不装配)。请用工作区已有信息和你的知识回答;"
+                                   f"确需联网请用户关闭断网模式。]")
+                        else:
+                            res = (f"[工具 {name} 当前不可用(不在本次装配的工具列表里——"
+                                   f"可能本次未装配该类别,也可能这个名字并不存在)。"
+                                   f"不要发明工具名:产出文件用 create_file,改文件用 edit_file/create_file,"
+                                   f"读文件用 read_file;完整可用列表见你的工具定义。]")
+                    if disabled_recall.get(name, 0) == 3:
                         messages.append({"role": "user", "content":
                             f"⚠️ 工具 {name} 已不可用(被禁用或不在装配列表)且你已多次尝试调用它。"
                             f"再次调用也不会执行,该工具不会再出现在你的工具列表里。现在就换动作:"
