@@ -56,15 +56,22 @@ def test_no_divergent_num_ctx_left_in_src():
 
 
 def test_compact_failure_is_logged_not_silent(monkeypatch, tl_state, capsys):
-    """摘要调用抛错:返回原消息(行为不变)但必须打一行失败原因。"""
+    """摘要调用抛错:失败原因必须留痕;并退回 L1 机械截断兜底,不得原样返回装作
+    压过(2026-11-05 起语义:失败也要让上下文确实下降)。"""
     def boom(*a, **k):
         raise RuntimeError("connection refused")
     monkeypatch.setattr(A, "call_chat", boom)
-    msgs = _msgs(10)
+    msgs = ([{"role": "system", "content": "S"}] +
+            [{"role": "user", "content": f"u{i}"} for i in range(8)] +
+            [{"role": "tool", "content": "x" * 500} for _ in range(3)] +
+            [{"role": "assistant", "content": "done"}])
     out = A.compact_history("m", msgs, level=3)
-    assert out is msgs                       # 原样返回,不丢消息
     err = capsys.readouterr().out
     assert "L3 失败" in err and "RuntimeError" in err and "connection refused" in err
+    assert "退回 L1 机械截断兜底" in err
+    assert len(out) == len(msgs)                    # L1 兜底保结构不丢消息
+    old_tools = [m for m in out[:-2] if m.get("role") == "tool"]
+    assert old_tools and all("已截断" in m["content"] for m in old_tools)
     out2 = A.compact_history("m", msgs, level=2)
-    assert out2 is msgs
-    assert "L2 失败" in capsys.readouterr().out
+    err2 = capsys.readouterr().out
+    assert "L2 失败" in err2 and "退回 L1 机械截断兜底" in err2

@@ -272,6 +272,20 @@ def system_prompt():
     # 拒绝越界)。动态行不进 SYSTEM 常量,出厂 prefill 钉子不变。
     if _TASK_WORKDIR:
         base += f"\n当前工作目录(所有命令与相对路径都在它之下运行):{_TASK_WORKDIR}"
+        # v3.1.6:AGENTS.md 项目指令注入(社区事实标准,30+ 工具采用;无则回退
+        # CLAUDE.md)。预算内注入:超 3000 字符截尾保后(项目指令后半通常才是硬规则)。
+        # 子 agent 不注入(_CHILD_SYSTEM 最小化,省 token)。
+        _pj = None
+        for _fn in ("AGENTS.md", "CLAUDE.md"):
+            _p = os.path.join(_TASK_WORKDIR, _fn)
+            if os.path.isfile(_p):
+                _pj = read_text(_p).strip()
+                break
+        if _pj:
+            if len(_pj) > 3000:
+                _pj = "[项目指令过长,前文已截断]\n" + _pj[-3000:]
+            base += f"\n\n[项目指令(来自工作目录的 {_fn},优先级高于一般偏好,与任务指令冲突时以用户当次指令为准)]\n{_pj}"
+            print(f"[已注入项目指令: {_fn}, {len(_pj)} 字符]", flush=True)
     # v3.0.0:平台信息块(aider 式)。动态注入,SYSTEM 常量与出厂 prefill 钉子不动。
     # 小模型在 Windows cmd 里写 ls/grep、在 POSIX 里写 C:\ 路径是高频翻车点,
     # 平台真相此前从未告知模型。
@@ -777,11 +791,44 @@ def _skill_bases(workdir):
         # 安装版也认 EXE 旁的 skills(GUI 技能列表列出的目录必须都能加载,#6)
         bases.insert(2, os.path.join(os.path.dirname(sys.executable), "skills"))
     return bases
+def _skill_frontmatter(path):
+    """SKILL.md(agentskills.io 标准格式)frontmatter → (name, description)。
+    解析失败返回 (None, "")。name 缺省时用目录名。"""
+    try:
+        head = read_text(path)[:2000]
+    except Exception:
+        return None, ""
+    m = re.match(r"^\s*---\s*\n(.*?)\n---", head, re.S)
+    if not m:
+        return None, ""
+    fm = m.group(1)
+    nm = re.search(r"^name:\s*(.+)$", fm, re.M)
+    ds = re.search(r"^description:\s*(.+)$", fm, re.M)
+    name = nm.group(1).strip().strip('"\'') if nm else None
+    desc = ds.group(1).strip().strip('"\'')[:120] if ds else ""
+    return name, desc
+
+def _skill_body(text):
+    """剥掉 SKILL.md 的 frontmatter——渐进披露:frontmatter 是元数据(name/
+    description 已进列表),正文才是激活阶段要给模型的内容。"""
+    m = re.match(r"^\s*---\s*\n.*?\n---\s*\n?", text, re.S)
+    return text[m.end():] if m else text
+
 def find_skill(name, workdir):
     for base in _skill_bases(workdir):
         for ext in (".md", ".txt", ".py"):
             p = os.path.join(base, name + ext)
             if os.path.exists(p): return p
+    # v3.1.6:agentskills.io 文件夹形态 <base>/<name>/SKILL.md;目录名与
+    # frontmatter name 不一致时也认 frontmatter(标准允许)。
+    for base in _skill_bases(workdir):
+        p = os.path.join(base, name, "SKILL.md")
+        if os.path.exists(p): return p
+        if os.path.isdir(base):
+            for d in os.listdir(base):
+                sp = os.path.join(base, d, "SKILL.md")
+                if os.path.exists(sp) and _skill_frontmatter(sp)[0] == name:
+                    return sp
     return None
 def skill_desc(path):
     """从 frontmatter 取 description 一句话(供 list 用,省 token)。"""
@@ -802,17 +849,27 @@ def list_skills(workdir):
     for base in _skill_bases(workdir):
         if os.path.isdir(base):
             for f in os.listdir(base):
+                p = os.path.join(base, f)
                 if f.endswith((".md",".txt",".py")):
                     name = f.rsplit(".",1)[0]
                     if name not in seen:
-                        seen[name] = skill_desc(os.path.join(base,f))
+                        seen[name] = skill_desc(p)
+                elif os.path.isdir(p) and os.path.isfile(os.path.join(p, "SKILL.md")):
+                    # v3.1.6:标准技能文件夹;列表只露 name+description(渐进披露第一段)
+                    fm_name, desc = _skill_frontmatter(os.path.join(p, "SKILL.md"))
+                    name = fm_name or f
+                    if name not in seen:
+                        seen[name] = desc or skill_desc(os.path.join(p, "SKILL.md"))
     if not seen: return "(none)"
     return "\n".join(f"• {n}: {d}" if d else f"• {n}" for n,d in sorted(seen.items()))
 def load_skill(name, workdir):
     p = find_skill(name, workdir)
     if not p:
         return f"[skill '{name}' not found. Available: {list_skills(workdir)}]"
-    return f"### SKILL: {name}\n{read_text(p)}"
+    body = read_text(p)
+    if os.path.basename(p) == "SKILL.md":
+        body = _skill_body(body)   # 标准格式剥 frontmatter,只给正文
+    return f"### SKILL: {name}\n{body}"
 
 # ---------------- MCP ----------------
 def load_mcp_servers():
@@ -824,6 +881,13 @@ def mcp_call(server, tool, args):
     cfg = load_mcp_servers().get(server)
     if not cfg:
         return f"[MCP server '{server}' not configured. Edit {MCP_CONFIG}: {{\"{server}\":{{\"command\":\"...\",\"args\":[...]}}}}]"
+    # v3.1.6:stdio 服务器优先走常驻 broker(spawn+握手只付一次);任何异常落回
+    # 原单次路径——兜底永不丢。AGENT_MCP_BROKER=0 整体关闭。
+    if _BROKER_ENABLED and not cfg.get("url"):
+        try:
+            return _broker_call(server, tool, args)
+        except Exception as e:
+            print(f"[MCP broker 路径失败,回退单次调用: {type(e).__name__} {str(e)[:100]}]", flush=True)
     try:
         from mcp import ClientSession
         url = cfg.get("url")
@@ -871,6 +935,183 @@ def mcp_call(server, tool, args):
                     "可能卡死或启动极慢,请改用其他工具完成本步。]")
     except Exception as e:
         return f"[mcp_call error: {e}]"
+
+# ---------------- MCP 常驻 broker(v3.1.6) ----------------
+# 探测侧的税 v2.0.0 已还(并行+盘缓存);剩下的税是 mcp_call 每次调用重新 spawn
+# stdio 服务器 + initialize(实测每调用 1.7~5.7s)。broker = 每个 stdio 服务器一条
+# 常驻进程:spawn/握手一次,tools/list 缓存在会话内,call_tool 按 id 关联响应。
+# 任何失败自动落回下方原单次路径(spawn 兜底永不丢);AGENT_MCP_BROKER=0 可关闭。
+import threading as _TH
+import atexit as _AE
+_BROKER: dict = {}
+_BROKER_LOCK = _TH.Lock()
+_BROKER_IDLE_S = 600            # 空闲超 10 分钟的会话回收(资源有界)
+_BROKER_ENABLED = os.environ.get("AGENT_MCP_BROKER", "1") != "0"
+
+class _StdioSession:
+    """常驻 stdio MCP 会话:裸 JSON-RPC(与 _probe_stdio 同款协议,不依赖 mcp
+    库,拿得住进程句柄),reader 线程按 id 分发响应。进程死亡自动标死;调用方
+    见死即弃、走兜底。"""
+    def __init__(self, name, cfg, handshake_timeout=10):
+        self.name = name
+        self._dead = False
+        self._tools = None
+        self._next_id = 0
+        self._resp = {}
+        self._lock = _TH.Lock()
+        self.last_used = time.time()
+        env = dict(os.environ)
+        env.update({str(k): str(v) for k, v in (cfg.get("env") or {}).items()})
+        self.proc = subprocess.Popen(
+            [cfg["command"]] + list(cfg.get("args", [])),
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL, env=env, creationflags=NOWIN)
+        t = _TH.Thread(target=self._read_loop, daemon=True)
+        t.start()
+        r = self._request("initialize", {
+            "protocolVersion": "2024-11-05", "capabilities": {},
+            "clientInfo": {"name": "mingbird", "version": "3"}}, timeout=handshake_timeout)
+        if r is None:
+            self.close()
+            raise RuntimeError(f"{name} initialize 失败/超时")
+        self._notify("notifications/initialized")
+        print(f"[MCP broker] {name} 常驻会话就绪(pid {self.proc.pid})", flush=True)
+
+    def _read_loop(self):
+        try:
+            for ln in self.proc.stdout:
+                try: msg = json.loads(ln)
+                except Exception: continue
+                slot = self._resp.get(msg.get("id"))
+                if slot is not None:
+                    slot["data"] = msg.get("result", {"__error__": msg.get("error")})
+                    slot["ev"].set()
+        except Exception:
+            pass
+        finally:
+            self._dead = True
+            for slot in list(self._resp.values()):
+                slot["ev"].set()
+
+    def _request(self, method, params=None, timeout=60):
+        with self._lock:
+            if self._dead: return None
+            self._next_id += 1
+            rid = self._next_id
+            slot = {"ev": _TH.Event(), "data": None}
+            self._resp[rid] = slot
+            try:
+                self.proc.stdin.write((json.dumps(
+                    {"jsonrpc": "2.0", "id": rid, "method": method,
+                     "params": params or {}}) + "\n").encode("utf-8"))
+                self.proc.stdin.flush()
+            except Exception:
+                self._resp.pop(rid, None)
+                self._dead = True
+                return None
+        if not slot["ev"].wait(timeout):
+            with self._lock: self._resp.pop(rid, None)
+            return None
+        with self._lock: self._resp.pop(rid, None)
+        return slot["data"]
+
+    def _notify(self, method):
+        with self._lock:
+            try:
+                self.proc.stdin.write((json.dumps(
+                    {"jsonrpc": "2.0", "method": method}) + "\n").encode("utf-8"))
+                self.proc.stdin.flush()
+            except Exception:
+                self._dead = True
+
+    def list_tools(self, timeout=30):
+        if self._tools is not None:
+            return self._tools
+        r = self._request("tools/list", timeout=timeout)
+        if r is None:
+            return None
+        self._tools = (r or {}).get("tools") or []
+        return self._tools
+
+    def call_tool(self, tool, args, timeout=60):
+        self.last_used = time.time()
+        return self._request("tools/call", {"name": tool, "arguments": args or {}},
+                             timeout=timeout)
+
+    def alive(self):
+        return (not self._dead) and self.proc.poll() is None
+
+    def close(self):
+        self._dead = True
+        if self.proc.poll() is None:
+            _kill_proc_tree(self.proc)
+        try:
+            self.proc.stdin.close(); self.proc.stdout.close()
+        except Exception:
+            pass
+
+def _broker_key(cfg):
+    return json.dumps([cfg.get("command"), cfg.get("args"), cfg.get("env")],
+                      sort_keys=True, ensure_ascii=False)
+
+def _broker_get(name, cfg, handshake_timeout=10):
+    """取或建常驻会话;死会话/空闲会话顺手回收。失败抛异常(调用方兜底)。"""
+    with _BROKER_LOCK:
+        for k in list(_BROKER):
+            sess = _BROKER[k]
+            if not sess.alive() or time.time() - sess.last_used > _BROKER_IDLE_S:
+                sess.close(); _BROKER.pop(k, None)
+        key = name + "|" + _broker_key(cfg)
+        sess = _BROKER.get(key)
+        if sess is not None and sess.alive():
+            return sess
+        sess = _StdioSession(name, cfg, handshake_timeout=handshake_timeout)
+        _BROKER[key] = sess
+        return sess
+
+def _broker_drop(name, cfg):
+    with _BROKER_LOCK:
+        sess = _BROKER.pop(name + "|" + _broker_key(cfg), None)
+        if sess is not None:
+            sess.close()
+
+def _broker_close_all():
+    with _BROKER_LOCK:
+        for k in list(_BROKER):
+            try: _BROKER[k].close()
+            except Exception: pass
+        _BROKER.clear()
+
+_AE.register(_broker_close_all)   # 退出必杀整树:绝不留孤儿 MCP 进程
+
+def _broker_call(server, tool, args):
+    """broker 路径:失败抛异常,mcp_call 落回单次路径。"""
+    cfg = load_mcp_servers().get(server)
+    if not cfg or cfg.get("url"):
+        raise RuntimeError("非 stdio 服务器")
+    sess = _broker_get(server, cfg)
+    r = sess.call_tool(tool, args, timeout=60)
+    if r is None:
+        _broker_drop(server, cfg)
+        raise RuntimeError("会话无响应(超时或进程死亡)")
+    if isinstance(r, dict) and "__error__" in r:
+        err = r.get("__error__") or {}
+        msg = err.get("message") if isinstance(err, dict) else str(err)
+        names = ""
+        try:   # 参数校验失败 → 回喂期望参数名(与单次路径同款体验)
+            for t in (sess.list_tools() or []):
+                if t.get("name") == tool:
+                    props = ((t.get("inputSchema") or {}).get("properties") or {})
+                    names = ", ".join(props.keys())
+        except Exception:
+            pass
+        return f"[mcp_call error: {msg}] 工具 {tool} 期望参数: {names or '(无参数)'}"
+    content = (r or {}).get("content") or []
+    txt = "".join(c.get("text") or "" for c in content
+                  if isinstance(c, dict) and c.get("type") == "text")
+    if not txt:
+        txt = json.dumps(r, ensure_ascii=False)[:4000]
+    return txt[:4000]
 
 # ============ MCP 打散重组 + 扁平化(每个工具独立并入类别,模型直接调用) ============
 # mcp.json 每个服务器可声明 "categories"(该服务器工具的默认类别);
@@ -1057,8 +1298,24 @@ def mcp_manifest(force=False):
     cand = {name: cfg for name, cfg in servers.items()
             if isinstance(cfg, dict) and (cfg.get("command") or cfg.get("url"))}
     from concurrent.futures import ThreadPoolExecutor
+    def _probe_one(name, cfg):
+        # v3.1.6:已有常驻会话且活着 → 直接用会话的 tools/list(会话内缓存),
+        # 不再为刷新 manifest 白 spawn 一次(300s 重探税);没有会话则维持原探测。
+        if _BROKER_ENABLED and not cfg.get("url"):
+            try:
+                sess = _BROKER.get(name + "|" + _broker_key(cfg))
+                if sess is not None and sess.alive():
+                    tools = sess.list_tools()
+                    if tools is not None:
+                        return [{"name": t.get("name", ""),
+                                 "desc": (t.get("description") or "")[:150],
+                                 "schema": _compact_schema(t.get("inputSchema") or {})}
+                                for t in tools]
+            except Exception:
+                pass
+        return _probe_server(cfg)
     with ThreadPoolExecutor(max_workers=8) as ex:
-        futs = {name: ex.submit(_probe_server, cfg) for name, cfg in cand.items()}
+        futs = {name: ex.submit(_probe_one, name, cfg) for name, cfg in cand.items()}
         any_fail = False
         for name, fut in futs.items():
             cfg = cand[name]
@@ -1658,6 +1915,52 @@ def _attach_pending_images(messages, workdir):
             break
     _pending_images_save(workdir, [])
     return n_attached
+
+def _normalize_tool_args(name, raw):
+    """v3.1.6 工具参数归一化层:模型输出的 arguments 字符串经此修复/诊断。
+    旧路径"坏 JSON → 静默空 dict"是类级缺陷——工具拿空参硬跑、报 KeyError,
+    模型只看到莫名错误只能瞎换姿势(r/LocalLLaMA 对小模型工具调用的第一大
+    机械抱怨:格式崩/思考漏进工具轮)。修复阶梯:
+      ① 剥 <think>…</think>(思考泄漏进工具参数);
+      ② 提取首个平衡 {} 块(参数外裹说明文字/代码围栏);
+      ③ 语法修复:尾逗号/python True|False|None/单引号字符串。
+    返回 (args_dict 或 None, note);note 非空=发生过修复或失败,调用方须留痕。
+    None=修不好,调用方拒绝执行并把原因回给模型,绝不能空参硬跑。"""
+    if not isinstance(raw, str):
+        return (raw if isinstance(raw, dict) else {}), None
+    s = raw.strip()
+    if not s:
+        return {}, None
+    s2 = re.sub(r"<think>.*?</think>", "", s, flags=re.S).strip()
+    if not s2.startswith("{"):
+        m = re.search(r"\{", s2)
+        if m:
+            depth = 0
+            for i in range(m.start(), len(s2)):
+                if s2[i] == "{": depth += 1
+                elif s2[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        s2 = s2[m.start():i + 1]
+                        break
+    try:
+        v = json.loads(s2)
+        if isinstance(v, dict):
+            return v, (None if s2 == s else "已剥离参数外的杂散文本")
+        return None, f"参数解析成了 {type(v).__name__} 而非 JSON 对象: {str(v)[:80]}"
+    except json.JSONDecodeError as e:
+        s3 = re.sub(r",\s*([}\]])", r"\1", s2)
+        s3 = re.sub(r":\s*True\b", ": true", s3)
+        s3 = re.sub(r":\s*False\b", ": false", s3)
+        s3 = re.sub(r":\s*None\b", ": null", s3)
+        s3 = re.sub(r"'([^'\"]*)'", r'"\1"', s3)   # 单引号串(键/值)→双引号
+        try:
+            v = json.loads(s3)
+            if isinstance(v, dict):
+                return v, f"坏 JSON 已自动修复({e.msg}@{e.pos});下次请直接输出严格 JSON"
+        except Exception:
+            pass
+        return None, f"参数不是合法 JSON({e.msg}@位置{e.pos}): {s[:120]}"
 
 def run_tool(name, args, workdir, crawl_state=None):
     try:
@@ -2446,6 +2749,26 @@ def _workdir_files_text(workdir, limit=30):
     except Exception:
         return "(空)"
 
+def _cap_summary_text(text):
+    """L2/L3 摘要载荷总量封顶(2026-11-05 Paper B 611 格日志实锤):单条 400 字符
+    ×条数无上界,长会话的摘要请求自己就能超过目标窗口被服务端 400 拒绝(实测
+    8~13K token)。窗口取 min(CTX_BUDGET, 32768)——CTX_BUDGET 默认 131072 是客户端
+    预算,服务端常按 32K 档实配,取小者才有保护意义。截尾保近:最近的决策和
+    产物名才有摘要价值,最早的先丢。"""
+    win = min(CTX_BUDGET, 32768)
+    budget = max(int(win * 0.75), 2048)      # 极小窗口也保留可摘要空间
+    est = _estimate_tokens(text)
+    if est <= budget:
+        return text
+    max_chars = max((budget - 64) // 2, 512) # 按最坏比例(CJK 2 token/字)逆推,留标记行余量
+    print(f"[压缩载荷封顶: 估算 {est} token 超预算 {budget},截尾保近]", flush=True)
+    return "[更早的消息已省略]\n" + text[-max_chars:]
+
+def _summary_text(to_zip):
+    """L2/L3 共用的摘要载荷:单条 400 字符 + 总量封顶。"""
+    return _cap_summary_text("\n".join(
+        f"[{m.get('role')}]: {str(m.get('content',''))[:400]}" for m in to_zip))
+
 def compact_history(model, messages, level=3, todo_text=None, files_text=None):
     """分层压缩上下文(符合 context-rot 经验:本地模型 ~60% 就开始退化,应分级提前压缩)。
 
@@ -2484,7 +2807,7 @@ def compact_history(model, messages, level=3, todo_text=None, files_text=None):
         if len(messages) <= 6: return messages
         tail = messages[-5:]; to_zip = messages[1:-5]
         if not to_zip: return messages
-        text = "\n".join(f"[{m.get('role')}]: {str(m.get('content',''))[:400]}" for m in to_zip)
+        text = _summary_text(to_zip)
         try:
             req = [{"role":"system","content":"用中文压缩成 ≤150 字摘要,保留目标、关键文件名、已做决定、错误和未完成事项,丢弃旧日志与已读全文。"},
                    {"role":"user","content": text}]
@@ -2502,12 +2825,15 @@ def compact_history(model, messages, level=3, todo_text=None, files_text=None):
         except Exception as e:
             # 压缩失败不能静默:调用方无论成败都会消耗压缩阶梯(_compact_lvl 只升不
             # 降),失败必须留痕,否则就是"超上下文但不触发压缩"的无声复发。
-            print(f"[上下文压缩 L2 失败,本层跳过: {type(e).__name__} {str(e)[:120]}]", flush=True)
-            return messages
+            print(f"[上下文压缩 L2 失败,本层跳过: {type(e).__name__} {str(e)[:120]}", flush=True)
+            # 2026-11-05:失败也不许"原样返回就当压过"——退回 L1 机械截断,保证
+            # 上下文确实下降、可续跑(Paper B 611 格实锤:压完还是原样=长会话无声爆死)。
+            print("[上下文压缩 L2 失败,退回 L1 机械截断兜底]", flush=True)
+            return compact_history(model, messages, level=1)
     # level 3(原有行为):全量摘要 + 重建工作集
     if len(messages) <= 4: return messages
     tail = messages[-3:]; to_zip = messages[1:-3]
-    text = "\n".join(f"[{m.get('role')}]: {str(m.get('content',''))[:400]}" for m in to_zip)
+    text = _summary_text(to_zip)
     try:
         req = [{"role":"system","content":"用中文把下面这段 agent 对话压缩成 ≤150 字摘要,保留关键文件名、代码决策、错误信息和未完成事项。"},
                {"role":"user","content": text}]
@@ -2522,8 +2848,9 @@ def compact_history(model, messages, level=3, todo_text=None, files_text=None):
         _tl_mark_compacted()       # 转录层:缩短由压缩引起
         return out
     except Exception as e:
-        print(f"[上下文压缩 L3 失败,本层跳过: {type(e).__name__} {str(e)[:120]}]", flush=True)
-        return messages
+        print(f"[上下文压缩 L3 失败,本层跳过: {type(e).__name__} {str(e)[:120]}", flush=True)
+        print("[上下文压缩 L3 失败,退回 L1 机械截断兜底]", flush=True)
+        return compact_history(model, messages, level=1)
 
 # ---------------- 会话(JSON + 侧车元数据) ----------------
 def load_session(name):
@@ -3937,8 +4264,16 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
             for tc in tcs:
                 fn=tc["function"]; name=fn["name"]; args=fn.get("arguments",{})
                 if isinstance(args,str):
-                    try: args=json.loads(args)
-                    except: args={}
+                    # v3.1.6:归一化层替代旧的"坏 JSON→静默空 dict"——修复或拒绝,
+                    # 拒绝时把原因回给模型,绝不空参硬跑。
+                    args, _note = _normalize_tool_args(name, args)
+                    if _note:
+                        print(f"[{i}] ⚠️ 工具 {name} 参数归一化: {_note}", flush=True)
+                    if args is None:
+                        messages.append({"role":"tool","content":
+                            f"[参数解析失败,该调用未执行。{_note}。"
+                            "请重发这次工具调用:arguments 必须是一个合法的 JSON 对象。]"})
+                        continue
                 # 禁用工具必须拒绝执行(模型可能幻觉调用已被禁用的工具)
                 # MCP 扁平工具("服务器.工具名")不在 _active_tools 里,需放行(run_tool 会路由)
                 # 别名优先:write_file/list_directory 等业界通名映射为内置工具,直接放行

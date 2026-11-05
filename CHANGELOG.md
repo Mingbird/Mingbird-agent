@@ -1,5 +1,20 @@
 # Changelog
 
+## v3.1.6 (2026-11-05)
+
+Ecosystem-compatibility + debt-repayment release. The compaction window guard closes a real defect found in a 611-cell campaign log; the rest plugs Mingbird into the 2026 agent-ecosystem conventions (SKILL.md, AGENTS.md) and pays down its two oldest self-inflicted taxes: per-call MCP spawns and silent tool-argument failures. Tests: **672 green** (642 + 30 new).
+
+### 🔧 Fixes
+- **Compaction can no longer outgrow its own window**: the L2/L3 summary payload had a per-message 400-char cap but no total cap, so a long session's own compaction request could be rejected by the server for exceeding the window (8–13K-token requests in campaign logs) — and the failure was invisible. The payload is now capped at min(CTX_BUDGET, 32768)×0.75 estimated tokens with tail-keeping (recent decisions and artifact names survive; a visible `[更早的消息已省略]` marker is added when trimming).
+- **Compaction failure degrades instead of pretending**: a failed summary call previously returned the history unchanged while the ladder consumed the attempt — "compacted but identical", invisible until the main request itself blew the window. It now falls back to L1 mechanical truncation: context always actually shrinks and the run can continue.
+- **Malformed tool arguments are repaired or rejected — never silently emptied**: the old `except: args={}` path ran tools with empty arguments and surfaced confusing KeyErrors. The new normalization layer strips leaked `<think>` blocks, extracts the balanced JSON object, fixes trailing commas / Python `True|False|None` literals / single-quoted strings, and on unrepairable input refuses execution and tells the model exactly what was wrong.
+
+### ✨ Additions
+- **MCP resident broker**: stdio MCP servers spawn and handshake once per task instead of once per call (1.7–5.7s saved per call); `tools/list` is cached in-session and manifest refreshes reuse live sessions instead of respawning. Any broker failure automatically falls back to the previous per-call path; `AGENT_MCP_BROKER=0` disables the broker entirely.
+- **AGENTS.md / CLAUDE.md project instructions** are injected into the system prompt (workdir file; AGENTS.md preferred over CLAUDE.md; 3000-char budget, tail-kept).
+- **agentskills.io SKILL.md folder skills** are discovered alongside legacy flat skills: the skill list shows only name+description (progressive disclosure), loading strips the frontmatter, and lookup accepts both directory names and frontmatter names — SKILL.md-format skill folders from the Claude Code / Codex / Cursor ecosystems are readable directly.
+- **winget manifest tooling** (`packaging/winget/` template + `scripts/make_winget_manifest.py`): fills version and SHA-256 from built installers; winget-pkgs submission itself is manual.
+
 ## v3.1.4 (2026-10-22)
 
 Conversation-hygiene release from a real 6-minute session post-mortem (a "describe your capabilities" ask cascaded into junk files and a misleading rejection). All fixes are class-level, not scenario-level. Tests: **642 green** (631 + 11 new).

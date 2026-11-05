@@ -1,0 +1,24 @@
+# winget 安装清单模板(未签名安装包的 SmartScreen 免费缓解:winget install
+# 路径不经过浏览器下载,不触发 MOTW 警告)。
+# 发版后由 scripts/make_winget_manifest.py 填充 {{VERSION}}/{{CN_SHA256}}/{{EN_SHA256}};
+# 提交 microsoft/winget-pkgs 时按其仓库规范拆分 installer/locale/version 清单(人工 PR)。
+PackageIdentifier: Mingbird.Mingbird
+PackageVersion: {{VERSION}}
+InstallerType: inno
+Installers:
+  - Architecture: x64
+    InstallerLocale: zh-CN
+    InstallerUrl: https://github.com/Mingbird/Mingbird-agent/releases/download/v{{VERSION}}/Mingbird-v{{VERSION}}-CN-Setup.exe
+    InstallerSha256: {{CN_SHA256}}
+    Switches:
+      Silent: /VERYSILENT
+      SilentWithProgress: /SILENT
+  - Architecture: x64
+    InstallerLocale: en-US
+    InstallerUrl: https://github.com/Mingbird/Mingbird-agent/releases/download/v{{VERSION}}/Mingbird-v{{VERSION}}-EN-Setup.exe
+    InstallerSha256: {{EN_SHA256}}
+    Switches:
+      Silent: /VERYSILENT
+      SilentWithProgress: /SILENT
+ManifestType: installer
+ManifestVersion: 1.6.0
