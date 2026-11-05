@@ -32,7 +32,8 @@ def _setup(tmp_path, monkeypatch):
         "fake": {"command": sys.executable,
                  "args": ["-u", SERVER],   # -u:子进程 stdio 全不缓冲(CI 稳定性)
                  "env": {"FAKE_MCP_COUNT": str(cnt),
-                         "FAKE_MCP_LOG": str(tmp_path / "srv.log")}}}), encoding="utf-8")
+                         "FAKE_MCP_LOG": str(tmp_path / "srv.log"),
+                         "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}}}), encoding="utf-8")
     monkeypatch.setattr(A, "MCP_CONFIG", str(cfgfile))
     monkeypatch.setattr(A, "_BROKER_ENABLED", True)
     A._broker_close_all()
