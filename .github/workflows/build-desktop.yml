@@ -20,7 +20,9 @@ jobs:
       matrix:
         include:
           - { os: macos-15-intel, arch: macos-x64 }
-          - { os: macos-14, arch: macos-arm64 }
+          # macos-14 三连零步骤取消(runner 分配不到,2026-11-09);macos-15 同为
+          # arm64 且供给正常。checkout 仍钉 inputs.tag,源码出处不受影响。
+          - { os: macos-15, arch: macos-arm64 }
           - { os: ubuntu-22.04, arch: linux-x64 }
     runs-on: ${{ matrix.os }}
     steps:
