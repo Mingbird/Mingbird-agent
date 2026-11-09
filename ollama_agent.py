@@ -514,6 +514,17 @@ CHAT_SYSTEM = """你是鸣鸟(Mingbird),本地 AI 助手,正在和用户对话�
 if os.environ.get("AGENT_LANG", "") == "en":
     CHAT_SYSTEM += "\nAlways respond in English."
 
+
+def _task_output_language(task_text):
+    """任务语言 → 交付物语言:中文任务输出中文,其余输出英文(按 CJK 字符占比)。
+
+    交付物语言应跟随任务文本,而不是跟随界面语言(AGENT_LANG)。AGENT_LANG 由 GUI
+    按系统语言自动写入(main 进程 env 恒有值),不表达用户对任务语言的意图——拿它
+    当任务语言,中文界面跑英文任务就会产出中文交付物。"""
+    t = task_text or ""
+    cjk = sum(1 for c in t if "\u4e00" <= c <= "\u9fff")
+    return "zh" if cjk / max(len(t), 1) > 0.05 else "en"
+
 # 问答模式可用工具:只读,绝不包含写文件/跑命令(防加戏)
 def _chat_tool_defs():
     avail = {t["function"]["name"]: t for t in CORE_TOOLS + ADVANCED_TOOLS}
@@ -1769,7 +1780,10 @@ def _ask_user_confirm(name, real_path, workdir, action="访问"):
     # @@ASK@@ 弹窗分支)一律直接拒,不挂 120s 等一个不存在的回答。
     if _UNATTENDED:
         return False, False, (f"[安全门拦截: 无人值守模式(AGENT_UNATTENDED=1)下无人在环,"
-                              f"{action}一律拒绝。目标: {real_path}]")
+                              f"{action}一律拒绝。目标: {real_path}]"
+                              f"{_ws_note(workdir)}"
+                              f" 不要再尝试这个路径:列目录用 list_dir(path=\".\"),"
+                              f"读文件用 read_file(path=\"相对路径\")。")
     try:
         if os.environ.get("AGENT_STREAM") == "1" and sys.stdin and not sys.stdin.closed:
             req = {"tool": name, "path": real_path, "action": action,
@@ -3106,6 +3120,19 @@ def main():
             print("[time-budget] " + _TB_SRC_LABEL.get(_tb_src, "{v} 分钟").format(v=f"{_tb_min:g}")
                   + f" — {_fmt_hm(_tb_min)}", flush=True)
         _budget_sec = _tb_min * 60.0 if _tb_min else None
+        # 交付物语言钉:跟任务文本走,不跟界面语言走(AGENT_LANG 仍管 SYSTEM/会话标题)。
+        # 放在时限解析之后,钉文本不参与时间预算解析;放在 append_text 之前,
+        # 续跑消息同样带上语言约束。
+        _out_lang = _task_output_language(task)
+        if _out_lang == "en":
+            task = task + ("\n\n[Language] Write every deliverable file, and every "
+                           "section inside it, in English — the same language as this "
+                           "instruction. This overrides any other language preference. "
+                           "Do not switch to Chinese.")
+        else:
+            task = task + ("\n\n[语言] 所有交付物文件及其中的全部内容用中文撰写"
+                           "(与本任务指令同语言);这条要求优先于任何其他语言偏好,"
+                           "不要切换成英文。")
         ckpt = os.path.join(workdir, ".agent_state.json")
         append_text = task if "--append" in sys.argv else None
         if "--new" in sys.argv:
@@ -3544,6 +3571,22 @@ def _ws_note(workdir):
             f"所有产物必须写在这个目录内,优先用相对路径(如 create_file(path=\"options.md\"))。")
 
 
+def _disabled_tool_message(name):
+    """反循环禁用话术(工具回执/三连强提示/硬复位尾句共用,防止三处各自漂移)。
+    计算型工具(run_bash/run_python)被禁后,唯一正确出路是换一段不同的代码重跑,
+    或 enable_tools 解锁;绝不能建议"用 create_file 写产出文件"——那等于教模型
+    手写伪造本应由脚本算出的产物。非计算工具仍可指向产出文件。"""
+    if name in ("run_bash", "run_python"):
+        return (f"[tool {name} 已被禁用(同一段代码/命令连续重复,结果不会变)。"
+                f"下一步不是手写产物,而是换一段不同的代码重跑:改实现、改路径、"
+                f"先 print 中间量定位失败点。"
+                f"需要恢复该工具:调用 enable_tools(tools=[\"{name}\"]) 解锁。"
+                f"只有产物确实不需要计算时,才用 create_file。]")
+    return (f"[tool {name} 已被禁用(连续重复调用保护)。"
+            f"不要用其他工具绕道读同一内容:需要看已有产物就用 read_file/list_dir;"
+            f"要推进任务,换一个不同的动作(如 create_file 写产物、run_bash 执行验证)。]")
+
+
 def _bash_snapshot(cmd, workdir):
     """v2.0.3(issue #3 Critical-2)shell 改写前置快照:edit_file/create_file 自带
     .bak,但 sed -i / > 重定向 / cp 覆盖等就地改写完全绕开它。命令疑似改写且点名
@@ -3586,6 +3629,39 @@ def _plan_named_missing(workdir):
     if not t:
         return []
     return _missing_files_in_text("\n".join(str(x.get("item", "")) for x in t), workdir)
+
+
+def _artifact_content_problems(workdir, max_bytes=8 * 1024 * 1024):
+    """finish 前的内容校验:只查机器能判定为坏的结构问题(非法 JSON),不判内容
+    对错——判对错是评分器/用户的事,harness 越权会造成新的不公平。存在性通过
+    ≠ 产物可用:两段 JSON 首尾相接的文件任何程序都读不了,必须打回让模型用
+    脚本重新生成。返回 [(相对路径, 原因), ...];空列表 = 通过。
+
+    只查 .json:.csv 列数可能合法地不同(不同任务不同表),误报代价高于收益;
+    跳过 harness/评分器自己的文件与超过 max_bytes 的大文件。
+    """
+    import json as _json
+    problems = []
+    skip = {".agent_state.json", "todo.json", "score.json"}
+    for root, dirs, files in os.walk(workdir):
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
+        for fn in files:
+            if fn in skip or fn.startswith("."):
+                continue
+            path = os.path.join(root, fn)
+            if not fn.lower().endswith(".json"):
+                continue
+            try:
+                if os.path.getsize(path) > max_bytes:
+                    continue
+                with open(path, encoding="utf-8") as fh:
+                    _json.load(fh)
+            except UnicodeDecodeError:
+                continue   # 非 UTF-8 文本/二进制,不属于"结构判死"范围
+            except Exception as e:
+                rel = os.path.relpath(path, workdir)
+                problems.append((rel, f"{type(e).__name__}: {e}"))
+    return problems
 
 
 def _norm_p(p):
@@ -4021,6 +4097,7 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     finish_claim_warns = 0   # finish 产物核对拒绝次数(≥2 放行,防死锁)
     finish_reread_used = False  # 交付自查门禁:任务原文回注只发生一次(防自查循环烧预算)
     plan_gate_warns = 0      # finish 计划完成度核对拒绝次数(≥2 放行,防死锁)
+    content_gate_warns = 0   # finish 产物内容核对拒绝次数(≥2 放行,防死锁)
     bash_teach_warns = 0     # 小模型 run_bash 教学提示次数
     empty_turns = 0          # 连续空文本输出计数
     _len_truncated = False   # 上轮为 done_reason=length 截断空轮(针对性反馈只发一次/段)
@@ -4341,6 +4418,14 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     if not _offline_blk:
                         disabled_recall[name] = disabled_recall.get(name, 0) + 1
                     if not _offline_blk and disabled_recall[name] >= 10:
+                        # 硬复位尾句按工具类型分叉:计算型工具禁用后不能叫模型"手写产物"
+                        if name in ("run_bash", "run_python"):
+                            _resume = ("请立即换动作:先改写脚本再重跑(换实现,不是原样重试),"
+                                       "不要用手写文件代替计算。"
+                                       + (f"需要恢复该工具:调用 enable_tools(tools=[\"{name}\"])。"
+                                          if name in _disabled_tools else ""))
+                        else:
+                            _resume = "请立即改用 create_file 写产出文件推进任务。"
                         _task0 = next((str(m.get("content", "")) for m in messages
                                        if m.get("role") == "user"), "")
                         messages = [messages[0],
@@ -4349,15 +4434,15 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                      + " 已被禁用,再次调用也不会执行,且不会再出现在你的工具列表里。"
                                      + "当前进度快照:\n计划:\n" + load_todo_str(workdir)
                                      + "\n工作目录已有文件:\n" + _workdir_files_text(workdir)
-                                     + "\n请立即改用 create_file 写产出文件推进任务。"}]
+                                     + "\n" + _resume}]
                         disabled_recall[name] = 0
                         print(f"[{i}] ⚠️ {name} 被禁用后仍被调用 10 次,硬复位上下文", flush=True)
                         _tl_mark_compacted()
                         continue
                     if name in _disabled_tools:
-                        # 反循环禁用:模型确曾滥用它,话术指向"换动作"
-                        res = (f"[tool {name} 已被禁用(连续重复调用保护)。不要尝试用其他工具绕道读同一内容:"
-                               f"直接用 create_file 写产出文件,或已有信息足够就调用 finish。]")
+                        # 反循环禁用:模型确曾滥用它,话术指向"换动作"。三处共用
+                        # _disabled_tool_message,计算型工具禁用后不得建议手写产物。
+                        res = _disabled_tool_message(name)
                     else:
                         # v3.1.4:工具不在列表 ≠ 反循环惩罚——两种真实成因(名字是模型
                         # 幻觉的/名字真实但本次未装配该类别)都必须与"被禁用"区分:
@@ -4373,10 +4458,17 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                    f"不要发明工具名:产出文件用 create_file,改文件用 edit_file/create_file,"
                                    f"读文件用 read_file;完整可用列表见你的工具定义。]")
                     if disabled_recall.get(name, 0) == 3:
+                        # 三连强提示按工具类型分叉:计算型被禁后指向"换代码重跑/解锁",
+                        # 只有真实处于禁用态才提 enable_tools(不在装配列表的工具
+                        # enable_tools 也拉不出来,说了就是空头支票)。
+                        if name in ("run_bash", "run_python") and name in _disabled_tools:
+                            _next = ("改写脚本后重跑(换实现,不是原样重试);"
+                                     f"需要恢复就 enable_tools(tools=[\"{name}\"])。")
+                        else:
+                            _next = "用 create_file 写产出文件推进,需要看已有产物就用 read_file/list_dir。"
                         messages.append({"role": "user", "content":
                             f"⚠️ 工具 {name} 已不可用(被禁用或不在装配列表)且你已多次尝试调用它。"
-                            f"再次调用也不会执行,该工具不会再出现在你的工具列表里。现在就换动作:"
-                            f"用 create_file 写产出文件推进,需要看已有产物就用 read_file/list_dir。"})
+                            f"再次调用也不会执行,该工具不会再出现在你的工具列表里。现在就换动作:" + _next})
                 elif name not in ("finish",) and last_sig == (name, json.dumps(args, sort_keys=True, ensure_ascii=False)) and dup_warns < 3:
                     # 严格不重复同一命令:完全相同签名连续调用 → 拦截并提醒换策略
                     dup_warns += 1
@@ -4518,6 +4610,25 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                 + _ws_note(workdir)})
                             messages.append({"role":"tool","content":
                                 "[finish 被拒绝:计划点名的产物缺失。生成产物或重建计划后再 finish。]"})
+                            continue
+                    # 产物内容门禁:结构上能判死的坏产物(非法 JSON)不放行。只查
+                    # "能不能解析"这一层,内容对错由评分器/用户判;存在性通过 ≠ 可用。
+                    # 上限 2 次防死锁;AGENT_CONTENT_GATE=0 整体关闭(消融口)。
+                    if (not qa and _child_sandbox is None and not _FG_OFF
+                            and content_gate_warns < 2
+                            and os.environ.get("AGENT_CONTENT_GATE", "1") != "0"):
+                        _bad = _artifact_content_problems(workdir)
+                        if _bad:
+                            content_gate_warns += 1
+                            print(f"[{i}] ⚠️ 产物内容核对:{len(_bad)} 个文件不是合法 JSON,拒绝 finish", flush=True)
+                            messages.append({"role":"user","content":
+                                "⚠️ 你的 finish 被拒绝:以下产物不是合法 JSON(任何程序都读不了):\n"
+                                + "\n".join(f"- {r}: {why}" for r, why in _bad[:6])
+                                + "\n请用脚本重新生成它们,不要手写。最常见的原因是把一个 JSON 对象"
+                                  "追加到了另一个对象后面——应当在脚本里一次性写入完整内容。"
+                                + _ws_note(workdir)})
+                            messages.append({"role":"tool","content":
+                                "[finish 被拒绝:产物不是合法 JSON。请用脚本重新生成后再 finish。]"})
                             continue
                     # 计划同步门禁:任务结束前必须把计划与实际进度对齐。否则 UI 的计划面板
                     # 永远停在"全部未勾",模型侧的计划也失去坐标(实证:e2b 8/8 格建了
