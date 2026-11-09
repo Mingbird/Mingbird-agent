@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.1.8 (2026-11-09)
+
+Artifact-quality fixes: three gate gaps closed so that a refused model has something to do, and a finished run cannot deliver files no program can read. Tests: **697 green** (687 + 10 new).
+
+### 🔧 Fixes
+- **Disabled compute tools get a real way forward**: when the anti-loop guard disables `run_bash`/`run_python`, the refusal now says "rewrite the code and rerun, or `enable_tools` to unlock" — the old blanket advice to "write the deliverable with `create_file`" read, for a compute task, as an instruction to hand-write results a script should have computed. All three refusal sites (tool reply, third-strike hint, hard-reset tail) now share one message builder, and `enable_tools` is only promised when the tool is actually disabled (not merely unassembled).
+- **Unattended path denials state the workdir and alternatives**: the refusal now includes the real working directory and the relative-path replacements (`list_dir(path=".")`, `read_file(path="相对路径")`), so a refused model has something to do instead of retrying the same out-of-bounds path.
+- **The finish gate checks content, not just existence**: deliverables named `*.json` must parse before finish is accepted — two concatenated JSON objects (or any other unparseable file) is bounced back with "regenerate with a script, don't hand-write". Harness-owned files (`todo.json`, `.agent_state.json`, `score.json`) are exempt, `.jsonl`/`.csv` are not checked, the gate gives up after 2 refusals to avoid deadlock, and `AGENT_CONTENT_GATE=0` turns it off.
+- **Deliverable language follows the task, not the UI**: the task text is classified once at start (CJK ratio); an English task gets an English-deliverables instruction and a Chinese task a Chinese one, regardless of the interface language — `AGENT_LANG` keeps governing the system prompt and session titles, but it no longer decides the language of the files the model writes.
+
 ## v3.1.7 (2026-11-05)
 
 Tool-availability fixes from a user report: in chat, tools the model could see were refused as "unavailable"; the same gate also left a few ways around the offline guarantee. Root cause: execution validated against the session tool registry instead of the tools actually offered that turn. Tests: **687 green** (672 + 15 new).
