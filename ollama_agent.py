@@ -649,8 +649,45 @@ def memory_recall(query, limit=3):
 def todo_file(workdir):
     return os.path.join(workdir, "todo.json")
 def load_todo(workdir):
-    try: return json.load(open(todo_file(workdir), encoding="utf-8"))
-    except Exception: return []
+    """读取计划,必须返回 list[dict]({item, done}),任何形状都不抛异常。
+
+    模型可能绕过 todo 工具直接覆写 todo.json(实测:写成
+    {"status":"complete","tasks":[{"id","name","status"}...]}),也可能把 items
+    写成字符串数组。若把 dict 放行,消费方 for x in t 迭代出字符串键,
+    x.get() 直接 AttributeError 终止整个任务——所以这里做形状归一化:
+    顶层 dict 优先取 tasks/items/plan/steps/todo 键,元素为字符串或
+    {name/task/text/title/step/desc, status} 时归一成 {item, done}。"""
+    try:
+        t = json.load(open(todo_file(workdir), encoding="utf-8"))
+    except Exception:
+        return []
+    if isinstance(t, dict):
+        for k in ("tasks", "items", "plan", "steps", "todo"):
+            v = t.get(k)
+            if isinstance(v, list):
+                t = v
+                break
+        else:
+            return []
+    if not isinstance(t, list):
+        return []
+    out = []
+    for x in t:
+        if isinstance(x, str):
+            out.append({"item": x, "done": False})
+            continue
+        if not isinstance(x, dict):
+            continue
+        if "item" not in x:
+            for k in ("name", "task", "text", "title", "step", "desc"):
+                if isinstance(x.get(k), str):
+                    st = str(x.get("status", "")).lower()
+                    x = {"item": x[k],
+                         "done": st in ("completed", "done", "true", "finished")}
+                    break
+        if "item" in x:
+            out.append(x)
+    return out
 def save_todo(workdir, t):
     _atomic_write_json(todo_file(workdir), t)
 def format_todo_lines(t):
@@ -2047,7 +2084,19 @@ def _normalize_tool_args(name, raw):
             pass
         return None, f"参数不是合法 JSON({e.msg}@位置{e.pos}): {s[:120]}"
 
+_HARNESS_STATE = {"todo.json", ".agent_state.json"}
+
 def run_tool(name, args, workdir, crawl_state=None):
+    # harness 状态文件写保护:模型把 todo.json/.agent_state.json 当交付物覆写,
+    # 会让计划面板/门禁/压缩回注全部失真(实测曾把整格炸成 error)。只拦这两个
+    # 文件名——held-out 任务没有一格要求交付它们,真实产物不受影响。
+    if name in ("create_file", "append_file", "edit_file"):
+        _bn = os.path.normcase(os.path.basename(str(args.get("path", "")).replace("\\", "/")))
+        if _bn in _HARNESS_STATE:
+            return (f"[拒绝: {args.get('path')} 是 harness 的状态文件,不能直接写。"
+                    f"建计划请用 todo(action=create, items=[\"步骤1\", \"步骤2\"]),"
+                    f"勾选请用 todo(action=update, index=N) 或 todo(action=update, all=true);"
+                    f"交付物请写到别的文件名。]")
     try:
         # 工具名别名:小模型常输出业界通名(write_file/list_directory 等),
         # 自动映射到鸣鸟内置工具,而非拒绝("工具已禁用"会让小模型陷入死循环)。
@@ -3687,12 +3736,16 @@ def _disabled_tool_message(name, workdir=None):
         except Exception:
             snap = ""
     if name in ("run_bash", "run_python"):
+        # 出路必须落在消息前 120 字符内:上下文压缩 L1 会把旧 tool 消息截到
+        # _MAX_TOOL=120,快照若在前会把两条出路整体截掉(实测:模型只看到
+        # "二选一:"后面全没了,原地重发撞帽)。快照保留,挪到末尾。
         return (f"[tool {name} 已被禁用(同一段代码/命令连续重复,结果不会变)。"
-                f"不要重发同一条命令。下一步二选一:{snap}\n"
-                f"1) 若这一步只是写文档类产物(.md/.json/.txt/.csv 报告),"
-                f"立刻用 create_file(path=\"相对路径\") 直接写完整内容;"
-                f"2) 若产物必须由代码算出(数值、测试结果、图表数据),"
-                f"换一段不同的代码重跑:改实现、改路径、先 print 中间量定位失败点。]")
+                f"下一步二选一:"
+                f"1) 写文档类产物→create_file(path=\"相对路径\")直接写完整内容;"
+                f"2) 需代码算出(数值/测试结果/图表数据)→换一段不同的代码重跑"
+                f"(改实现、改路径、先 print 中间量定位失败点)。"
+                f"不要重发同一条命令。"
+                + snap + "]")
     return (f"[tool {name} 已被禁用(连续重复调用保护)。"
             f"不要用其他工具绕道读同一内容:需要看已有产物就用 read_file/list_dir;"
             f"要推进任务,换一个不同的动作(如 create_file 写产物、run_bash 执行验证)。]")

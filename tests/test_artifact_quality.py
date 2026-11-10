@@ -9,6 +9,7 @@
 坏产物也能放行;英文任务的交付物跟着界面语言变成了中文。
 """
 import importlib.util
+import json
 import os
 import sys
 
@@ -51,6 +52,23 @@ def test_disabled_read_tool_message_still_points_at_output(oa):
     msg = oa._disabled_tool_message("todo")
     assert "create_file" in msg
     assert "enable_tools" not in msg
+
+
+def test_escape_routes_survive_120_char_truncation(oa, tmp_path):
+    """上下文压缩 L1 把旧 tool 消息截到 120 字符——两条出路必须落在前 120
+    字符内(实测:快照在前时,'二选一:'后面被整体截掉,模型原地重发撞帽),
+    快照挪到末尾,被截断也不影响出路。"""
+    # 600+ 字符的计划 + 若干文件,把快照撑大
+    big_plan = [{"item": "这是第 %d 步,包含足够多的中文字符来撑长计划文本。" % i, "done": False}
+                for i in range(1, 16)]
+    with open(os.path.join(str(tmp_path), "todo.json"), "w", encoding="utf-8") as f:
+        json.dump(big_plan, f, ensure_ascii=False)
+    for fn in ("design_day.md", "test_day.py", "timetrack.py", "raw.csv", "notes.txt"):
+        (tmp_path / fn).write_text("x", encoding="utf-8")
+    msg = oa._disabled_tool_message("run_bash", str(tmp_path))
+    assert "1)" in msg[:120] and "2)" in msg[:120], "出路被截断在 120 字符之外"
+    assert "当前进度快照" in msg and msg.find("当前进度快照") > 120   # 快照在末尾
+    assert "换一段不同的代码重跑" in msg
 
 
 def test_disabled_message_single_source(oa):
