@@ -1,5 +1,21 @@
 # Changelog
 
+## v3.1.10 (2026-11-10)
+
+Robustness release from small-model regression reports: an unlock-and-rewall loop (v3.1.8 regression), a period-2 read loop invisible to the adjacent-only detectors, a harness state file overwritten by the model (whole run crashed), and an escape route cut off by truncation. Tests: **717 green** (697 + 20 new).
+
+### 🔧 Fixes
+- **The disabled-tool refusal leads somewhere real**: no more `enable_tools` recommendation. The escape is `create_file` for document-type deliverables (most deliverables are documents) and a rewritten rerun for what a script must compute — the anti-hand-writing rule stays. The plan/files snapshot is back in the refusal so the model can re-orient.
+- **`enable_tools` unlock actually revives the tool**: the anti-loop disable removes the tool from the surface, but unlock only cleared the disabled set — a disabled core tool could never come back, and the `(none)` receipt hid it. Unlock now re-assembles the tool and says so ("已解除禁用并恢复可用"); unlocks are capped at 2 per tool per task, and further attempts are refused with the `create_file` pointer.
+- **Read loops are caught and banned by signature, not by path**: a 12-call window over read-only tools trips when the same read repeats 6 times, or two reads alternate across 10+ calls — adjacent-only detectors could never see an A→B→A→B cycle (one 0.8B run read a single file 158 times). The offending signatures are banned for the task: re-reading the same segment is refused, while a NEW range or a different file reads normally — that is progress, and re-reading a segment squeezed out by compaction is legitimate. Volume and past-the-end ladders stay path-level on purpose (they accumulate per path; signature bans there would be defeated by shifting the range one line).
+- **The crawl-guard ladder ends in a hard stop**: after budget exhaustion the first two throttled reads still return content, the 3rd/4th refuse, the 5th bans the path — the old never-refuse contract gave a stuck model no failure signal at all. Past-the-end reads now say "the file has N lines, start_line is past it" instead of returning an empty chunk with contradictory metadata; three in a row ban the path.
+- **todo.json can no longer crash the run**: the model once overwrote the harness plan file as if it were a deliverable; `load_todo` now normalizes every shape to list[dict] (dict with `tasks/items/plan/steps` keys, string items, `{name, status}` entries; garbage → empty, never an exception), and writing `todo.json`/`.agent_state.json` via `create_file`/`append_file`/`edit_file` is refused with a pointer to the todo tool.
+- **Escape routes survive truncation**: the disabled-tool refusal now leads with the two routes inside the first 120 characters — context compaction truncates old tool messages at 120, and the progress snapshot used to cut the routes off entirely ("下一步二选一:" followed by nothing). The snapshot stays, moved to the end.
+- **Unattended path denials offer the write route**: `create_file(path="相对文件名")` — not just reads.
+
+### ✨ Notes
+- Scripted end-to-end replays pin both loops (`tests/test_antiloop_escape.py`, `tests/test_read_loop_guard.py`): a stub model repeats a refused command or alternates two reads until the guard trips, then escapes to `create_file` and finishes — well under the iteration budget. Legal patterns are pinned too: sequential reading of distinct ranges, and rerunning a test command between edits, never trip the guards.
+
 ## v3.1.8 (2026-11-09)
 
 Artifact-quality fixes: three gate gaps closed so that a refused model has something to do, and a finished run cannot deliver files no program can read. Tests: **697 green** (687 + 10 new).
