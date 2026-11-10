@@ -31,13 +31,18 @@ def oa():
 
 # ---- 缺陷 A:计算型工具被禁用的话术 ----
 
-def test_disabled_compute_tool_does_not_advise_handwriting(oa):
-    """run_python/run_bash 被禁用时,拒绝话术不得建议用 create_file 写产物,
-    并且必须给出 enable_tools 这条真实的解锁通道(禁用消息承诺的出路必须存在)。"""
-    for tool in ("run_python", "run_bash"):
-        msg = oa._disabled_tool_message(tool)
-        assert "create_file 写产出文件" not in msg
-        assert "enable_tools" in msg
+def test_disabled_compute_message_offers_two_routes(oa, tmp_path):
+    """计算型工具被禁的话术必须:给 create_file 这条文档类出路(绝大多数交付物
+    本来就是文档);保留'必须由代码算出的产物换代码重跑'的防伪造分支;
+    不推荐 enable_tools 解锁(小模型解锁后会原样重发同一条被拒命令,
+    死胡同变无限循环);附进度快照让模型重建方向。"""
+    msg = oa._disabled_tool_message("run_python", str(tmp_path))
+    assert "enable_tools" not in msg
+    assert "create_file" in msg
+    assert "换一段不同的代码重跑" in msg
+    assert "当前进度快照" in msg
+    msg2 = oa._disabled_tool_message("run_bash", str(tmp_path))
+    assert "enable_tools" not in msg2 and "create_file" in msg2
 
 
 def test_disabled_read_tool_message_still_points_at_output(oa):
@@ -48,27 +53,28 @@ def test_disabled_read_tool_message_still_points_at_output(oa):
     assert "enable_tools" not in msg
 
 
-def test_hard_reset_tail_forked_by_tool_type(oa):
-    """源钉:硬复位尾句按工具类型分叉,计算型不得再出现'手写产物'话术。"""
+def test_disabled_message_single_source(oa):
+    """源钉:三处拒绝点共用一个话术函数(防各自漂移);任何一处都不得再推荐
+    enable_tools 解锁;v3.1.7 之前的'一律建议手写'话术必须保持消失。"""
     src = open(os.path.join(os.path.dirname(__file__), "..", "ollama_agent.py"),
                encoding="utf-8").read()
-    assert "不要用手写文件代替计算" in src
-    # 旧的合一话术(对计算型工具也建议手写)必须整体消失
+    assert src.count("_disabled_tool_message(") >= 4   # 定义 + 工具回执 + 三连提示 + 硬复位
+    assert "需要恢复该工具" not in src
     assert "直接用 create_file 写产出文件,或已有信息足够就调用 finish" not in src
-    assert src.count("_disabled_tool_message(") >= 2   # 定义 + 调用
 
 
 # ---- 缺陷 B:无人值守拒绝必须给出路 ----
 
 def test_unattended_denial_states_workdir(oa, tmp_path, monkeypatch):
-    """无人值守的越界拒绝必须给出真实工作目录和相对路径替代做法——
-    没有出路的小模型会把拒绝当瞬时失败原样重试。"""
+    """无人值守的越界拒绝必须给出真实工作目录和相对路径替代做法(读+写两个方向
+    都要有)——没有出路的小模型会把拒绝当瞬时失败原样重试。"""
     monkeypatch.setattr(oa, "_UNATTENDED", True)
     allow, allow_all, msg = oa._ask_user_confirm(
         "read_file", str(tmp_path / "x"), str(tmp_path))
     assert allow is False and allow_all is False
     assert os.path.abspath(str(tmp_path)) in msg
     assert "相对路径" in msg
+    assert "create_file" in msg
 
 
 # ---- 缺陷 C:finish 内容门禁 ----

@@ -1481,18 +1481,36 @@ _active_tools = list(CORE_TOOLS)
 _disabled_tools = set()
 def active_tool_defs():
     return list(_active_tools)
+_unlock_used = {}   # 工具名 -> 本次任务内反循环解锁次数(模块级随进程存活;GUI 每任务新进程,天然按任务重置)
+_REVIVE_CAP = 2     # 解锁上限:解锁是给"换做法"用的,不是给"重发同一条命令"用的
+
 def enable_advanced_tools(names):
-    avail = {t["function"]["name"]: t for t in ADVANCED_TOOLS}
+    avail = {t["function"]["name"]: t for t in CORE_TOOLS + ADVANCED_TOOLS}
     added = []
     mcp_added = []
     unknown = []
+    revived = []
+    revive_refused = []
     for n in names:
-        if n in avail and n not in [t["function"]["name"] for t in _active_tools]:
+        if (n in avail and n not in [t["function"]["name"] for t in _active_tools]
+                and n not in _disabled_tools):
             _active_tools.append(avail[n]); added.append(n)
-        # 显式启用=解锁反循环禁用(2026-09-05):禁用消息承诺"enable_tools 可重新启用"
-        # 就必须为真(LH-01:给的动作必须有效);解锁后再空转会被再次禁用(warns 上限兜底)
         if n in _disabled_tools:
+            # 显式启用=解锁反循环禁用。禁用会把工具同时移出工具面(_active_tools),
+            # 所以解锁必须两步都做:清禁用 + 重新装配,否则"恢复"是假的
+            # (LH-01:给的动作必须有效;CORE 工具不在 ADVANCED_TOOLS 里,旧实现
+            # 解锁后回执"(none)"、工具面里依然没有——模型只能原样重发被拒命令,
+            # "解锁→再撞墙"死循环由此而来,回执也必须明说"已恢复")。
+            # 解锁次数封顶:解锁后再空转会被再次禁用,再次解锁就进入纯循环——
+            # 第三次起直接拒绝并指向真正能推进的出路。
+            if _unlock_used.get(n, 0) >= _REVIVE_CAP:
+                revive_refused.append(n)
+                continue
+            _unlock_used[n] = _unlock_used.get(n, 0) + 1
             _disabled_tools.discard(n)
+            if n in avail and n not in [t["function"]["name"] for t in _active_tools]:
+                _active_tools.append(avail[n])
+            revived.append(n)
         elif is_mcp_tool(n) and n not in mcp_added:
             # MCP 扁平工具(服务器.工具名):由 agent_loop 的 allowed_extra 负责注入
             mcp_added.append(n)
@@ -1505,7 +1523,13 @@ def enable_advanced_tools(names):
     if unknown:
         note += (f" 未知的工具名(不存在,无法启用): {', '.join(unknown)}。"
                  f"可启用的高级工具: {', '.join(sorted(avail))}。")
-    if not added and not mcp_added and not unknown:
+    if revived:
+        note += f" {', '.join(revived)} 已解除禁用并恢复可用,直接调用它即可。"
+    if revive_refused:
+        note += (f" 已拒绝再次解锁 {', '.join(revive_refused)}:"
+                 f"本次任务里已解锁 {_REVIVE_CAP} 次,仍未走出重试循环。"
+                 f"下一步只能用 create_file 写产物,或换一条完全不同的命令。")
+    if not added and not mcp_added and not unknown and not revived and not revive_refused:
         # 模型重复 enable 已可用工具时,'(none)' 会诱发死循环重试(LH-01 4b 教训)——给明确指令
         note = " 无需再启用:你要的工具都已可用,直接调用它即可。"
     return f"[enabled tools: {', '.join(added) or '(none)'}. Now available: {', '.join(t['function']['name'] for t in _active_tools)}]{note}"
@@ -1783,7 +1807,9 @@ def _ask_user_confirm(name, real_path, workdir, action="访问"):
                               f"{action}一律拒绝。目标: {real_path}]"
                               f"{_ws_note(workdir)}"
                               f" 不要再尝试这个路径:列目录用 list_dir(path=\".\"),"
-                              f"读文件用 read_file(path=\"相对路径\")。")
+                              f"读文件用 read_file(path=\"相对路径\"),"
+                              f"要写文件用 create_file(path=\"相对文件名\");"
+                              f"不要在命令里拼绝对路径。")
     try:
         if os.environ.get("AGENT_STREAM") == "1" and sys.stdin and not sys.stdin.closed:
             req = {"tool": name, "path": real_path, "action": action,
@@ -3571,17 +3597,32 @@ def _ws_note(workdir):
             f"所有产物必须写在这个目录内,优先用相对路径(如 create_file(path=\"options.md\"))。")
 
 
-def _disabled_tool_message(name):
+def _disabled_tool_message(name, workdir=None):
     """反循环禁用话术(工具回执/三连强提示/硬复位尾句共用,防止三处各自漂移)。
-    计算型工具(run_bash/run_python)被禁后,唯一正确出路是换一段不同的代码重跑,
-    或 enable_tools 解锁;绝不能建议"用 create_file 写产出文件"——那等于教模型
-    手写伪造本应由脚本算出的产物。非计算工具仍可指向产出文件。"""
+
+    话术纪律(两轮实测校准):
+    - 不推荐 enable_tools 解锁:小模型会解锁后原样重发同一条被拒命令,把一条
+      死胡同变成"解锁→再撞墙"的无限循环。解锁通道仍在(enable_tools),
+      但只在模型自己想起时才走,且次数有上限(见 enable_advanced_tools)。
+    - create_file 对文档类产物是并列的一号出路(绝大多数交付物本来就是文档);
+      必须由代码算出的产物(数值/测试结果/图表数据)仍必须换代码重跑——
+      不回到"一律建议手写"的旧话术,那会教模型伪造计算结果。
+    - 附进度快照(计划+已有文件):小模型靠它重建方向。
+    """
+    snap = ""
+    if workdir:
+        try:
+            snap = ("\n当前进度快照:\n计划:\n" + load_todo_str(workdir)
+                    + "\n工作目录已有文件:\n" + _workdir_files_text(workdir))
+        except Exception:
+            snap = ""
     if name in ("run_bash", "run_python"):
         return (f"[tool {name} 已被禁用(同一段代码/命令连续重复,结果不会变)。"
-                f"下一步不是手写产物,而是换一段不同的代码重跑:改实现、改路径、"
-                f"先 print 中间量定位失败点。"
-                f"需要恢复该工具:调用 enable_tools(tools=[\"{name}\"]) 解锁。"
-                f"只有产物确实不需要计算时,才用 create_file。]")
+                f"不要重发同一条命令。下一步二选一:{snap}\n"
+                f"1) 若这一步只是写文档类产物(.md/.json/.txt/.csv 报告),"
+                f"立刻用 create_file(path=\"相对路径\") 直接写完整内容;"
+                f"2) 若产物必须由代码算出(数值、测试结果、图表数据),"
+                f"换一段不同的代码重跑:改实现、改路径、先 print 中间量定位失败点。]")
     return (f"[tool {name} 已被禁用(连续重复调用保护)。"
             f"不要用其他工具绕道读同一内容:需要看已有产物就用 read_file/list_dir;"
             f"要推进任务,换一个不同的动作(如 create_file 写产物、run_bash 执行验证)。]")
@@ -4418,14 +4459,9 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                     if not _offline_blk:
                         disabled_recall[name] = disabled_recall.get(name, 0) + 1
                     if not _offline_blk and disabled_recall[name] >= 10:
-                        # 硬复位尾句按工具类型分叉:计算型工具禁用后不能叫模型"手写产物"
-                        if name in ("run_bash", "run_python"):
-                            _resume = ("请立即换动作:先改写脚本再重跑(换实现,不是原样重试),"
-                                       "不要用手写文件代替计算。"
-                                       + (f"需要恢复该工具:调用 enable_tools(tools=[\"{name}\"])。"
-                                          if name in _disabled_tools else ""))
-                        else:
-                            _resume = "请立即改用 create_file 写产出文件推进任务。"
+                        # 硬复位尾句共用话术;快照已在本消息上文(计划+文件清单),
+                        # 传 workdir=None 避免同一消息里出现两份快照。
+                        _resume = _disabled_tool_message(name)
                         _task0 = next((str(m.get("content", "")) for m in messages
                                        if m.get("role") == "user"), "")
                         messages = [messages[0],
@@ -4441,8 +4477,9 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                         continue
                     if name in _disabled_tools:
                         # 反循环禁用:模型确曾滥用它,话术指向"换动作"。三处共用
-                        # _disabled_tool_message,计算型工具禁用后不得建议手写产物。
-                        res = _disabled_tool_message(name)
+                        # _disabled_tool_message;不推荐 enable_tools(小模型解锁后
+                        # 会原样重发同一条命令,死胡同变无限循环)。
+                        res = _disabled_tool_message(name, workdir)
                     else:
                         # v3.1.4:工具不在列表 ≠ 反循环惩罚——两种真实成因(名字是模型
                         # 幻觉的/名字真实但本次未装配该类别)都必须与"被禁用"区分:
@@ -4458,17 +4495,11 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                                    f"不要发明工具名:产出文件用 create_file,改文件用 edit_file/create_file,"
                                    f"读文件用 read_file;完整可用列表见你的工具定义。]")
                     if disabled_recall.get(name, 0) == 3:
-                        # 三连强提示按工具类型分叉:计算型被禁后指向"换代码重跑/解锁",
-                        # 只有真实处于禁用态才提 enable_tools(不在装配列表的工具
-                        # enable_tools 也拉不出来,说了就是空头支票)。
-                        if name in ("run_bash", "run_python") and name in _disabled_tools:
-                            _next = ("改写脚本后重跑(换实现,不是原样重试);"
-                                     f"需要恢复就 enable_tools(tools=[\"{name}\"])。")
-                        else:
-                            _next = "用 create_file 写产出文件推进,需要看已有产物就用 read_file/list_dir。"
+                        # 三连强提示:前缀句 + 共用话术正文(含进度快照)。
                         messages.append({"role": "user", "content":
                             f"⚠️ 工具 {name} 已不可用(被禁用或不在装配列表)且你已多次尝试调用它。"
-                            f"再次调用也不会执行,该工具不会再出现在你的工具列表里。现在就换动作:" + _next})
+                            f"再次调用也不会执行,该工具不会再出现在你的工具列表里。现在就换动作:"
+                            + _disabled_tool_message(name, workdir)})
                 elif name not in ("finish",) and last_sig == (name, json.dumps(args, sort_keys=True, ensure_ascii=False)) and dup_warns < 3:
                     # 严格不重复同一命令:完全相同签名连续调用 → 拦截并提醒换策略
                     dup_warns += 1
