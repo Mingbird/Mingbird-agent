@@ -25,13 +25,13 @@ model's context needs to pay for itself elsewhere. / 大改动请先开 issue �
   tool-availability suite (per-turn offered-view gate, offline egress guards at
   the tool bodies incl. remote MCP), the v3.1.8 artifact-quality suite
   (disabled-compute-tool wording fork, unattended denial alternatives, finish
-  content gate, task-following deliverable language), the v3.1.9 anti-loop
-  escape suite (refusal without unlock advice, real unlock revival with a
-  2-per-task cap, unattended write-route hint, scripted end-to-end replay),
-  and the v3.1.10 robustness suites (read-loop guard: signature-window bans
-  that keep new ranges readable, crawl-guard hard stop, past-the-end signals;
-  todo state hardening: shape normalization, harness-state write block,
-  escape routes ordered inside the 120-char truncation window);
+  content gate, task-following deliverable language), and the v3.1.9 robustness suites (anti-loop escape: refusal without
+  unlock advice, real unlock revival with a 2-per-task cap, unattended
+  write-route hint, scripted end-to-end replay; read-loop guard:
+  signature-window bans that keep new ranges readable, crawl-guard hard
+  stop, past-the-end signals; todo state hardening: shape normalization,
+  harness-state write block, escape routes ordered inside the 120-char
+  truncation window);
   includes the prefill
   no-change assertion; the benchmark runners under `bench/` and `benchmarks/` are
   separate programs and are not collected by pytest). /
@@ -42,8 +42,7 @@ model's context needs to pay for itself elsewhere. / 大改动请先开 issue �
   （压缩窗口护栏/MCP 常驻 broker/工具参数归一化/AGENTS.md·SKILL.md 兼容）、
   v3.1.7 工具可得性套件（本轮下发视图校验/联网工具本体断网闸/远程 MCP 断网禁探）、
   v3.1.8 产物质量套件（计算型禁用话术分叉/无人值守拒绝给替代做法/finish 内容门禁/交付物语言跟任务）、
-  v3.1.9 反循环出路套件（拒绝话术去解锁推荐/解锁真恢复并封顶 2 次/无人值守写方向提示/stub 整链回放）、
-  v3.1.10 加固套件（读循环签名窗封禁且新区间放行/限速梯子到硬拦/越界明确信号/todo 状态形状归一化+harness 状态文件写保护/出路落在 120 字符截断窗内）等，
+  v3.1.9 加固套件（反循环出路=拒绝话术去解锁推荐/解锁真恢复并封顶 2 次/无人值守写方向提示/stub 整链回放；读循环守卫=签名窗封禁且新区间放行/限速梯子到硬拦/越界明确信号；todo 状态加固=形状归一化+harness 状态文件写保护/出路落在 120 字符截断窗内）等，
   含 prefill 不变式断言；`bench/` 与 `benchmarks/` 下的基准运行器是独立程序，
   不归 pytest 收集）。
 - Benchmark-related changes should keep the published protocol intact

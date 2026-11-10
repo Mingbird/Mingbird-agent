@@ -1,6 +1,6 @@
 # Changelog
 
-## v3.1.10 (2026-11-10)
+## v3.1.9 (2026-11-10)
 
 Robustness release from small-model regression reports: an unlock-and-rewall loop (v3.1.8 regression), a period-2 read loop invisible to the adjacent-only detectors, a harness state file overwritten by the model (whole run crashed), and an escape route cut off by truncation. Tests: **717 green** (697 + 20 new).
 
