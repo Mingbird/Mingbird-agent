@@ -36,7 +36,7 @@ def clean_state(oa, monkeypatch, tmp_path):
     oa._unlock_used.clear()
     oa._SIG_WINDOW.clear()
     oa._CRAWL_BANNED.clear()
-    oa._NO_REVIVE.clear()
+    oa._SIG_BANNED.clear()
     monkeypatch.setattr(oa, "_UNATTENDED", True)
     monkeypatch.setattr(oa, "SESSIONS_DIR", str(tmp_path / "sessions"))
     os.makedirs(str(tmp_path / "sessions"), exist_ok=True)
@@ -102,17 +102,18 @@ def test_legal_sequential_reads_not_flagged(oa, clean_state):
     assert "read_file" not in oa._disabled_tools
 
 
-# ---- ①周期 2 循环:整链回放 ----
+# ---- ①周期 2 循环:整链回放(封签名,新区间放行) ----
 
-def test_period2_loop_bans_hot_path_then_escapes(oa, clean_state, monkeypatch):
-    """stub 交替读同一文件的两个区间(A→B→A→B):8 次调用内热点路径被封读,
-    封读后读其他文件照常,stub 改写产物并 finish。read_file 全程不被禁用。"""
+def test_period2_loop_bans_signatures_new_range_still_readable(oa, clean_state, monkeypatch):
+    """stub 交替读同一文件的两个区间(A→B→A→B):两个签名被封后,同区间再读被拒,
+    但换一个新区间必须放行(那是进展不是打转——keep_b2 教训:路径级封读把新区间
+    一并拒了,把模型推进 run_bash 死胡同),其他文件照常,read_file 不被禁用。"""
     workdir = str(clean_state / "work")
     os.makedirs(workdir, exist_ok=True)
     _make_file(workdir, "timetrack.py", 84)
     _make_file(workdir, "other.txt", 30)
-    state = {"n": 0, "banned": False, "other_issued": False,
-             "other_res": None, "created": False, "i": 0}
+    state = {"n": 0, "i": 0, "stage": "loop",
+             "new_res": None, "other_res": None, "created": False}
 
     def fake_call_chat(model, messages, ctx=None, tools=None, stream=False,
                        on_token=None, on_think=None):
@@ -128,21 +129,32 @@ def test_period2_loop_bans_hot_path_then_escapes(oa, clean_state, monkeypatch):
             tc = {"function": {"name": name, "arguments": args}}
             return {"message": {"content": "", "tool_calls": [tc]}}
 
-        if not state["banned"]:
-            # 阶段A:严格周期 2,交替读同一文件的两个区间
-            state["i"] += 1
-            if "已被封读" in last_tool:
-                state["banned"] = True
+        # 先收上一发调用的回执,再决定下一发。阶段:
+        # loop(交替读两区间)→ new_wait(已发新区间,收回执)→ other(发其他文件)
+        # → other_wait(收回执)→ deliver(create_file → finish)。
+        if state["stage"] == "new_wait":
+            state["new_res"] = last_tool
+            state["stage"] = "other"
+        elif state["stage"] == "other_wait":
+            state["other_res"] = last_tool
+            state["stage"] = "deliver"
+
+        if state["stage"] == "loop":
+            if "该区间已被封读" in last_tool:
+                state["stage"] = "new_wait"
             else:
                 a, b = (40, 60) if state["i"] % 2 else (60, 84)
+                state["i"] += 1
                 return resp("read_file", {"path": "timetrack.py",
                                           "start_line": a, "end_line": b})
-        if not state["other_issued"]:
-            # 阶段B:封读后读其他文件必须照常(按路径封读,不按工具)
-            state["other_issued"] = True
+        if state["stage"] == "new_wait":
+            return resp("read_file", {"path": "timetrack.py",
+                                      "start_line": 1, "end_line": 20})
+        if state["stage"] == "other_wait":
             return resp("read_file", {"path": "other.txt", "start_line": 1, "end_line": 10})
-        if state["other_res"] is None:
-            state["other_res"] = last_tool   # other.txt 这次读取的真实回执
+        if state["stage"] == "other":
+            state["stage"] = "other_wait"
+            return resp("read_file", {"path": "other.txt", "start_line": 1, "end_line": 10})
         if not state["created"]:
             state["created"] = True
             return resp("create_file", {"path": "report.md",
@@ -157,12 +169,30 @@ def test_period2_loop_bans_hot_path_then_escapes(oa, clean_state, monkeypatch):
     ]
     oa.agent_loop("stub-model", messages, workdir, "replay-readloop")
 
-    assert state["banned"], "周期 2 循环从未触发封读"
-    assert state["n"] <= 25, f"封读来得太晚({state['n']} 轮)"
+    assert state["stage"] in ("deliver", "other"), f"回放卡在阶段 {state['stage']}"
+    assert state["n"] <= 30, f"封签名来得太晚({state['n']} 轮)"
+    assert state["new_res"] is not None and "已被封读" not in state["new_res"] \
+        and "timetrack.py" in state["new_res"], "新区间必须放行(那是进展,不是打转)"
     assert state["other_res"] is not None and "已被封读" not in state["other_res"] \
-        and "line 1" in state["other_res"], "封读不应波及其他文件"
+        and "other.txt" in state["other_res"], "封签名不应波及其他文件"
     assert (clean_state / "work" / "report.md").exists()
-    assert "read_file" not in oa._disabled_tools, "按路径封读不得升级成工具禁用"
+    assert "read_file" not in oa._disabled_tools, "签名封禁不得升级成工具禁用"
+    assert not oa._CRAWL_BANNED, "循环窗口不得使用路径级封禁"
+
+
+def test_banned_signature_refuses_same_args_only(oa, clean_state):
+    """直接单测:同签名的读取被拒,不同区间/不同文件放行,路径不在封读集合。"""
+    workdir = str(clean_state / "work")
+    os.makedirs(workdir, exist_ok=True)
+    _make_file(workdir, "f.py", 100)
+    args = {"path": "f.py", "start_line": 40, "end_line": 60}
+    sig = ("read_file", __import__("json").dumps(args, sort_keys=True, ensure_ascii=False))
+    oa._SIG_BANNED.add(sig)
+    r = oa.run_tool("read_file", dict(args), workdir)
+    assert "该区间已被封读" in r
+    r2 = oa.run_tool("read_file", {"path": "f.py", "start_line": 61, "end_line": 80}, workdir)
+    assert "已被封读" not in r2 and "line 61" in r2
+    assert not oa._CRAWL_BANNED
 
 
 def test_run_bash_repetition_not_caught_by_read_window(oa, clean_state, monkeypatch):
@@ -207,11 +237,5 @@ def test_run_bash_repetition_not_caught_by_read_window(oa, clean_state, monkeypa
 
 
 # ---- no-revive 通道 ----
-
-def test_no_revive_refuses_unlock(oa, clean_state):
-    """读循环禁用的工具不接受 enable_tools 解锁——解锁只会回到同一个循环。"""
-    oa._disabled_tools.add("list_dir")
-    oa._NO_REVIVE.add("list_dir")
-    r = oa.enable_advanced_tools(["list_dir"])
-    assert "不再解锁" in r
-    assert "list_dir" in oa._disabled_tools
+# (已随签名封禁移除:循环触发封的是签名不是工具,签名封禁天然不经 enable_tools,
+#  反循环禁用的解锁封顶见 test_antiloop_escape.py)
