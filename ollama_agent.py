@@ -27,7 +27,7 @@
   python ollama_agent.py <model> <taskfile> <workdir> [--session NAME] [--new] [--append]
   python ollama_agent.py <model> --chat <workdir> [--session NAME]  # 交互式
 """
-import json, subprocess, os, sys, urllib.request, time, re, asyncio, glob
+import json, subprocess, os, sys, urllib.request, time, re, asyncio, glob, collections
 import appconfig   # 统一配置层:Ollama 地址/路径/环境变量/模型映射,全部可配置
 import platform_profile as _pp   # v3.0.0:平台差异单一事实源(平台块/执行环境/GUI 消费)
 
@@ -404,6 +404,37 @@ _CRAWL_THROTTLE = 2000        # 预算耗尽后每次读取返回的字符上限
 _CRAWL_NUDGE_AT = (4, 10)     # 第几次读取时各给一次一行建议(每文件最多 2 次)
 # batch_tools 的兜底计数(正常路径经 run_tool 的 crawl_state 注入,与任务级计数同源)
 _BATCH_CRAWL = {}
+
+# 读循环守护(2026-11-10):三个既有检测(重复拦截/同签名连续/同工具连续)全是邻接
+# 比较,A→B→A→B 的周期 2 循环永远打不中(streak 警告上限 3 次后完全失明),0.8B 曾把
+# 同一文件反复读 158 次烧尽 200 轮、一个产物不写。窗口只看只读工具——带副作用的
+# 工具(edit/run)的同签名重复是"改→测→改→测"的合法迭代(12b LH-03 教训:霰弹枪
+# 编辑只提示不禁用),绝不入窗;旧规则的"同参数连续 ≥4 次才禁用"对它们依然有效。
+# 处置优先按路径:窗口循环时读取几乎总集中在单一文件,封读该路径(其他文件照常)
+# 比禁掉整个 read_file 更贴合"精读是正常行为"的红线;无热点路径才退到工具级。
+_READ_LOOP_TOOLS = ("read_file", "list_dir")
+_SIG_WINDOW = collections.deque(maxlen=12)   # 只读工具的调用签名窗口(循环判定)
+_CRAWL_BANNED = set()    # 本任务内封读的路径(normcase 绝对路径);run_tool 拒绝返回
+_NO_REVIVE = set()       # 因读循环被禁的工具:本次任务内 enable_tools 不再解锁
+
+def _hot_read_path(window, workdir):
+    """窗口内 read_file 调用的热点路径(出现最多且明显集中);无集中热点返回 None。"""
+    cnt = {}
+    for nm, aj in window:
+        if nm != "read_file":
+            continue
+        try:
+            p = str(json.loads(aj).get("path", ""))
+        except Exception:
+            continue
+        if p:
+            k = os.path.normcase(os.path.normpath(os.path.join(workdir, p)))
+            cnt[k] = cnt.get(k, 0) + 1
+    if not cnt:
+        return None
+    top = max(cnt, key=cnt.get)
+    # 集中判定:要么窗口里只有一个路径,要么热点路径自己就出现 ≥4 次
+    return top if (len(cnt) == 1 or cnt[top] >= 4) else None
 
 CORE_TOOLS = [
  _f("create_file","Create or overwrite a file. Overwriting an existing larger file requires replace=true", P(path={"type":"string"},content={"type":"string"},replace={"type":"boolean"}),["path","content"]),
@@ -1491,11 +1522,17 @@ def enable_advanced_tools(names):
     unknown = []
     revived = []
     revive_refused = []
+    no_revived = []
     for n in names:
         if (n in avail and n not in [t["function"]["name"] for t in _active_tools]
                 and n not in _disabled_tools):
             _active_tools.append(avail[n]); added.append(n)
         if n in _disabled_tools:
+            # 读循环禁用(_NO_REVIVE)不接受解锁:把周期循环送进解锁通道只会
+            # 解锁→重读同一文件→再禁用,换一个死法。话术出路已给 create_file。
+            if n in _NO_REVIVE:
+                no_revived.append(n)
+                continue
             # 显式启用=解锁反循环禁用。禁用会把工具同时移出工具面(_active_tools),
             # 所以解锁必须两步都做:清禁用 + 重新装配,否则"恢复"是假的
             # (LH-01:给的动作必须有效;CORE 工具不在 ADVANCED_TOOLS 里,旧实现
@@ -1523,13 +1560,18 @@ def enable_advanced_tools(names):
     if unknown:
         note += (f" 未知的工具名(不存在,无法启用): {', '.join(unknown)}。"
                  f"可启用的高级工具: {', '.join(sorted(avail))}。")
+    if no_revived:
+        note += (f" 已拒绝解锁 {', '.join(no_revived)}:"
+                 f"该工具因反复循环被禁用,本次任务内不再解锁。"
+                 f"下一步用 create_file 写产物,或换一条完全不同的做法。")
     if revived:
         note += f" {', '.join(revived)} 已解除禁用并恢复可用,直接调用它即可。"
     if revive_refused:
         note += (f" 已拒绝再次解锁 {', '.join(revive_refused)}:"
                  f"本次任务里已解锁 {_REVIVE_CAP} 次,仍未走出重试循环。"
                  f"下一步只能用 create_file 写产物,或换一条完全不同的命令。")
-    if not added and not mcp_added and not unknown and not revived and not revive_refused:
+    if not added and not mcp_added and not unknown and not revived \
+            and not revive_refused and not no_revived:
         # 模型重复 enable 已可用工具时,'(none)' 会诱发死循环重试(LH-01 4b 教训)——给明确指令
         note = " 无需再启用:你要的工具都已可用,直接调用它即可。"
     return f"[enabled tools: {', '.join(added) or '(none)'}. Now available: {', '.join(t['function']['name'] for t in _active_tools)}]{note}"
@@ -2098,9 +2140,16 @@ def run_tool(name, args, workdir, crawl_state=None):
                 return _read_file_image(workdir, str(args["path"]), real)
             # 爬行守卫 v2(字节预算制):先按请求区间算出正常结果,守卫只做统计/限幅/提示,
             # 永不改变"返回哪段内容"、永不拒绝。预算 = clamp(2×文件大小, 64KB, 512KB)。
+            # 读循环守护(2026-11-10)补上"停"的一半:封读路径直接拒绝;超预算限速
+            # 3 次后硬拒绝;越界读取给明确信号并计数,×3 封读。按路径生效,不按工具。
             _ck = os.path.normcase(os.path.normpath(p))
-            # 状态: [读取次数, 累计已服务字符, 已给建议次数, 已给过限速说明]
-            _c = (_BATCH_CRAWL if crawl_state is None else crawl_state).get(_ck, [0, 0, 0, 0])
+            if _ck in _CRAWL_BANNED:
+                return (f"[该文件已被封读(重复读取上限): '{args['path']}' 本次任务内不再可读,"
+                        f"读它不会再有新内容。下一步:用 run_bash 跑脚本一次完成统计/搜索/聚合,"
+                        f"或直接用 create_file 写产物;读其他文件不受影响。]")
+            # 状态: [读取次数, 累计已服务字符, 已给建议次数, 已给过限速说明,
+            #        超预算后已限速次数, 越界读取次数]
+            _c = (_BATCH_CRAWL if crawl_state is None else crawl_state).get(_ck, [0, 0, 0, 0, 0, 0])
             _c[0] += 1
             # 按需精读:start_line/end_line 只读指定行区间(科研场景精读全文落盘文件)
             sl = int(args.get("start_line", 0) or 0)
@@ -2108,6 +2157,21 @@ def run_tool(name, args, workdir, crawl_state=None):
             lines = read_text(p).splitlines()
             if sl > 0 or el > 0:
                 if el <= 0: el = len(lines)
+                if sl > len(lines):
+                    # 越界读取:旧实现返回空 chunk + 自相矛盾的"已读取 301-84 行" meta,
+                    # 模型读不出"已经读完",只会继续 +20 烧轮次。给出明确信号,×3 封读。
+                    _c[5] += 1
+                    (_BATCH_CRAWL if crawl_state is None else crawl_state)[_ck] = _c
+                    if _c[5] >= 3:
+                        _CRAWL_BANNED.add(_ck)
+                        return (f"[读取越界且已封读: '{args['path']}' 只有 {len(lines)} 行,"
+                                f"你已连续 {_c[5]} 次读取超出末尾的区间。本文件本次任务内不再可读,"
+                                f"请用已有内容推进:写产物用 create_file,统计/搜索用 run_bash 跑脚本"
+                                f"一次完成;读其他文件不受影响。]")
+                    return (f"[读取越界: 该文件只有 {len(lines)} 行,start_line={sl} 已超出。"
+                            f"文件内容已读完,继续增大行号不会有新内容。"
+                            f"请用已有内容推进:写产物用 create_file,统计/搜索用 run_bash 跑脚本"
+                            f"一次完成;需要回看就改用文件内的行号区间。]")
                 chunk = lines[max(0, sl-1):el]
                 meta = f"\n[文件共 {len(lines)} 行,已读取 {max(0,sl-1)+1}-{min(el,len(lines))} 行。需要其他部分用 read_file(start_line=.., end_line=..)。]"
                 body = "\n".join(chunk)[:6000]
@@ -2121,6 +2185,24 @@ def run_tool(name, args, workdir, crawl_state=None):
             except OSError:
                 _budget = _CRAWL_BUDGET_FLOOR
             if _c[1] > _budget:
+                # 预算耗尽:限速而非拒绝(前两次)。此后"只劝不停"成了死循环的温床
+                # (每一轮都"成功返回",模型没有任何失败信号)——第 3/4 次限速硬拒绝,
+                # 第 5 次起封读该路径。按路径生效,不按工具。
+                _c[4] += 1
+                if _c[4] >= 5:
+                    _CRAWL_BANNED.add(_ck)
+                    (_BATCH_CRAWL if crawl_state is None else crawl_state)[_ck] = _c
+                    return (f"[该文件已被封读(限速读取次数上限): '{args['path']}' 超出预算 {_budget} 字节后"
+                            f"你仍读取了 {_c[4]} 次。本次任务内本文件不再可读。下一步:"
+                            f"用 run_bash 跑脚本一次完成统计/搜索/聚合,或直接用 create_file 写产物;"
+                            f"读其他文件不受影响。]")
+                if _c[4] >= 3:
+                    (_BATCH_CRAWL if crawl_state is None else crawl_state)[_ck] = _c
+                    return (f"[crawl-guard(硬拦): '{args['path']}' 累计读取 {_c[1]} 字节,"
+                            f"已超出预算 {_budget}(按 {_CRAWL_BUDGET_MULT}×文件大小),"
+                            f"且超预算后你仍读取了 {_c[4]} 次。本文件内容已读完,这一次不返回内容。"
+                            f"必须换动作:用 run_bash 跑脚本一次完成统计/搜索/聚合,"
+                            f"或直接用 create_file 写产物;读其他文件不受影响。]")
                 # 预算耗尽:限速而非拒绝。首次给完整出路说明(含可照抄的脚本示例),
                 # 之后一行短提示;返回的是所请求区间的前 2000 字符——进度不断。
                 if not _c[3]:
@@ -4112,6 +4194,11 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
     global _SLIM_OUTPUT_MODE   # v3.0.0:命令输出精简在下方按"开关/档位"赋值;
                                # 子 agent 派发路径不经此行(其自身走 agent_loop)
     _allow_all.clear()   # "允许全部(本轮)"以任务为界:新任务重新计数
+    # 读循环守护同样按任务隔离(模块级=进程级;GUI 每任务新进程天然隔离,
+    # CLI 同进程续跑时在这里显式清,不让上一个任务的封读/禁解锁漏进来)。
+    _SIG_WINDOW.clear()
+    _CRAWL_BANNED.clear()
+    _NO_REVIVE.clear()
     fails = 0
     fail_count = {}           # 工具名 -> 连续失败次数(同工具无成功则累计)
     redirect_warns = 0
@@ -4785,6 +4872,41 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
                 else:
                     same_sig_streak = 1
                 last_sig_now = _sig_now
+                # 读循环窗口检测:只看只读工具(_READ_LOOP_TOOLS 注释里写了为什么)。
+                # 封读路径的拒绝不入窗——否则顽固重读会在窗口里堆满同签名,把路径级
+                # 封读升级成工具级禁用,违反"按路径封读"的边界。
+                if name in _READ_LOOP_TOOLS:
+                    _wskip = (name == "read_file" and os.path.normcase(os.path.normpath(
+                        os.path.join(workdir, str(args.get("path", ""))))) in _CRAWL_BANNED)
+                    if not _wskip:
+                        _SIG_WINDOW.append(_sig_now)
+                        _trig = None
+                        if _SIG_WINDOW.count(_sig_now) >= 4:
+                            _trig = "同一调用反复出现"
+                        elif len(_SIG_WINDOW) >= 10 and len(set(_SIG_WINDOW)) <= 2:
+                            _trig = "两个调用互相打转"
+                        if _trig:
+                            _hot = _hot_read_path(_SIG_WINDOW, workdir)
+                            if _hot:
+                                _CRAWL_BANNED.add(_hot)
+                                messages.append({"role": "user", "content":
+                                    f"⚠️ 检测到你在围绕同一文件反复打转({_trig})。"
+                                    f"已封读该路径: {_hot} ——本次任务内它不再可读,"
+                                    f"再读只会得到拒绝提示。下一步必须换动作:"
+                                    f"用 run_bash 跑脚本一次完成统计/搜索/聚合,"
+                                    f"或直接用 create_file 写产物;读其他文件不受影响。"
+                                    + _ws_note(workdir)})
+                            else:
+                                _disabled_tools.add(name)
+                                _active_tools = [t for t in _active_tools
+                                                 if t["function"]["name"] != name]
+                                _NO_REVIVE.add(name)
+                                messages.append({"role": "user", "content":
+                                                 "⚠️ [系统] 检测到周期性循环(同样的调用反复交替),"
+                                                 + name + " 本次任务内已被禁用且不再解锁。"
+                                                 + _disabled_tool_message(name, workdir)})
+                            _SIG_WINDOW.clear()
+                            print(f"[{i}] ⚠️ 读循环判定({_trig}),已按路径/工具处置", flush=True)
                 if name == last_tool:
                     tool_streak += 1
                 else:

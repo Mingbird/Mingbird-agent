@@ -101,15 +101,25 @@ def test_throttle_respects_requested_range(oa, tmp_path, monkeypatch):
     assert len(body3.split("\n[文件共")[0]) <= oa._CRAWL_THROTTLE
 
 
-def test_throttle_never_denies_outright(oa, tmp_path, monkeypatch):
+def test_throttle_ladder_content_then_hard_stop(oa, tmp_path, monkeypatch):
+    """限速梯子(读循环守护修订):超预算后前两次仍返回内容(进度不断),
+    第 3/4 次硬拒绝(只劝不停会让死循环没有任何失败信号),第 5 次起按路径封读。
+    旧契约"限速永不拒绝"被有意取代——纯劝导型限速曾让 0.8B 把同一文件读 158 次
+    烧尽 200 轮。拒绝只针对这一个路径,其他文件不受影响。"""
     monkeypatch.setattr(oa, "_CRAWL_BUDGET_FLOOR", 200, raising=False)
     _mk(tmp_path, "d.txt", n_lines=60, pad="y" * 30)
     wd = str(tmp_path)
     state = {}
-    for i in range(8):
-        r = oa.run_tool("read_file", {"path": "d.txt"}, wd, crawl_state=state)
-        # 每一次都必须包含真实文件内容——不存在只回拒绝文本的死墙
-        assert "L001" in r or "L0" in r
+    results = [oa.run_tool("read_file", {"path": "d.txt"}, wd, crawl_state=state)
+               for _ in range(9)]
+    # 前 2 次在预算内;第 3/4 次进入限速(仍返回内容);第 5/6 次硬拒绝;
+    # 第 7 次起封读。梯子按"超预算后的读取次数"计数。
+    assert "crawl-guard" in results[2] and "L0" in results[2]   # 首次限速:完整说明+内容
+    assert "读取限速中" in results[3] and "L0" in results[3]     # 二次限速:短提示+内容
+    assert "硬拦" in results[4] and "这一次不返回内容" in results[4]
+    assert "硬拦" in results[5]
+    assert "已被封读" in results[6]                        # 封读
+    assert "已被封读" in results[7] and "已被封读" in results[8]
 
 
 # ---- 4. 小文件回看不触限(WF08/4b 回归锚) ----
