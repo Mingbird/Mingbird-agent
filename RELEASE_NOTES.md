@@ -1,9 +1,11 @@
 ## 🇨🇳 中文
 
-# 鸣鸟 v3.1.9
+# 鸣鸟 v3.1.10
 
 小模型档加固版：堵住两条死循环（解锁→再撞墙、周期 2 读循环）、todo 状态文件不再能被覆写炸格、拒绝词的出路不再被截断吞掉。桌面 UI 不变。**717 项测试全绿**（697 + 20 新增）。
 
+- **修复"寒暄被当成任务跑"**：v3.1.9 的逐任务语言钉会把追加指令写进用户消息，钉里的"撰写"命中任务词表，一句"你好"被当成任务跑满工具循环。已移除语言钉，用户消息保持原样；意图判定只看用户输入本身。
+- **交付物语言改为一条静态系统提示**（跟随任务语言，对所有语言一视同仁——原分类器只有中英二分，对其他语言的用户是错的）。
 - **禁用话术给出真实出路**：不再推荐 `enable_tools` 解锁。文档类产物直接 `create_file` 写；必须由代码算出的产物仍必须换代码重跑。出路落在前 120 字符内（压缩截断不再吞掉它），快照挪到末尾。
 - **解锁变成真恢复**：核心工具被禁后解锁原本回不到工具面、回执也不说——现在解锁重新装配工具并明说；同一工具本次任务内解锁上限 2 次。
 - **读循环按签名封禁**：同一读取反复 6 次、或两个读取交替打满 10 次 → 封涉事区间。**换新区间或读其他文件照常放行**（那是进展）；体量与越界梯子按路径兜底。
@@ -11,9 +13,9 @@
 
 **安装（Install）**
 
-- Windows：下载 `Mingbird-v3.1.9-CN-Setup.exe`（中文）或 `Mingbird-v3.1.9-EN-Setup.exe`（英文），双击安装。安装包未签名，Windows 可能弹出 SmartScreen——点"更多信息"→"仍要运行"。
-- Linux（实验性）：下载 `mingbird-v3.1.9-linux-x64.tar.gz`，解压后 `sh install-unix.sh`，启动 `~/.local/share/Mingbird/LocalAgent`。
-- macOS（实验性）：下载 `mingbird-v3.1.9-macos-arm64.tar.gz`（Intel 机型用 `mingbird-v3.1.9-macos-x64.tar.gz`），同上。
+- Windows：下载 `Mingbird-v3.1.10-CN-Setup.exe`（中文）或 `Mingbird-v3.1.10-EN-Setup.exe`（英文），双击安装。安装包未签名，Windows 可能弹出 SmartScreen——点"更多信息"→"仍要运行"。
+- Linux（实验性）：下载 `mingbird-v3.1.10-linux-x64.tar.gz`，解压后 `sh install-unix.sh`，启动 `~/.local/share/Mingbird/LocalAgent`。
+- macOS（实验性）：下载 `mingbird-v3.1.10-macos-arm64.tar.gz`（Intel 机型用 `mingbird-v3.1.10-macos-x64.tar.gz`），同上。
 - 需本机已装 Ollama 或任何 OpenAI 兼容本地服务（LM Studio、llama.app、llama-server、vLLM 均可）。
 
 完整变更：[CHANGELOG_zh.md](https://github.com/Mingbird/Mingbird-agent/blob/main/CHANGELOG_zh.md)
@@ -22,7 +24,7 @@
 
 ## 🇬🇧 English
 
-# Mingbird v3.1.9
+# Mingbird v3.1.10
 
 Small-model robustness release: two death loops closed (unlock-and-rewall, period-2 read loops), the harness plan file can no longer be overwritten into a crash, and escape routes no longer get cut off by truncation. Desktop UI unchanged. **717 tests green** (697 + 20 new).
 
@@ -33,9 +35,9 @@ Small-model robustness release: two death loops closed (unlock-and-rewall, perio
 
 **Install**
 
-- Windows: download `Mingbird-v3.1.9-CN-Setup.exe` (Chinese) or `Mingbird-v3.1.9-EN-Setup.exe` (English) and run it. The installer is unsigned — Windows SmartScreen may warn; choose "More info" → "Run anyway".
-- Linux (experimental): download `mingbird-v3.1.9-linux-x64.tar.gz`, extract, `sh install-unix.sh`, launch `~/.local/share/Mingbird/LocalAgent`.
-- macOS (experimental): download `mingbird-v3.1.9-macos-arm64.tar.gz` (Intel: `mingbird-v3.1.9-macos-x64.tar.gz`), same steps.
+- Windows: download `Mingbird-v3.1.10-CN-Setup.exe` (Chinese) or `Mingbird-v3.1.10-EN-Setup.exe` (English) and run it. The installer is unsigned — Windows SmartScreen may warn; choose "More info" → "Run anyway".
+- Linux (experimental): download `mingbird-v3.1.10-linux-x64.tar.gz`, extract, `sh install-unix.sh`, launch `~/.local/share/Mingbird/LocalAgent`.
+- macOS (experimental): download `mingbird-v3.1.10-macos-arm64.tar.gz` (Intel: `mingbird-v3.1.10-macos-x64.tar.gz`), same steps.
 - Requires Ollama or any OpenAI-compatible local server (LM Studio, llama.app, llama-server, vLLM all work) installed on that machine.
 
 Full changelog: [CHANGELOG.md](https://github.com/Mingbird/Mingbird-agent/blob/main/CHANGELOG.md)

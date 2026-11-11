@@ -1,5 +1,5 @@
-﻿; Mingbird v3.1.9 EN installer (Inno Setup)
-#define MyAppVersion "3.1.9"
+﻿; Mingbird v3.1.10 EN installer (Inno Setup)
+#define MyAppVersion "3.1.10"
 #define MyAppName "Mingbird"
 #define MyAppFullName "Mingbird · Local AI Assistant"
 #define MyAppExe "LocalAgent.exe"
@@ -14,7 +14,7 @@ DefaultDirName={localappdata}\Mingbird
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
-OutputBaseFilename=Mingbird-v3.1.9-EN-Setup
+OutputBaseFilename=Mingbird-v3.1.10-EN-Setup
 OutputDir=dist
 SetupIconFile=app.ico
 Compression=lzma2

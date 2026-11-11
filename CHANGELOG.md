@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.1.10 (2026-11-11)
+
+Intent-safety fix from a live session: v3.1.9's per-task language feature appended an instruction to every task text, and the appended word for "write" hit the task-hint list — so a bare greeting ("你好") was classified as a task and ran the full machinery (tool loop, plan, 60+ transcript rows) until the user stopped it. Tests: **717 green**.
+
+### 🔧 Fixes
+- **The language pin is removed; user text stays untouched**: intent detection must see the user's message as-is. Any harness-appended content competes with it — this is now a regression pin (`tests/test_artifact_quality.py`): a greeting classifies as chat, a real task still classifies as a task, and the old poisoned input is pinned as the reason.
+- **Deliverable language is a static system line**: "deliverable files follow the task instruction's language" — no per-task classifier. The old classifier was zh/en binary, which is wrong for users in every other language; the line treats all languages the same.
+- Prefill no-change assertion updated 1250 → 1319 (+69 estimated tokens for the static line; the pin exists to force exactly this kind of conscious review).
+
 ## v3.1.9 (2026-11-10)
 
 Robustness release from small-model regression reports: an unlock-and-rewall loop (v3.1.8 regression), a period-2 read loop invisible to the adjacent-only detectors, a harness state file overwritten by the model (whole run crashed), and an escape route cut off by truncation. Tests: **717 green** (697 + 20 new).
