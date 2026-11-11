@@ -1,5 +1,16 @@
 # Changelog
 
+## v3.1.11 (2026-11-11)
+
+Replies follow the user's language — from a live session: on a Chinese-locale machine, an English "hello" was answered in Chinese (the QA prompt is Chinese-only, and the only language switch followed the UI locale). Tests: **726 green** (719 + 7 new).
+
+### 🔧 Fixes
+- **Three-tier reply-language detection**: unique-script ranges decide outright (Chinese/Japanese/Korean/Greek/Hebrew/Thai — deterministic, zero deps) → greeting/courtesy whole-message exact match (~55 keys, case and diacritics normalized) → fastText language ID (a 938KB model shipped in the package, offline, 176 languages, sentence-level only, accepted at confidence ≥ 0.9). When detection is confident the system prompt names the reply language; otherwise nothing is injected — the bilingual prompt's "reply in the user's language" line carries it. Statistical ID is blind on bare words ("hello" measures 0.39) and mislabels sentences (a German sentence scored en=0.81), so bare words go to the closed table and only sentences go to fastText.
+- **The QA prompt is now bilingual**: removes single-prompt-language bias (flagship model, 8-language probe, all correct).
+- **Task-mode process text follows the task language**: an English task no longer gets English deliverables with Chinese status chatter.
+- **The factory prefill pin stays at 1319**: the reply-language line is dynamic (platform-block precedent), nothing is injected when detection is unsure, and language features no longer grow the static face.
+- Packaging: the model ships in `_internal/model/`, license CC BY-SA 3.0 recorded in LICENSE-DATA; macOS ARM64 has no cp312 wheel, CI installs non-fatally and the runtime degrades gracefully (the first two tiers keep working).
+
 ## v3.1.10 (2026-11-11)
 
 Intent-safety fix from a live session: v3.1.9's per-task language feature appended an instruction to every task text, and the appended word for "write" hit the task-hint list — so a bare greeting ("你好") was classified as a task and ran the full machinery (tool loop, plan, 60+ transcript rows) until the user stopped it. Tests: **717 green**.
