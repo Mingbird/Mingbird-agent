@@ -2,13 +2,22 @@
 
 # 鸣鸟 v3.1.11
 
-回复语言跟随用户版：中文系统下英文"hello"不再得到中文回答。问答回复语言三层检测（独有文字系统 → 问候词闭集 → fastText 语言识别），检测有把握就指名语言，没把握就不注。桌面 UI 不变。**726 项测试全绿**（719 + 7 新增）。
+回复语言跟随用户版：助手回复的语言不再绑定系统界面语言，改为跟随用户消息；任务过程的叙述语言跟随任务指令语言。内置轻量离线语言识别。桌面 UI 不变。**726 项测试全绿**（719 + 7 新增）。
 
-- **修复"英文问候得到中文回答"**：v3.1.10 及之前的问答提示通篇中文，唯一的语言开关只跟系统界面语言走——说其他语言的用户都会被中文提示带偏。
-- **三层检测，宁缺毋滥**：文字一一对应的语言直接判（中/日/韩/希腊/希伯来/泰）；问候/客套词整句精确匹配（归一大小写与变音符）；fastText（938KB，离线，176 种语言）只管句子级，置信 ≥0.9 才采纳，检测不出就不注入——双语提示里的"用用户消息的语言回答"兜底。
-- **统计识别不碰裸词**：实测"hello"的识别置信只有 0.39、德语句子被误标英语 0.81——裸词交给闭集表，句子才交给模型。
-- **任务过程文本跟随任务指令语言**：英文任务不再出现"英文交付物 + 中文过程絮语"。
-- **出厂 prefill 钉维持 1319**：语言行全部动态注入，静态面不再为语言功能增长。
+### 🌐 上线
+
+- **回复语言跟随（问答/任务两类会话）**：回复使用用户消息或任务指令的语言；用户换语言，回复跟着换。中文系统下使用其他语言的用户不再被界面语言带偏。
+- **内置离线语言识别**：轻量识别模型随安装包分发，本地运行、零出站。识别有把握时在系统提示明确回复语言，没把握时静默不干预——由双语提示兜底。
+- **问答提示双语化**：系统提示不再单语，从根上消除"提示语言带偏回复语言"这一类问题。
+
+### 🔧 修复
+
+- 修复一类"回复语言与用户语言不一致"的问题：根因是回复语言此前跟系统界面走，而界面语言≠用户消息语言；本版起语言决策只看用户输入本身。
+- 修复非中文任务在中文系统上"交付物与过程叙述语言不一致"的一类问题：交付物语言已跟任务（v3.1.10），本版补齐过程叙述语言。
+
+### 🧱 工程
+
+- 语言相关指令全部改为动态注入：出厂提示词（prefill）保持冻结，不随功能增长。
 
 **安装（Install）**
 
@@ -25,13 +34,22 @@
 
 # Mingbird v3.1.11
 
-Replies now follow the user's language: on a Chinese-locale machine, an English "hello" no longer gets a Chinese answer. Three-tier reply-language detection (unique-script ranges → greeting/courtesy table → fastText language ID) names the language when confident and injects nothing when not. Desktop UI unchanged. **726 tests green** (719 + 7 new).
+Replies now follow the user's language: the reply language is no longer bound to the UI locale — it follows the user's message, and task-mode narration follows the task language. A lightweight offline language identifier ships inside the package. Desktop UI unchanged. **726 tests green** (719 + 7 new).
 
-- **"English greeting, Chinese answer" is fixed**: through v3.1.10 the QA prompt was Chinese-only and the only language switch followed the UI locale — speakers of any other language got dragged along.
-- **Three tiers, silence over a wrong guess**: unique scripts decide outright (Chinese/Japanese/Korean/Greek/Hebrew/Thai); greetings are whole-message exact matches (case and diacritics normalized); fastText (938KB, offline, 176 languages) judges sentences only at confidence ≥ 0.9 — otherwise nothing is injected and the bilingual prompt's "reply in the user's language" line carries it.
-- **Statistical ID never touches bare words**: "hello" measures 0.39 confidence and a German sentence once scored en=0.81 — bare words go to the closed table, sentences go to the model.
-- **Task-mode process text follows the task language**: an English task no longer gets English deliverables with Chinese status chatter.
-- **The factory prefill pin stays at 1319**: language lines are all dynamic; the static face no longer grows for language features.
+### 🌐 Added
+
+- **Reply-language following (chat and task sessions)**: replies use the language of the user's message or the task instruction; when the user switches languages, replies switch too. Users of any other language on a Chinese-locale system are no longer dragged along by the UI locale.
+- **Built-in offline language identification**: a lightweight model ships with the installer, runs locally, zero outbound traffic. When detection is confident the system prompt names the reply language; otherwise nothing is injected and the bilingual prompt carries it.
+- **Bilingual QA prompt**: the system prompt is no longer single-language, removing the whole class of "prompt language drags the reply language" issues at the root.
+
+### 🔧 Fixed
+
+- Fixed the class of "reply language disagrees with the user's language" issues: replies previously followed the system locale, and locale ≠ message language; language decisions now look only at the user's input.
+- Fixed the class of "deliverable and narration languages disagree" for non-Chinese tasks on Chinese systems: deliverables already follow the task (v3.1.10); this release completes narration.
+
+### 🧱 Engineering
+
+- All language-related instructions are now dynamic lines: the factory prompt (prefill) stays frozen and does not grow with features.
 
 **Install**
 
