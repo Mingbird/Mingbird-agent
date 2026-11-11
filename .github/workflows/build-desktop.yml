@@ -46,6 +46,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller ttkbootstrap tkinterdnd2 pillow requests numpy sherpa_onnx mcp beautifulsoup4 sounddevice soundfile openpyxl python-docx
+          # fastText lid.176.ftz 回复语言检测(2026-11-11):win/linux 有 cp312 预编译
+          # 轮;macos-arm64 无 cp312 轮会转源码编译,失败不拦构建——包内缺 fasttext
+          # 时运行时静默降级(脚本层+问候闭集表+镜像行仍在,_lid_model 返回 None)。
+          pip install fasttext-wheel || echo "fasttext unavailable - language tier-3 degrades (non-fatal)"
 
       - name: Fetch STT model (optional, voice input)
         run: |

@@ -2,6 +2,7 @@ ttkbootstrap
 pillow
 requests
 numpy
+fasttext-wheel
 sherpa-onnx
 mcp
 beautifulsoup4

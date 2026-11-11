@@ -148,3 +148,25 @@ def test_casual_input_reaches_qa_detection_unmutated(oa):
         "语言钉文本会污染意图判定——这正是被移除的原因"
     assert oa._is_qa([{"role": "user", "content":
                        "Write a syllabus for a research software course."}]) is False
+
+
+# ---- 回复语言镜像(2026-11-11 实锤) ----
+
+def test_chat_reply_mirrors_user_message_language(oa):
+    """问答提示通篇中文,英文'hello'/'what can you do?'得到中文回答(实锤:
+    用户会话 hello/what-can-you-do 全翻车);AGENT_LANG 只跟系统 UI 语言走,
+    系统语言≠消息语言的用户全部中枪。问答回复必须镜像用户消息语言。
+    测试环境无 AGENT_LANG——若这行被改成环境变量门控,本断言即失败。"""
+    assert "用户消息的语言" in oa.CHAT_SYSTEM
+    assert "language of the user" in oa.CHAT_SYSTEM
+
+
+def test_task_chat_language_follows_task_instruction(oa):
+    """出厂钉冻结(2026-11-11):[回复语言] 转动态注入(_lang_line:脚本层/问候
+    闭集/lid.176.ftz 三层检测),SYSTEM 静态面回到 v3.1.10 的 1319;交付物
+    语言行保留(全场景恒真)。源钉:问答分支与 main() 都接了 _lang_line。"""
+    assert "[回复语言]" not in oa.SYSTEM
+    assert "[交付物语言]" in oa.SYSTEM
+    src = open(os.path.join(os.path.dirname(__file__), "..", "ollama_agent.py"),
+               encoding="utf-8").read()
+    assert src.count("_lang_line(") >= 3   # 定义 + qa 分支 + main() 任务行

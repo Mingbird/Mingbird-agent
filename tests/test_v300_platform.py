@@ -120,12 +120,12 @@ def test_system_prompt_carries_platform_block():
 
 
 def test_prefill_pin_unchanged_by_platform_block():
-    """出厂 prefill 钉子:SYSTEM+CORE_TOOLS 估算仍为 1250(平台块是动态行)。
+    """出厂 prefill 钉子:SYSTEM+CORE_TOOLS 估算仍为 1319(平台块是动态行)。
     计量口径与 v191 相同:真实主目录先还原成 {USER_HOME} 占位符,跨机器可复现。"""
     import ollama_agent as A
     _home = os.path.expanduser("~") or "~"
     msgs = [{"role": "system", "content": A.SYSTEM.replace(_home, "{USER_HOME}")}]
-    assert A._estimate_messages_tokens(msgs, A.CORE_TOOLS) == 1319  # 2026-11-11:静态交付物语言行(+69 估算 token,双语一行替代逐任务语言钉——该钉曾污染意图判定,把'你好'判成任务)
+    assert A._estimate_messages_tokens(msgs, A.CORE_TOOLS) == 1319  # 2026-11-11:静态交付物语言行(+69 估算 token,双语一行替代逐任务语言钉——该钉曾污染意图判定,把'你好'判成任务);[回复语言]静态行(曾+57)撤除,语言行全部转动态注入(_lang_line 三层检测),出厂钉冻结回 1319
 
 
 def test_exec_env_converged_in_source():

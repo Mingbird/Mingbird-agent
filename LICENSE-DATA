@@ -68,3 +68,13 @@ redistributed here; obtaining and running τ²-bench is left to the reader. See
 
 Nothing in this repository is a redistribution of any other third-party
 benchmark's task set or answer set.
+
+Third-party bundled models
+--------------------------
+    model/lid.176.ftz
+
+Language-identification model from the fastText project (Meta AI / Facebook),
+redistributed unmodified. Trained on Wikipedia, Tatoeba and SETimes; used by
+the harness to follow the user's language in replies.
+License: CC BY-SA 3.0 — https://fasttext.cc/docs/en/language-identification.html
+Upstream: https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.ftz

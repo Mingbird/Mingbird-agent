@@ -27,7 +27,7 @@ class TestRunPythonTool(unittest.TestCase):
         # v2.0.0 起主目录在 SYSTEM 里,CI runner 的长路径曾让钉子恒差 3 token)
         _home = os.path.expanduser("~") or "~"
         msgs = [{"role": "system", "content": A.SYSTEM.replace(_home, "{USER_HOME}")}]
-        self.assertEqual(A._estimate_messages_tokens(msgs, A.CORE_TOOLS), 1319)  # v2.1.4:849→1319 不是 prefill 变大,是估算器校准(中文 1字=1token→2/字;低估曾致续跑大会话超限放行、首调500不压缩,实锤;静态 prefill 字节未变)  # 2026-11-11:静态交付物语言行(+69 估算 token,双语一行替代逐任务语言钉——该钉曾污染意图判定,把'你好'判成任务)
+        self.assertEqual(A._estimate_messages_tokens(msgs, A.CORE_TOOLS), 1319)  # v2.1.4:849→1319 不是 prefill 变大,是估算器校准(中文 1字=1token→2/字;低估曾致续跑大会话超限放行、首调500不压缩,实锤;静态 prefill 字节未变)  # 2026-11-11:静态交付物语言行(+69 估算 token,双语一行替代逐任务语言钉——该钉曾污染意图判定,把'你好'判成任务);[回复语言]静态行(曾+57)撤除,语言行全部转动态注入(_lang_line 三层检测),出厂钉冻结回 1319
 
     def test_hook_cmd_shape(self):
         cmd = A._python_hook_cmd("x.py")

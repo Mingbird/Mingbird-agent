@@ -4,7 +4,7 @@ from PyInstaller.utils.hooks import collect_data_files
 
 datas = [('skills', 'skills'), ('AGENTS.md', '.'), ('README.md', '.'),
          ('LICENSE', '.'), ('VERSION', '.'), ('CHANGELOG.md', '.'),
-         ('stt', 'stt'), ('app.png', '.'),
+         ('stt', 'stt'), ('model/lid.176.ftz', 'model'), ('app.png', '.'),
          ('app_lang_en.txt', '.'), ('app_lang_zh.txt', '.'),
          ('mcp_utils_server.py', '.')]
 datas += collect_data_files('ttkbootstrap')
@@ -16,7 +16,8 @@ a = Analysis(
     binaries=[],
     datas=datas,
     hiddenimports=['PIL._tkinter_finder', 'ttkbootstrap', 'sounddevice',
-                   'soundfile', 'sherpa_onnx', 'numpy', 'requests', 'bs4', 'docx'],
+                   'soundfile', 'sherpa_onnx', 'numpy', 'requests', 'bs4', 'docx',
+                   'fasttext', 'fasttext.FastText'],
     excludes=[],
     noarchive=False,
 )

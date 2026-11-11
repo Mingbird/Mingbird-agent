@@ -256,6 +256,7 @@ def ensure_ollama(timeout=25):
     return False
 
 _TASK_WORKDIR = None   # v2.1.3:main() 解析出工作目录后填充;system_prompt 据此动态注入
+_TASK_LANG_NOTE = ""   # 2026-11-11:任务指令语言动态行(_lang_line 检测),main() 填充
 
 def system_prompt():
     # 子 agent 模式:换最小系统提示(子 agent 会话的局部成本,小模型短任务)。
@@ -286,6 +287,11 @@ def system_prompt():
                 _pj = "[项目指令过长,前文已截断]\n" + _pj[-3000:]
             base += f"\n\n[项目指令(来自工作目录的 {_fn},优先级高于一般偏好,与任务指令冲突时以用户当次指令为准)]\n{_pj}"
             print(f"[已注入项目指令: {_fn}, {len(_pj)} 字符]", flush=True)
+    # 任务指令语言动态行(2026-11-11):交付物语言有静态行,这里管过程语言
+    # (对话/todo/总结)——英文任务在中文机器上不再"英文交付物+中文絮语"。
+    # 检测不出=空串不注入;子 agent 不注入(_CHILD_SYSTEM 最小化)。
+    if _TASK_LANG_NOTE and _child_sandbox is None:
+        base += "\n" + _TASK_LANG_NOTE
     # v3.0.0:平台信息块(aider 式)。动态注入,SYSTEM 常量与出厂 prefill 钉子不动。
     # 小模型在 Windows cmd 里写 ls/grep、在 POSIX 里写 C:\ 路径是高频翻车点,
     # 平台真相此前从未告知模型。
@@ -522,14 +528,145 @@ if os.environ.get("AGENT_LANG", "") == "en":
 # 问答模式:聊天级 prefill(根治小模型"加戏"死循环)。
 # 根因:任务向系统提示+全量工具+Continue 注入,把"你好"逼成工具演示死循环。
 # 问答 → 换聊天提示+只读工具,答完即停。
-CHAT_SYSTEM = """你是鸣鸟(Mingbird),本地 AI 助手,正在和用户对话。
-- 直接、自然、简洁地回答用户的问题。像真人聊天。
-- 普通寒暄/问句,直接回答即可,一句话或几句话都行,不要长篇大论。
+CHAT_SYSTEM = """You are Mingbird, a local AI assistant talking with the user.
+- Answer directly, naturally, concisely. Chat like a person.
+- Casual greetings or questions: a sentence or two is enough; no essays.
+- Only use a tool when you truly need to look something up or read a file; otherwise reply in plain text.
+- When done, stop. Don't repeat yourself, no self-promotion, no "here's what I can do" boilerplate.
+你是鸣鸟(Mingbird),本地 AI 助手,正在和用户对话。
+- 直接、自然、简洁地回答;像真人聊天。
+- 普通寒暄/问句一句话或几句话即可,不要长篇大论。
 - 只有需要查资料/读文件/搜索时才用工具,其余情况纯粹用文字回答。
-- 回答完就结束,不要重复,不要自我展示,不要说"我能帮你做什么"这类套话。"""
+- 回答完就结束,不要重复,不要自我展示,不要说"我能帮你做什么"这类套话。
+- Reply in the language of the user's message. 用用户消息的语言回答;用户换语言,就跟着换。"""
 # v2.0.3 问答模式同款:AGENT_LANG=en 时问答也强制英文(与任务模式 SYSTEM 同步)
 if os.environ.get("AGENT_LANG", "") == "en":
     CHAT_SYSTEM += "\nAlways respond in English."
+
+# ---- 回复语言检测(2026-11-11,用户裁决内置 fastText LID) ----
+# 实锤链:中文问答提示让英文"hello"得到中文回答;双语平衡提示修好旗舰(35b 5/5)
+# 但地板模型(2b)对裸问候词仍跟提示语言。统计 LID(fasttext/lingua)对裸词全部
+# 失明("hello"=en@0.39/it@0.33,信息量不足是硬底),且会误标("Guten Tag…"
+# 被判 en@0.81)——所以检测分三层,各司其职:
+#   ①脚本层:文字系统与语言一一对应的(zh/ja/ko/el/he/th),确定性,零依赖;
+#   ②问候/客套闭集表:裸词信息量不足,只能整句精确匹配闭集(功能词=封闭类,
+#     与意图词表不同——祈使动词是开放类,枚举不尽;问候词各语言就那几个);
+#   ③fastText lid.176.ftz(917KB,176 语):句子级才可靠,阈值 0.9 严进
+#     (实测 <0.9 的全是不确定或误标,宁可不注入)。
+# 产出=动态注入一行指名语言(平台块先例:不进出厂 prefill 钉,用户消息永不改写);
+# 检测不出 → 不注入任何东西,双语提示里的镜像行兜底(探针实锤对句级输入足够)。
+import unicodedata
+_SCRIPT_RANGES = ((0xAC00, 0xD7A3, "ko"),   # 谚文
+                  (0x3040, 0x30FF, "ja"),   # 平假名/片假名(有假名=日语)
+                  (0x4E00, 0x9FFF, "zh"),   # 汉字(无假名时=中文;纯汉字日语极罕见)
+                  (0x0370, 0x03FF, "el"),   # 希腊
+                  (0x0590, 0x05FF, "he"),   # 希伯来
+                  (0x0E00, 0x0E7F, "th"))   # 泰文
+# 西里尔/阿拉伯等一符多语,不进脚本层,交给 fastText 句子级。
+_GREETINGS = {
+    "hi": "en", "hello": "en", "hey": "en", "yo": "en", "hiya": "en", "heya": "en",
+    "hi there": "en", "hello there": "en", "hey there": "en",
+    "thanks": "en", "thank you": "en", "thank u": "en", "thx": "en", "ty": "en",
+    "ok": "en", "okay": "en", "yes": "en", "yeah": "en", "yep": "en", "yup": "en",
+    "no": "en", "nah": "en", "nope": "en", "sure": "en", "sorry": "en",
+    "bye": "en", "goodbye": "en", "good bye": "en", "goodnight": "en", "good night": "en",
+    "good morning": "en", "good afternoon": "en", "good evening": "en",
+    "see you": "en", "see ya": "en", "you re welcome": "en", "your welcome": "en",
+    "bonjour": "fr", "bonsoir": "fr", "salut": "fr", "coucou": "fr", "merci": "fr",
+    "ca va": "fr", "au revoir": "fr", "de rien": "fr",
+    "hola": "es", "gracias": "es", "vale": "es", "adios": "es", "de nada": "es",
+    "buenos dias": "es", "buenas tardes": "es", "buenas noches": "es", "buenas": "es",
+    "hallo": "de", "danke": "de", "bitte": "de", "tschus": "de", "tschuss": "de",
+    "guten tag": "de", "guten morgen": "de", "gute nacht": "de", "servus": "de",
+    "ciao": "it", "grazie": "it", "prego": "it", "buongiorno": "it", "salve": "it",
+    "ola": "pt", "obrigado": "pt", "obrigada": "pt", "tchau": "pt", "bom dia": "pt",
+    "привет": "ru", "спасибо": "ru", "да": "ru", "нет": "ru", "пока": "ru",
+    "здравствуйте": "ru", "доброе утро": "ru", "добрый день": "ru",
+}
+_LANG_NAMES = {"en": "English", "zh": "Chinese", "ja": "Japanese", "ko": "Korean",
+               "fr": "French", "de": "German", "es": "Spanish", "it": "Italian",
+               "pt": "Portuguese", "ru": "Russian", "ar": "Arabic", "hi": "Hindi",
+               "th": "Thai", "vi": "Vietnamese", "id": "Indonesian", "ms": "Malay",
+               "nl": "Dutch", "pl": "Polish", "tr": "Turkish", "sv": "Swedish",
+               "no": "Norwegian", "da": "Danish", "fi": "Finnish", "el": "Greek",
+               "he": "Hebrew", "cs": "Czech", "ro": "Romanian", "hu": "Hungarian",
+               "uk": "Ukrainian", "fa": "Persian", "ur": "Urdu", "bn": "Bengali",
+               "ta": "Tamil", "tl": "Tagalog", "ca": "Catalan", "hr": "Croatian",
+               "sr": "Serbian", "sk": "Slovak", "bg": "Bulgarian", "sq": "Albanian",
+               "ka": "Georgian", "hy": "Armenian", "ne": "Nepali", "si": "Sinhala",
+               "km": "Khmer", "lo": "Lao", "my": "Burmese", "am": "Amharic",
+               "af": "Afrikaans", "sw": "Swahili", "te": "Telugu", "ml": "Malayalam",
+               "kn": "Kannada", "mr": "Marathi", "gu": "Gujarati", "pa": "Punjabi"}
+_ft_lid = None      # 懒加载;加载失败=None(降级:脚本层+问候表+镜像行照常工作)
+_ft_tried = False
+_LID_FTZ = "model" + os.sep + "lid.176.ftz"
+
+def _lid_model_path():
+    # 打包版:PyInstaller datas 把 model/ 带进 _internal(=sys._MEIPASS,与 skills 同法);
+    # 源码版:仓库根 model/。
+    if getattr(sys, "frozen", False):
+        base = getattr(sys, "_MEIPASS", "") or os.path.dirname(sys.executable)
+        return os.path.join(base, _LID_FTZ)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), _LID_FTZ)
+
+def _lid_model():
+    global _ft_lid, _ft_tried
+    if _ft_tried:
+        return _ft_lid
+    _ft_tried = True
+    try:
+        import fasttext as _ftmod
+        import warnings as _warn
+        _warn.filterwarnings("ignore")
+        _p = _lid_model_path()
+        if _p and os.path.exists(_p):
+            _ft_lid = _ftmod.load_model(_p)   # ~0.01s(quantized),进程内复用
+    except Exception:
+        _ft_lid = None   # 依赖缺失/模型缺失:静默降级,绝不影响主链路
+    return _ft_lid
+
+def _lang_norm(t):
+    t = unicodedata.normalize("NFKD", str(t).strip().lower())
+    t = "".join(c for c in t if not unicodedata.combining(c))   # 去变音符:sí→si, ça→ca
+    t = re.sub(r"[^\w\s]", " ", t, flags=re.UNICODE)
+    return " ".join(t.split())
+
+def _detect_lang(text):
+    """最近一条用户消息/任务指令的语言码,检测不出返回 None。绝不改写输入。"""
+    t = str(text or "").strip()
+    if len(t) < 1:
+        return None
+    for lo, hi, code in _SCRIPT_RANGES:      # ① 脚本层:确定
+        if any(lo <= ord(c) <= hi for c in t):
+            return code
+    g = _GREETINGS.get(_lang_norm(t))        # ② 问候闭集:整句精确匹配
+    if g:
+        return g
+    m = _lid_model()                          # ③ fastText 句子级:0.9 严进
+    if m is not None:
+        try:
+            top = m.f.predict(t.replace("\n", " ")[:512], 1, 0.0, "strict")
+        except Exception:
+            return None
+        if top:
+            prob, label = top[0]
+            code = str(label).replace("__label__", "")
+            if prob >= 0.90 and code in _LANG_NAMES:
+                return code
+    return None
+
+def _lang_line(mode, text):
+    """检测成功 → 动态注入一行指名语言;失败/AGENT_LANG=en(v2.0.3 显式契约优先)
+    → 空串(什么都不注)。用户消息零改写,出厂 prefill 零增量。"""
+    if os.environ.get("AGENT_LANG", "") == "en":
+        return ""
+    code = _detect_lang(text)
+    name = _LANG_NAMES.get(code) if code else None
+    if not name:
+        return ""
+    if mode == "qa":
+        return f"[回复语言] Respond in {name}."
+    return f"[回复语言] Chat with the user in {name}."
 
 # 交付物语言跟随任务:静态系统提示行,不向用户消息追加任何内容。
 # 曾改为逐任务往 task 文本追加语言钉(CJK 占比二分为中/英)——2026-11-11 实锤:
@@ -3256,6 +3393,10 @@ def main():
         if os.environ.get("AGENT_CHILD_SANDBOX") == "1":
             install_child_mode(workdir)
         task = read_text(taskfile)
+        # 任务指令语言:动态行注入(检测不出=空串,什么都不加);AGENT_LANG=en 时
+        # _lang_line 返回空,显式英文契约优先。与工作目录同一模式:不进出厂钉。
+        global _TASK_LANG_NOTE
+        _TASK_LANG_NOTE = _lang_line("task", task)
         # 任务时限(Task #73):提示词 > CLI > env;解析命中时明说(透明度)
         _tb_min, _tb_src = resolve_time_budget(cli_minutes=_cli_tb, task_text=task)
         if _tb_min:
@@ -4281,6 +4422,11 @@ def agent_loop(model, messages, workdir, session, budget_sec=None):
         # 问答:换聊天级系统提示(根治:任务向 prefill 是"加戏"死循环的根源)
         _cs = CHAT_SYSTEM + (f"\n当前工作目录:{_TASK_WORKDIR}" if _TASK_WORKDIR else "") \
               + "\n" + _pp.prompt_block(full=False)   # v3.0.0:问答单行平台事实(路径分隔符)
+        # 回复语言动态行(2026-11-11):按最近一条真实用户输入检测,指名语言;
+        # 检测不出=空串(双语提示的镜像行兜底),用户消息零改写。
+        _ln = _lang_line("qa", _task_routing_text(messages))
+        if _ln:
+            _cs += "\n" + _ln
         messages = [{"role": "system", "content": _cs}] + \
                    [m for m in messages if m.get("role") != "system"]
         cats = None
