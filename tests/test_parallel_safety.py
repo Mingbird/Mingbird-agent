@@ -389,4 +389,4 @@ class TestChildModeInstall:
         _home = os.path.expanduser("~") or "~"
         msgs = [{"role": "system",
                  "content": A.SYSTEM.replace(_home, "{USER_HOME}")}]
-        assert A._estimate_messages_tokens(msgs, A.CORE_TOOLS) == 1250  # v2.1.4 估算器校准(中文 2/字):静态 prefill 未变,仅计量口径更新
+        assert A._estimate_messages_tokens(msgs, A.CORE_TOOLS) == 1319  # v2.1.4 估算器校准(中文 2/字):静态 prefill 未变,仅计量口径更新  # 2026-11-11:静态交付物语言行(+69 估算 token,双语一行替代逐任务语言钉——该钉曾污染意图判定,把'你好'判成任务)

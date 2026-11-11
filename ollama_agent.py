@@ -531,16 +531,13 @@ CHAT_SYSTEM = """你是鸣鸟(Mingbird),本地 AI 助手,正在和用户对话�
 if os.environ.get("AGENT_LANG", "") == "en":
     CHAT_SYSTEM += "\nAlways respond in English."
 
-
-def _task_output_language(task_text):
-    """任务语言 → 交付物语言:中文任务输出中文,其余输出英文(按 CJK 字符占比)。
-
-    交付物语言应跟随任务文本,而不是跟随界面语言(AGENT_LANG)。AGENT_LANG 由 GUI
-    按系统语言自动写入(main 进程 env 恒有值),不表达用户对任务语言的意图——拿它
-    当任务语言,中文界面跑英文任务就会产出中文交付物。"""
-    t = task_text or ""
-    cjk = sum(1 for c in t if "\u4e00" <= c <= "\u9fff")
-    return "zh" if cjk / max(len(t), 1) > 0.05 else "en"
+# 交付物语言跟随任务:静态系统提示行,不向用户消息追加任何内容。
+# 曾改为逐任务往 task 文本追加语言钉(CJK 占比二分为中/英)——2026-11-11 实锤:
+# 钉文本里的"撰写"命中任务词表,把用户的"你好"判成任务,烧掉整轮;且中英二分
+# 对其余语言的用户是错的。用户消息必须保持原样:任何追加都会污染意图判定/
+# 原文回注/任务路由这一整条链。
+SYSTEM += ("\n[交付物语言] Deliverable files are written in the same language "
+           "as the task instruction. 交付物文件使用任务指令的语言撰写。")
 
 # 问答模式可用工具:只读,绝不包含写文件/跑命令(防加戏)
 def _chat_tool_defs():
@@ -3265,19 +3262,6 @@ def main():
             print("[time-budget] " + _TB_SRC_LABEL.get(_tb_src, "{v} 分钟").format(v=f"{_tb_min:g}")
                   + f" — {_fmt_hm(_tb_min)}", flush=True)
         _budget_sec = _tb_min * 60.0 if _tb_min else None
-        # 交付物语言钉:跟任务文本走,不跟界面语言走(AGENT_LANG 仍管 SYSTEM/会话标题)。
-        # 放在时限解析之后,钉文本不参与时间预算解析;放在 append_text 之前,
-        # 续跑消息同样带上语言约束。
-        _out_lang = _task_output_language(task)
-        if _out_lang == "en":
-            task = task + ("\n\n[Language] Write every deliverable file, and every "
-                           "section inside it, in English — the same language as this "
-                           "instruction. This overrides any other language preference. "
-                           "Do not switch to Chinese.")
-        else:
-            task = task + ("\n\n[语言] 所有交付物文件及其中的全部内容用中文撰写"
-                           "(与本任务指令同语言);这条要求优先于任何其他语言偏好,"
-                           "不要切换成英文。")
         ckpt = os.path.join(workdir, ".agent_state.json")
         append_text = task if "--append" in sys.argv else None
         if "--new" in sys.argv:

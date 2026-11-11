@@ -128,19 +128,23 @@ def test_content_gate_only_checks_json(oa, tmp_path):
     assert oa._artifact_content_problems(str(tmp_path)) == []
 
 
-# ---- 缺陷 D:交付物语言跟任务文本 ----
+# ---- 交付物语言:静态系统行,任务文本零改写 ----
 
-def test_task_language_detection(oa):
-    assert oa._task_output_language("Write a syllabus for a research software course.") == "en"
-    assert oa._task_output_language("设计一门研究软件课,排十周模块,写前两次课详案。") == "zh"
-    assert oa._task_output_language("") == "en"
-    assert oa._task_output_language(None) == "en"
+def test_deliverable_language_is_static_system_line(oa):
+    """交付物语言用静态系统提示行实现,对所有语言一视同仁;不再有逐任务
+    分类器(中英二分对其余语言的用户是错的),也不再有 _task_output_language。"""
+    assert "[交付物语言]" in oa.SYSTEM
+    assert "same language as the task instruction" in oa.SYSTEM
+    assert not hasattr(oa, "_task_output_language")
 
 
-def test_language_pin_follows_task_not_env(oa):
-    """源钉:语言钉取自任务文本推断;AGENT_LANG(GUI 按系统语言自动写入)
-    不得参与交付物语言判定——中文界面跑英文任务必须仍得到英文钉。"""
-    src = open(os.path.join(os.path.dirname(__file__), "..", "ollama_agent.py"),
-               encoding="utf-8").read()
-    assert "_out_lang = _task_output_language(task)" in src
-    assert 'os.environ.get("AGENT_LANG", "") or _task_output_language' not in src
+def test_casual_input_reaches_qa_detection_unmutated(oa):
+    """回归钉(2026-11-11 实锤):往用户消息追加的任何字都会参与意图判定——
+    语言钉里的'撰写'命中任务词表,把'你好'判成任务,烧掉整轮。
+    任务文本必须保持原样,寒暄必须判为问答。"""
+    assert oa._is_qa([{"role": "user", "content": "你好"}]) is True
+    assert oa._is_qa([{"role": "user", "content": "你好\n\n[语言] 所有交付物文件"
+                       "及其中的全部内容用中文撰写;不要切换成英文。"}]) is False, \
+        "语言钉文本会污染意图判定——这正是被移除的原因"
+    assert oa._is_qa([{"role": "user", "content":
+                       "Write a syllabus for a research software course."}]) is False

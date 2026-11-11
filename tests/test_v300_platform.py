@@ -125,7 +125,7 @@ def test_prefill_pin_unchanged_by_platform_block():
     import ollama_agent as A
     _home = os.path.expanduser("~") or "~"
     msgs = [{"role": "system", "content": A.SYSTEM.replace(_home, "{USER_HOME}")}]
-    assert A._estimate_messages_tokens(msgs, A.CORE_TOOLS) == 1250
+    assert A._estimate_messages_tokens(msgs, A.CORE_TOOLS) == 1319  # 2026-11-11:静态交付物语言行(+69 估算 token,双语一行替代逐任务语言钉——该钉曾污染意图判定,把'你好'判成任务)
 
 
 def test_exec_env_converged_in_source():
