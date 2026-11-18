@@ -1,5 +1,16 @@
 # Changelog
 
+## v3.1.12 (2026-11-19)
+
+Proxy isolation fix — from issue #7 (Win11 with a system proxy): with a system proxy on (Clash/v2rayN etc.), every local-inference request (liveness probe, model list, chat) got swallowed by the proxy — a running Ollama was still reported as "not started" while netstat showed the listener. Tests: **730 green** (726 + 4 new).
+
+### 🔧 Fixes
+- **Local inference traffic bypasses the system proxy**: urllib honors the system proxy by default and loopback hosts are not exempt — `proxy_bypass("127.0.0.1")` measures False. New `appconfig.local_open`: connects directly when the target is a loopback host AND a proxy source actually exists (env vars or the OS registry); everything else (proxy-free environments, cloud calls, custom remote endpoints) keeps the previous behavior. 16 call sites converge (ensure_ollama probes, /api/show, /api/chat, OpenAI-compatible /chat/completions, GUI model list and status light); the cloud provider still follows the proxy by design.
+- **Settings endpoint display**: with the engine set to Ollama, the endpoint field used to pre-fill the LM Studio default (1234/v1), reading as "settings weren't saved" — it now shows the real Ollama API address, follows engine switches, and keeps the current value under "custom OpenAI-compatible" (a port edit is all it takes).
+
+### 🧱 Engineering
+- The pytest run is independent of the machine's proxy state: `tests/conftest.py` pins the proxy gate (a rename fails loudly instead of silently disarming), the decisive "bypass under proxy" tests opt back in explicitly, and the full suite passes 730 green in both proxy-on and proxy-off environments.
+
 ## v3.1.11 (2026-11-11)
 
 Replies follow the user's language — from a live session: on a Chinese-locale machine, an English "hello" was answered in Chinese (the QA prompt is Chinese-only, and the only language switch followed the UI locale). Tests: **726 green** (719 + 7 new).

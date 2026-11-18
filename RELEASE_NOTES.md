@@ -1,29 +1,23 @@
 ## 🇨🇳 中文
 
-# 鸣鸟 v3.1.11
+# 鸣鸟 v3.1.12
 
-回复语言跟随用户版：助手回复的语言不再绑定系统界面语言，改为跟随用户消息；任务过程的叙述语言跟随任务指令语言。内置轻量离线语言识别。桌面 UI 不变。**726 项测试全绿**（719 + 7 新增）。
-
-### 🌐 上线
-
-- **回复语言跟随（问答/任务两类会话）**：回复使用用户消息或任务指令的语言；用户换语言，回复跟着换。中文系统下使用其他语言的用户不再被界面语言带偏。
-- **内置离线语言识别**：轻量识别模型随安装包分发，本地运行、零出站。识别有把握时在系统提示明确回复语言，没把握时静默不干预——由双语提示兜底。
-- **问答提示双语化**：系统提示不再单语，从根上消除"提示语言带偏回复语言"这一类问题。
+本地引擎与系统代理隔离版：开着系统代理（Clash/v2rayN 等）的机器上，本地推理不再被代理拦截，Ollama 在跑就正常识别；设置面板的引擎与端点信息如实显示。桌面 UI 不变。**730 项测试全绿**（726 + 4 新增）。
 
 ### 🔧 修复
 
-- 修复一类"回复语言与用户语言不一致"的问题：根因是回复语言此前跟系统界面走，而界面语言≠用户消息语言；本版起语言决策只看用户输入本身。
-- 修复非中文任务在中文系统上"交付物与过程叙述语言不一致"的一类问题：交付物语言已跟任务（v3.1.10），本版补齐过程叙述语言。
+- 修复一类"本地引擎在线却被判离线"的问题：开着系统代理时，本地推理请求此前会跟随系统代理，被代理拦下——Ollama 明明在运行仍提示"未能自动启动"，模型列表与对话同样受影响。本地推理流量现一律直连；云端调用不受影响。
+- 修复一类"设置面板信息与实际不符"的问题：引擎选 Ollama 时端点框此前显示的是另一款软件的默认地址，看起来像"设置没保存"；现如实显示真实地址，切换引擎时同步刷新。
 
 ### 🧱 工程
 
-- 语言相关指令全部改为动态注入：出厂提示词（prefill）保持冻结，不随功能增长。
+- 测试套件不再受运行机器的代理状态影响，两种环境下结果一致。
 
 **安装（Install）**
 
-- Windows：下载 `Mingbird-v3.1.11-CN-Setup.exe`（中文）或 `Mingbird-v3.1.11-EN-Setup.exe`（英文），双击安装。安装包未签名，Windows 可能弹出 SmartScreen——点"更多信息"→"仍要运行"。
-- Linux（实验性）：下载 `mingbird-v3.1.11-linux-x64.tar.gz`，解压后 `sh install-unix.sh`，启动 `~/.local/share/Mingbird/LocalAgent`。
-- macOS（实验性）：下载 `mingbird-v3.1.11-macos-arm64.tar.gz`（Intel 机型用 `mingbird-v3.1.11-macos-x64.tar.gz`），同上。
+- Windows：下载 `Mingbird-v3.1.12-CN-Setup.exe`（中文）或 `Mingbird-v3.1.12-EN-Setup.exe`（英文），双击安装。安装包未签名，Windows 可能弹出 SmartScreen——点"更多信息"→"仍要运行"。
+- Linux（实验性）：下载 `mingbird-v3.1.12-linux-x64.tar.gz`，解压后 `sh install-unix.sh`，启动 `~/.local/share/Mingbird/LocalAgent`。
+- macOS（实验性）：下载 `mingbird-v3.1.12-macos-arm64.tar.gz`（Intel 机型用 `mingbird-v3.1.12-macos-x64.tar.gz`），同上。
 - 需本机已装 Ollama 或任何 OpenAI 兼容本地服务（LM Studio、llama.app、llama-server、vLLM 均可）。
 
 完整变更：[CHANGELOG_zh.md](https://github.com/Mingbird/Mingbird-agent/blob/main/CHANGELOG_zh.md)
@@ -32,30 +26,24 @@
 
 ## 🇬🇧 English
 
-# Mingbird v3.1.11
+# Mingbird v3.1.12
 
-Replies now follow the user's language: the reply language is no longer bound to the UI locale — it follows the user's message, and task-mode narration follows the task language. A lightweight offline language identifier ships inside the package. Desktop UI unchanged. **726 tests green** (719 + 7 new).
-
-### 🌐 Added
-
-- **Reply-language following (chat and task sessions)**: replies use the language of the user's message or the task instruction; when the user switches languages, replies switch too. Users of any other language on a Chinese-locale system are no longer dragged along by the UI locale.
-- **Built-in offline language identification**: a lightweight model ships with the installer, runs locally, zero outbound traffic. When detection is confident the system prompt names the reply language; otherwise nothing is injected and the bilingual prompt carries it.
-- **Bilingual QA prompt**: the system prompt is no longer single-language, removing the whole class of "prompt language drags the reply language" issues at the root.
+Local engines are now isolated from the system proxy: on machines running a system proxy (Clash/v2rayN etc.), local inference is no longer intercepted — a running Ollama is recognized as online — and the settings panel shows the engine and endpoint as they truly are. Desktop UI unchanged. **730 tests green** (726 + 4 new).
 
 ### 🔧 Fixed
 
-- Fixed the class of "reply language disagrees with the user's language" issues: replies previously followed the system locale, and locale ≠ message language; language decisions now look only at the user's input.
-- Fixed the class of "deliverable and narration languages disagree" for non-Chinese tasks on Chinese systems: deliverables already follow the task (v3.1.10); this release completes narration.
+- Fixed the class of "local engine online but reported offline" issues: with a system proxy on, local-inference requests previously followed it and got intercepted — a running Ollama was still reported as "not started", with the model list and chat equally affected. Local inference traffic now connects directly; cloud calls are unaffected.
+- Fixed the class of "settings panel disagrees with reality" issues: with the engine set to Ollama, the endpoint field used to show another product's default address, reading as "settings weren't saved"; it now shows the real address and follows engine switches.
 
 ### 🧱 Engineering
 
-- All language-related instructions are now dynamic lines: the factory prompt (prefill) stays frozen and does not grow with features.
+- The test suite no longer depends on the running machine's proxy state; results are identical in both environments.
 
 **Install**
 
-- Windows: download `Mingbird-v3.1.11-CN-Setup.exe` (Chinese) or `Mingbird-v3.1.11-EN-Setup.exe` (English) and run it. The installer is unsigned — Windows SmartScreen may warn; choose "More info" → "Run anyway".
-- Linux (experimental): download `mingbird-v3.1.11-linux-x64.tar.gz`, extract, `sh install-unix.sh`, launch `~/.local/share/Mingbird/LocalAgent`.
-- macOS (experimental): download `mingbird-v3.1.11-macos-arm64.tar.gz` (Intel: `mingbird-v3.1.11-macos-x64.tar.gz`), same steps.
+- Windows: download `Mingbird-v3.1.12-CN-Setup.exe` (Chinese) or `Mingbird-v3.1.12-EN-Setup.exe` (English) and run it. The installer is unsigned — Windows SmartScreen may warn; choose "More info" → "Run anyway".
+- Linux (experimental): download `mingbird-v3.1.12-linux-x64.tar.gz`, extract, `sh install-unix.sh`, launch `~/.local/share/Mingbird/LocalAgent`.
+- macOS (experimental): download `mingbird-v3.1.12-macos-arm64.tar.gz` (Intel: `mingbird-v3.1.12-macos-x64.tar.gz`), same steps.
 - Requires Ollama or any OpenAI-compatible local server (LM Studio, llama.app, llama-server, vLLM all work) installed on that machine.
 
 Full changelog: [CHANGELOG.md](https://github.com/Mingbird/Mingbird-agent/blob/main/CHANGELOG.md)

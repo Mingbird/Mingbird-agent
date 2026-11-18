@@ -14,7 +14,7 @@ model's context needs to pay for itself elsewhere. / 大改动请先开 issue �
 加静态文本的改动必须在别处把成本省回来。
 
 - Run the tests before submitting: `python -m pytest tests/ -q`
-  (726 tests — 435 unit + 26 integration + 265 added since v1.9.1 across issue fixes (#1/#4/#6), multi-engine
+  (730 tests — 435 unit + 26 integration + 269 added since v1.9.1 across issue fixes (#1/#4/#6), multi-engine
   backends, workspace & session systems, the installer skills-path cases, the v3.0.0 platform-aware
   suite, the v3.1.1 audit fixes (parallel config passthrough,
   unattended global deny, crawl-guard byte accounting), the v3.1.3
@@ -36,11 +36,14 @@ model's context needs to pay for itself elsewhere. / 大改动请先开 issue �
   deliverable-language line; prefill pin 1250 -> 1319), and the v3.1.11
   reply-language suite (three-tier detection — unique-script ranges, a closed
   greeting/courtesy table, fastText lid.176 sentence-level at 0.9 — injected as
-  dynamic lines, static prefill pin restored to 1319);
+  dynamic lines, static prefill pin restored to 1319), and the issue-7 suite
+  (loopback inference traffic bypasses the system proxy; the settings endpoint
+  field shows the real Ollama address; the pytest run is independent of the
+  machine's proxy state);
   includes the prefill
   no-change assertion; the benchmark runners under `bench/` and `benchmarks/` are
   separate programs and are not collected by pytest). /
-  提交前请跑测试：`python -m pytest tests/ -q`（726 项——435 项单测 + 26 项集成 + v1.9.1 起新增 265 项，
+  提交前请跑测试：`python -m pytest tests/ -q`（730 项——435 项单测 + 26 项集成 + v1.9.1 起新增 269 项，
   覆盖 issue 修复（#1/#4/#6）、多引擎后端、工作区与会话系统、安装版技能路径、v3.0.0 平台感知套件、
   v3.1.1 审计修复（并行配置直通、无人值守全局拒、爬行守卫字节口径）、v3.1.3 压缩 runner 修复、
   v3.1.4 会话卫生套件（转录游标/门禁豁免/自查原文）、v3.1.6 生态兼容批
@@ -48,7 +51,7 @@ model's context needs to pay for itself elsewhere. / 大改动请先开 issue �
   v3.1.7 工具可得性套件（本轮下发视图校验/联网工具本体断网闸/远程 MCP 断网禁探）、
   v3.1.8 产物质量套件（计算型禁用话术分叉/无人值守拒绝给替代做法/finish 内容门禁/交付物语言跟任务）、
   v3.1.9 加固套件（反循环出路=拒绝话术去解锁推荐/解锁真恢复并封顶 2 次/无人值守写方向提示/stub 整链回放；读循环守卫=签名窗封禁且新区间放行/限速梯子到硬拦/越界明确信号；todo 状态加固=形状归一化+harness 状态文件写保护/出路落在 120 字符截断窗内）、
-  v3.1.10 意图安全修复（逐任务语言钉会翻转意图判定，改为静态交付物语言行；prefill 钉 1250→1319）、v3.1.11 回复语言套件（三层检测——独有文字系统/问候闭集表/fastText 句子级 0.9 严进——动态行注入，出厂钉回 1319）等，
+  v3.1.10 意图安全修复（逐任务语言钉会翻转意图判定，改为静态交付物语言行；prefill 钉 1250→1319）、v3.1.11 回复语言套件（三层检测——独有文字系统/问候闭集表/fastText 句子级 0.9 严进——动态行注入，出厂钉回 1319）、v3.1.12 代理隔离套件（本地推理流量绕过系统代理/设置端点框显示真实 Ollama 地址/测试套件对机器代理状态不敏感）等，
   含 prefill 不变式断言；`bench/` 与 `benchmarks/` 下的基准运行器是独立程序，
   不归 pytest 收集）。
 - Benchmark-related changes should keep the published protocol intact
