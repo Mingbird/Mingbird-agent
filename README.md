@@ -1,14 +1,16 @@
 # 🐦 Mingbird
 
-**A local-first agent harness that finishes real tasks on the laptop you already own — 2–9B models on integrated graphics.**
+**A local-first agent harness that finishes real tasks on the machine you already own — 2–9B models on integrated graphics.**
 
 [中文版](README_zh.md) · Apache-2.0 · Windows 10/11 · Linux & macOS (experimental) · Offline-first
 
 > **Same 2B model: 0.017 → 0.821. The harness was the problem.**
 >
-> You've been told local models need a big discrete GPU. On an ordinary laptop — integrated graphics, 16–32 GB of RAM — the same 2–9B models that stall in cloud-style frameworks deliver finished artifacts here, because the failures you have seen are harness defects, not model defects. Measured end to end; all 288 cells public.
+> You've been told local models need a big discrete GPU. On an ordinary laptop — integrated graphics, 16–32 GB of RAM — the same 2–9B models that stall in cloud-style frameworks deliver finished files here, because the failures you have seen are harness defects, not model defects. Measured end to end; all 288 result cells public. And nothing about your work ever leaves the machine.
+>
+> **It holds at every size, too.** A second study ran five real agent tools — Mingbird and four competitors, all as shipped — on the same eighteen fresh tasks across four open models from 0.75B to 4.7B: 360 runs, judged only by what actually lands on disk. Mingbird finished first at every model size, from 0.664 vs the best rival's 0.186 at 0.75B to 0.968 vs 0.893 at 4.7B. [Second paper →](https://doi.org/10.48550/arXiv.2611.21407)
 
-Current release **v3.1.12** · 📄 Paper: [Mingbird: A Local-First Agent Harness Enabling Small Open Models to Complete Real Tasks](https://doi.org/10.48550/arXiv.2610.02001) · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 730 tests
+Current release **v3.1.12** · 📄 Papers: [design — what small models can't do for themselves](https://doi.org/10.48550/arXiv.2610.02001) · [measurement — five harnesses, 0.75B–4.7B](https://doi.org/10.48550/arXiv.2611.21407) · actively maintained ([CHANGELOG](CHANGELOG.md)) · one-click offline mode · CI builds Linux/macOS artifacts · 730 tests
 
 **English UI (dark theme)**
 
@@ -26,14 +28,16 @@ Every mechanism comes from "small models can't do X, so the harness does it for 
 |---|---|
 | …self-debug | the harness runs the tests itself and feeds back exact failures (`file:line` + the original error text) |
 | …edit code safely | every change is auto-backed up (`.bak`, including in-place shell edits like `sed -i`); rollback is one command |
-| …escape tool-demo loops | Q&A/task layering (chat answers once and stops) + signature-level anti-loop with an escalating ladder: nudge → hard reset → graceful exit |
-| …fit all tools in context | flat prefill loads by category; factory prefill is pinned at 1250 estimated tokens (CJK-calibrated estimator, v2.1.4), and CI fails on any change to it — growth or shrinkage |
+| …escape tool-demo loops | Q&A/task layering (chat answers once and stops) + a signature-level anti-loop ladder: nudge → hard reset → graceful exit |
+| …stop repeating one broken command until the context fills | the harness detects the repeat, blocks the call, resets the context — the exact failure mode that empties competitors' working directories (measured below) |
+| …fit all tools in context | tools load by category, and the built-in prompt overhead stays frozen at 1319 estimated tokens — any change, up or down, fails CI; per-turn facts (platform, reply language) ride outside the frozen part |
+| …match the language you write in | replies follow each message's language — three-tier offline detection; when unsure, it injects nothing rather than guessing |
 | …emit a large file in one call | per-call output cap is 8192 (was 2048); when truncation still bites, the model gets "write the skeleton, then append" chunked feedback instead of an empty-turn spiral |
 | …stop crawling through huge files | crawl guard v2 works on a byte budget (2× file size, clamped to 64KB–512KB) — it never refuses |
 | …stay on target in long tasks | delivery self-check gate: before claiming done, it re-reads the original task and verifies its work |
 | …resist destructive impulses | a five-ring safety net catches them (see [Safety](#safety)) |
 
-Nothing is hardcoded: the engine, endpoint, GPU environment variables, and model aliases are detected at runtime or configured in `~/.ollama_agent/config.json` (see [AGENTS.md](AGENTS.md)); since v2.1.1 the engine can be Ollama or any OpenAI-compatible local server (LM Studio, llama.app, llama-server, Jan, vLLM); since v3.0.0 the harness is platform-aware — per-task injection of the real OS/shell/command facts from a single `platform_profile` source. The quality floor is held up by a 730-test regression suite — 435 unit + 26 integration + 269 added since v1.9.1, the prefill no-change assertion (any edit — growth or shrinkage — fails CI) among them. The suite contains **no live-Ollama end-to-end test**: nothing in it needs a running backend or a network. The benchmark runners under `bench/` and `benchmarks/` are separate programs and are not part of the pytest suite.
+Nothing is hardcoded: the engine, endpoint, GPU environment variables, and model aliases are detected at runtime or configured in `~/.ollama_agent/config.json` (see [AGENTS.md](AGENTS.md)); since v2.1.1 the engine can be Ollama or any OpenAI-compatible local server (LM Studio, llama.app, llama-server, Jan, vLLM); since v3.0.0 the harness is platform-aware — per-task injection of the real OS/shell/command facts from a single `platform_profile` source; since v3.1.11 replies follow the user's language; since v3.1.12 local-inference traffic always connects directly and cannot be intercepted by a system proxy. The quality floor is held up by a 730-test regression suite — 435 unit + 26 integration + 269 added since v1.9.1, the prefill no-change assertion (any edit — growth or shrinkage — fails CI) among them. The suite contains **no live-Ollama end-to-end test**: nothing in it needs a running backend or a network. The benchmark runners under `bench/` and `benchmarks/` are separate programs and are not part of the pytest suite.
 
 ## The problem we set out to solve
 
@@ -45,6 +49,7 @@ This is not a lonely observation. Recent public work points the same way — gua
 
 - **Real tasks**: write code and run the tests, organize files, web research, analyze data, call MCP tools.
 - **One-click offline mode (v1.8.0)** — 🔒 in the toolbar: local model only, web tools not even assembled into the prompt, zero outbound by construction (see [Where your data lives](#where-your-data-lives)).
+- **Replies follow your language (v3.1.11)** — write English on a Chinese-locale machine and it answers in English; switch mid-session and it follows. Detection is three-tier and fully offline (Unicode script ranges → greeting table → bundled 938 KB fastText model, 176 languages). Your message is sent byte-for-byte unchanged; when detection is not confident, nothing is injected.
 - **Streaming output + visible thinking** — the delivery streams; the thinking folds away once the run is done.
 - **Drag-and-drop / paste attachments** — drop a file into the chat or press Ctrl+V: clipboard files and screenshots become attachments on the spot, sent along with your instruction.
 - **Voice input out of the box, Chinese & English** — the installer bundles two local STT models (pure CPU, ~20× real time); a 中/EN toggle by the mic; it stops automatically when you stop talking.
@@ -57,32 +62,45 @@ This is not a lonely observation. Recent public work points the same way — gua
 - **Web UI (experimental)** — the same agent in your browser, local-only, 127.0.0.1 only ([guide](docs/webui.md)).
 - **One-click installer**, or run from source.
 
-## Measured: same model, different harness
+## Measured
+
+### Five harnesses, four sizes: the ladder
+
+Five real agent tools, all shipped unmodified — Mingbird v3.1.9, pi 1.3.0, OpenCode 1.18.23, goose 1.48.0, mini-swe-agent 2.4.6 — were given the same eighteen fresh tasks (frozen before the first run, never tuned on) across four open models from 0.75B to 4.7B, plus a 35.5B anchor at the top. Same machine, same Ollama 0.40.6 server, temperature 0, thinking off, 32K context for every arm. A deterministic checker reads only the working directory — never the transcript. **360 runs.**
+
+![Mean artifact score by model size, five harnesses](docs/assets/ladder_by_size.png)
+
+- **First place at every size**: 0.664 / 0.593 / 0.762 / 0.968, against the best rival's 0.186 / 0.409 / 0.714 / 0.893. Thirteen of the sixteen pairwise gaps are statistically distinguishable from zero (a run that outlives its time budget scores zero); two of the four pre-registered comparisons — against goose, Holm-corrected — survive, at 0.75B (p=0.0067) and 4.7B (p=0.0410).
+- **The strongest rival is also the closest, and we say so**: against pi the lead is +0.075 [+0.012, +0.147] at 4.7B, and pi draws level at the cross-family 3.7B rung (+0.005) — while taking 8.1 minutes per run against Mingbird's 5.3. On a fixed overnight schedule, the slower tool pays for that.
+- **The failure to design against is the quiet stop** — a run ends normally, reports no error, and none of the promised files exist. Across the 357 usable runs, 127 produced no artifact at all, and 85 of those exited clean. Mingbird: 4 of 70. mini-swe-agent: 50 of 72. Any scorer that trusts exit status credits work that was never written.
+
+![What each arm leaves on disk](docs/assets/ladder_quiet_stop.png)
+
+- **The lead is a progress effect — and our own completion gate is not the carrier.** We ablated our own design: switching off all six executable completion checks moves the score by at most +0.117, every interval including zero. What does carry it: without one repeat-blocking rule alone, the 0.75B score falls by 0.411 and 8 of 18 tasks end with no artifact at all (sign test p=0.0078). The recurring failure is one failing shell command repeated until the 32K window fills — 273 identical calls in a row on one pi run. Mingbird intercepts the repeat, resets the context, and the files get written.
+- **Fastest where it matters — per delivered set of files**: 10 / 11 / 6 / 5 minutes per completed task at the four rungs; at 3.7B the spread is 6 minutes (Mingbird) vs 195 (OpenCode). Per *delivered* set, not per attempt.
+- **The 35.5B anchor, honestly**: on the six cheapest tasks goose solves all six (1.000) and Mingbird is one budget short (0.833); over all eighteen tasks they sit at 0.952 vs 0.944. The suite has a defined ceiling, and the anchor bounds the measurement rather than extending it.
+
+### Same model, different harness: the 288-cell matrix
 
 Four harnesses × four open models (2B–35B) × 18 real tasks = 288 cells, one machine, deterministic artifact scoring, every cell published.
 
-| Benchmark | Run by | Result in one line |
-|---|---|---|
-| LRAB-288 | us (self-built) | overall 0.886 vs goose 0.631 / opencode 0.479 / agent-mini 0.405 |
-| τ²-bench, 3 domains | benchmark by Sierra Research; run by the authors | retail 0.763 / airline 0.740 / telecom 1.000 — first or tied-first in every domain |
-| Frontier-model probe | us | same hosted model in all four harnesses: 0.997 vs 0.989 / 0.925 / 0.478 |
-| Ablations (v1.5.0 code) | us | directional only — single-execution cell variance exceeds every per-mechanism delta |
+| Benchmark | Result in one line |
+|---|---|
+| LRAB-288 | overall 0.886 vs goose 0.631 / opencode 0.479 / agent-mini 0.405 |
+| τ²-bench, 3 domains | retail 0.763 / airline 0.740 / telecom 1.000 — first or tied-first in every domain |
+| Frontier-model probe | same hosted model in all four harnesses: 0.997 vs 0.989 / 0.925 / 0.478 |
 
 ![By model size](docs/assets/lrab_by_model.png)
 
-- **The 2B column is the story**: 0.821 vs 0.017–0.271 — the only harness of the four with no small-model cliff, and 2B is the size an iGPU laptop runs comfortably. The edge over all three competitors is significant on 2B and 12B (Holm-corrected Wilcoxon); where it is not (4B vs goose, 35B vs opencode), we say so.
-- **Not one model family**: one model per tier confounds tier with family, so the whole four-harness matrix was re-run on a second small-tier model (`qwen3.5:2b`) — the cliff reproduces, 0.779 vs 0.017 / 0.096 / 0.239 on the same 18 tasks with the same scorer ([`family_qwen352b_2609.csv`](benchmarks/family_qwen352b_2609.csv)).
-- On the external τ²-bench, telecom is near-saturated (1.000 / 0.991 / 0.930): its task family is repetitive, and the repeat-call guardrail disclosed in our τ² adapter absorbs exactly that failure mode.
+- **The 2B column is the story**: 0.821 vs 0.017–0.271 — the only harness of the four with no small-model cliff, and 2B is the size an iGPU laptop runs comfortably. The cliff is not one family's quirk: the whole matrix was re-run on a second small model (`qwen3.5:2b`) and reproduces, 0.779 vs 0.017 / 0.096 / 0.239 ([`family_qwen352b_2609.csv`](benchmarks/family_qwen352b_2609.csv)).
 
 ![τ²-bench pass rate by domain and harness](docs/assets/tau2_headline.png)
 
-- **Pin the model, swap the harness**: all four harnesses ran the same 18 tasks against one hosted frontier model (temperature 0, thinking off, through a local shim — no harness modified). Result: 0.997 / 0.989 / 0.925 / 0.478 — a defective scaffold buries more than half of a frontier model's measured capability. Read that narrowly, though: the three well-formed scaffolds sit within 0.07 of each other, and between intact harnesses the model is still the bigger lever. Per-cell scores: [benchmarks/frontier_probe/](benchmarks/frontier_probe).
+- **Pin the model, swap the harness**: all four harnesses ran the same 18 tasks against one hosted frontier model (temperature 0, thinking off, through a local shim — no harness modified). Result: 0.997 / 0.989 / 0.925 / 0.478 — a defective scaffold buries more than half of a frontier model's measured capability. Read narrowly: the three well-formed scaffolds sit within 0.07 of each other, and between intact harnesses the model is still the bigger lever.
 
 ![Same 18 tasks: local 4B model vs one hosted frontier model, per harness](docs/assets/probe_vs_local.png)
 
-- Thinking on/off is itself a harness-level lever and moves rival arms by up to +0.69 — details in [benchmarks/README.md](benchmarks/README.md).
-
-**Full tables, significance tests, and per-cell raw data are public** in [benchmarks/](benchmarks/README.md) — including all 288 cells as CSV ([`lrab_scores.csv`](benchmarks/lrab_scores.csv)) and τ² per-trial manifests ([`tau2/`](benchmarks/tau2)). Reproduce any single cell in ~30 minutes on one machine: **[benchmarks/reproduce_one.md](benchmarks/reproduce_one.md)**.
+**Full tables, significance tests, and per-cell raw data are public** in [benchmarks/](benchmarks/README.md) — including all 288 cells as CSV ([`lrab_scores.csv`](benchmarks/lrab_scores.csv)) and τ² per-trial manifests ([`tau2/`](benchmarks/tau2)). Reproduce any single cell in ~30 minutes on one machine: **[benchmarks/reproduce_one.md](benchmarks/reproduce_one.md)**. For the ladder: the held-out tasks, their fixtures and the deterministic scorer are in this repo ([`bench/lrab/tasks_heldout/`](bench/lrab/tasks_heldout/), [`bench/lrab/scoring/`](bench/lrab/scoring/)); every run's transcript and working directory are available on request (the paper's data-availability statement has the details).
 
 ## Hardware
 
@@ -93,7 +111,7 @@ Measured on real machines, not estimated:
 | Entry | any iGPU · 16 GB RAM | 2–4B | streaming, near raw-Ollama speed |
 | Base | iGPU or entry-level dGPU · 32 GB RAM | 2–35B | 35B long tasks run end-to-end |
 
-If it runs Ollama — or any OpenAI-compatible local server — it runs Mingbird. The only thing Mingbird adds to the model is its own static prefill text. And local is not just a speed or cost choice — it is what decides whether your working directory can ever leave this machine.
+In the ladder study, all four model sizes from 0.75B to 4.7B fit entirely in one 8 GB card at a 32K context. If it runs Ollama — or any OpenAI-compatible local server — it runs Mingbird. The only thing Mingbird adds to the model is its own static prefill text. And local is not just a speed or cost choice — it is what decides whether your working directory can ever leave this machine.
 
 ## Getting started
 
@@ -209,7 +227,8 @@ Escape hatch: `AGENT_UNSAFE=1` turns the whole net off — at your own risk.
 - A 2B model will not rewrite your entire codebase in one shot — but it handles the bulk of everyday agent work, and when it cannot, it fails loudly instead of failing silently.
 - 35B on an iGPU runs end-to-end but is not fast (~26 tok/s at 128K context).
 - Linux and macOS packages are experimental CI builds; Windows is the primary platform.
-- LRAB is a benchmark we designed ourselves — which is exactly why the tasks, the scoring code and the raw per-cell data are public: rerun it yourself instead of taking our word for it.
+- Both task suites (LRAB and the ladder suite) are ours — which is exactly why the tasks, the scoring code and the raw per-cell data are public: rerun them yourself instead of taking our word for it.
+- The deterministic checker scores **conformance to a written specification, not correctness**: in the ladder's blind audit, reviewers marked the content wrong in 8 of the 34 runs the checker scored 1.000, and one perfect-scoring artifact carried twenty-two invented DOIs. High scores mean the files exist as specified; the paper's identifier-fidelity audit quantifies the rest.
 
 ## Version map & reproduction window
 
@@ -218,11 +237,13 @@ collection windows that produced them. This is the map.
 
 | What | Pinned to |
 |---|---|
+| Ladder-paper numbers (0.75B–4.7B, 360 runs) | Mingbird release **v3.1.9**, commit `56cd23d` · Ollama **0.40.6** · task suite frozen before the first run · pre-registration frozen 2026-10-22 |
+| Ladder baselines (as shipped) | pi **1.3.0** · OpenCode **1.18.23** · goose **1.48.0** · mini-swe-agent **2.4.6** |
 | Code base for the published LRAB numbers | git tag `v1.5.0`, commit `1ee92d1` |
 | Data release commit | `61fc6aa` |
 | Commit where the numbers first appear | `7c99941` |
-| Backend | Ollama **0.33.2** — unchanged since 2026-08-28 (binary name, version, and SHA-256 are pinned in [`benchmarks/models.lock`](benchmarks/models.lock)) |
-| Collection windows | 09-01…04 · 09-13…14 · 09-18…20 · 09-22 |
+| Backend for the LRAB matrix | Ollama **0.33.2** — unchanged since 2026-08-28 (binary name, version, and SHA-256 are pinned in [`benchmarks/models.lock`](benchmarks/models.lock)) |
+| Collection windows (matrix) | 09-01…04 · 09-13…14 · 09-18…20 · 09-22 |
 
 Some components were produced on later working trees than the `v1.5.0` code
 base. All of them are disclosed in the paper's appendix and repeated here:
@@ -240,10 +261,11 @@ base. All of them are disclosed in the paper's appendix and repeated here:
 
 **Reproduction window.** The competitor harnesses are live targets, not fixed
 artifacts — the versions behind the published numbers are goose **1.48.0**,
-opencode **1.18.23**, and agent-mini **0.3.1**. The numbers correspond to the
-frozen collection windows above. A later upstream release of any of those
-harnesses is a different experiment: reproducing these numbers requires the
-versions named here, on the protocol described in
+opencode **1.18.23**, and agent-mini **0.3.1** for the matrix, and pi **1.3.0**,
+OpenCode **1.18.23**, goose **1.48.0**, mini-swe-agent **2.4.6** for the ladder.
+The numbers correspond to the frozen collection windows above. A later upstream
+release of any of those harnesses is a different experiment: reproducing these
+numbers requires the versions named here, on the protocol described in
 [benchmarks/README.md](benchmarks/README.md).
 
 ## License
