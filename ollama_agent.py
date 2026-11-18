@@ -225,7 +225,7 @@ def ensure_ollama(timeout=25):
     import urllib.request as _ur
     host = appconfig.ollama_host()
     try:
-        _ur.urlopen(f"{host}/api/tags", timeout=2)
+        appconfig.local_open(f"{host}/api/tags", timeout=2)
         return True
     except Exception:
         pass
@@ -249,7 +249,7 @@ def ensure_ollama(timeout=25):
     import time as _t
     for _ in range(int(timeout * 2)):
         try:
-            _ur.urlopen(f"{host}/api/tags", timeout=1)
+            appconfig.local_open(f"{host}/api/tags", timeout=1)
             return True
         except Exception:
             _t.sleep(0.5)
@@ -337,7 +337,7 @@ def restart_ollama(timeout=40):
     host = appconfig.ollama_host()
     for _ in range(30):
         try:
-            _ur.urlopen(f"{host}/api/tags", timeout=1)
+            appconfig.local_open(f"{host}/api/tags", timeout=1)
             _t.sleep(0.5)   # 还活着,再等
         except Exception:
             break
@@ -2642,7 +2642,7 @@ def _model_can_think(model):
             req = urllib.request.Request(f"{appconfig.ollama_host()}/api/show",
                 data=json.dumps({"model": model}).encode(),
                 headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=10) as r:
+            with appconfig.local_open(req, timeout=10) as r:
                 caps = json.load(r).get("capabilities") or []
             _THINK_CAP_CACHE[model] = "thinking" in caps
         except Exception:
@@ -2857,7 +2857,7 @@ def _call_openai_local(lb, model, messages, tools, stream, on_token, on_think):
     r = urllib.request.Request(lb["base_url"] + "/chat/completions",
                                data=json.dumps(req).encode(), headers=headers)
     if not stream:
-        with urllib.request.urlopen(r, timeout=900) as resp:
+        with appconfig.local_open(r, timeout=900) as resp:
             d = json.loads(resp.read())
         ch0 = (d.get("choices") or [{}])[0]
         om = _openai_normalize_message(ch0.get("message") or {})
@@ -2879,7 +2879,7 @@ def _call_openai_local(lb, model, messages, tools, stream, on_token, on_think):
     splitter = _InlineThinkSplitter()
     tc_acc = {}                               # index -> {"id","name","args"}
     usage = {}
-    with urllib.request.urlopen(r, timeout=API_TIMEOUT_OPEN) as resp:
+    with appconfig.local_open(r, timeout=API_TIMEOUT_OPEN) as resp:
         for raw in resp:
             line = raw.decode("utf-8", "replace").strip()
             if not line.startswith("data:"):
@@ -2943,7 +2943,7 @@ def probe_openai_backend(lb=None, timeout=3):
     if not lb:
         return False
     try:
-        _ur.urlopen(lb["base_url"] + "/models", timeout=timeout)
+        appconfig.local_open(lb["base_url"] + "/models", timeout=timeout)
         return True
     except Exception:
         return False
@@ -2985,9 +2985,9 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
     req = _build_request(payload)
     try:
         if stream:
-            resp = urllib.request.urlopen(req, timeout=API_TIMEOUT_OPEN)
+            resp = appconfig.local_open(req, timeout=API_TIMEOUT_OPEN)
         else:
-            return json.loads(urllib.request.urlopen(req, timeout=900).read())
+            return json.loads(appconfig.local_open(req, timeout=900).read())
     except Exception as e:
         import urllib.error as _ue
         if not (("think" in payload) and isinstance(e, _ue.HTTPError) and e.code == 400):
@@ -2996,9 +2996,9 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
         payload.pop("think", None)
         req = _build_request(payload)
         if stream:
-            resp = urllib.request.urlopen(req, timeout=API_TIMEOUT_OPEN)
+            resp = appconfig.local_open(req, timeout=API_TIMEOUT_OPEN)
         else:
-            return json.loads(urllib.request.urlopen(req, timeout=900).read())
+            return json.loads(appconfig.local_open(req, timeout=900).read())
     if stream:
         parts, thinks, tool_calls = [], [], None
         prompt_ev, eval_ev = None, None
@@ -3030,7 +3030,7 @@ def call_chat(model, messages, ctx=None, tools=None, stream=False, on_token=None
             m["thinking"] = "".join(thinks)
         if tool_calls: m["tool_calls"] = tool_calls
         return {"message": m, "prompt_eval_count": prompt_ev, "eval_count": eval_ev}
-    return json.loads(urllib.request.urlopen(req, timeout=900).read())
+    return json.loads(appconfig.local_open(req, timeout=900).read())
 
 # ---------------- 上下文事前估算 ----------------
 def _estimate_tokens(text):

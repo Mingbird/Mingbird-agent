@@ -36,6 +36,49 @@ DEFAULTS = {
                                                # 段会被静默丢弃(整条链路打不开)
 }
 
+# ---- issue #7(2026-11-17):回环直连打开器 ----
+# urllib 默认尊重系统代理/代理环境变量,且 proxy_bypass("127.0.0.1")=False
+# (CPython 的 "<local>" 豁免只匹配不带点的主机名)——开着系统代理(Clash/v2rayN 等)
+# 时,对 127.0.0.1:11434 的探测/模型列表/对话请求全被代理拦下:Ollama 明明在跑
+# 仍被误报"未能自动启动",本地引擎整条链路断。本地服务必须直连;非回环 URL
+# (云端/自定义远程端点)保持 urllib 默认行为(该走代理走代理)。
+import urllib.parse as _uparse
+import urllib.request as _ureq
+
+_NO_PROXY_OPENER = None
+
+def is_loopback_url(url):
+    """URL 的主机部分是否回环(127.0.0.1/localhost/::1)。解析失败按非回环。"""
+    try:
+        host = _uparse.urlsplit(str(url)).hostname or ""
+    except Exception:
+        return False
+    return host.lower() in ("127.0.0.1", "localhost", "::1")
+
+def _proxies_active():
+    """当前是否存在任何代理来源(环境变量或系统注册表)。无代理时 urlopen 与
+    直连行为完全一致,没必要换通道——保持 urlopen 也让测试桩/常规路径不变。"""
+    if os.environ.get("http_proxy") or os.environ.get("https_proxy")             or os.environ.get("HTTP_PROXY") or os.environ.get("HTTPS_PROXY"):
+        return True
+    try:
+        return bool(_ureq.getproxies())
+    except Exception:
+        return False
+
+def local_open(req, timeout=None):
+    """urlopen 的回环感知版:存在代理且目标是回环主机 → 绕过一切代理直连;
+    其余情形(无代理环境,或云端/自定义远程端点)→ 走 urllib 默认。
+    返回值与 urllib.request.urlopen 相同,调用处的 with/解包不变。"""
+    global _NO_PROXY_OPENER
+    u = req.full_url if isinstance(req, _ureq.Request) else req
+    if is_loopback_url(u) and _proxies_active():
+        if _NO_PROXY_OPENER is None:
+            _NO_PROXY_OPENER = _ureq.build_opener(_ureq.ProxyHandler({}))
+        return (_NO_PROXY_OPENER.open(req, timeout=timeout)
+                if timeout is not None else _NO_PROXY_OPENER.open(req))
+    return (_ureq.urlopen(req, timeout=timeout)
+            if timeout is not None else _ureq.urlopen(req))
+
 _cache = None
 
 def load_config():

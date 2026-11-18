@@ -85,6 +85,9 @@ class TestEnsureOllamaEnv(unittest.TestCase):
         cfg = mock.MagicMock()
         cfg.ollama_host.return_value = "http://127.0.0.1:59999"
         cfg.ollama_env.return_value = {}
+        # issue #7 修复后探测走 appconfig.local_open(回环代理感知);mock 它=探测
+        # 恒失败,否则 MagicMock 的返回值会让探测"成功"、从不 spawn serve。
+        cfg.local_open.side_effect = OSError("down")
         popen = mock.MagicMock()
         ctx = mock.patch.dict(os.environ)
         with ctx:
@@ -115,6 +118,7 @@ class TestEnsureOllamaEnv(unittest.TestCase):
         cfg = mock.MagicMock()
         cfg.ollama_host.return_value = "http://127.0.0.1:59999"
         cfg.ollama_env.return_value = {"OLLAMA_MODELS": "D:\\from-config"}
+        cfg.local_open.side_effect = OSError("down")   # 同 _run_ensure:探测必须失败
         popen = mock.MagicMock()
         with mock.patch.dict(os.environ):
             os.environ.pop("OLLAMA_MODELS", None)

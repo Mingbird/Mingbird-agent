@@ -550,11 +550,11 @@ class AgentGUI:
                 if _lb:
                     # v2.1.1 OpenAI 兼容引擎:GET /models(OpenAI 形态 {"data":[{"id":..}]},
                     # LM Studio/llama.app/llama-server 同构)→ 归一成 /api/tags 的 entries 形态
-                    r = json.loads(_ur.urlopen(_lb["base_url"] + "/models",
+                    r = json.loads(appconfig.local_open(_lb["base_url"] + "/models",
                                                timeout=2 if quick else 6).read())
                     entries = [{"name": x.get("id")} for x in (r.get("data") or []) if x.get("id")]
                 else:
-                    r = json.loads(_ur.urlopen(f"{appconfig.ollama_host()}/api/tags",
+                    r = json.loads(appconfig.local_open(f"{appconfig.ollama_host()}/api/tags",
                                                timeout=2 if quick else 6).read())
                     entries = [x for x in r.get("models", []) if x.get("name")]
                 break
@@ -2954,8 +2954,11 @@ class AgentGUI:
         r1 = tk.Frame(c1, bg=T["surface"])
         r1.grid(row=1, column=1, sticky="ew", padx=(px(14), 0), pady=px(4))
         base_wrap, base = entry(r1, width=1)
+        # issue #7:ollama 型无 base_url,预填 LM Studio 预设 1234/v1 会让用户
+        # 误读成"设置被重置"。Ollama 模式显示真实 API 地址(只读语义,保存时
+        # 引擎选择仍是唯一事实源;切到 OpenAI 兼容预设时由 _eng_picked 覆写)。
         base.insert(0, (_cloud.get("base_url") or "") if _cloud_on
-                    else (_cur_base or self.ENGINE_PRESETS[1][1]))
+                    else (_cur_base or appconfig.ollama_host()))
         base_wrap.pack(fill="x", expand=True)
 
         lab(c1, "API Key").grid(row=2, column=0, sticky="w", pady=px(4))
@@ -2998,10 +3001,15 @@ class AgentGUI:
                 cloud_model.delete(0, "end")
                 cloud_model.insert(0, _cloud.get("model") or "")
             else:
-                for _n, _u in self.ENGINE_PRESETS[1:]:
-                    if eng.get() == _n:
-                        base.delete(0, "end")
-                        base.insert(0, _u)
+                base.delete(0, "end")
+                if eng.get() == "Ollama":
+                    # issue #7:选 Ollama 时端点框跟随真实 API 地址,不再残留
+                    # 上一个 OpenAI 兼容预设的端口(看着像"设置没保存")。
+                    base.insert(0, appconfig.ollama_host())
+                else:
+                    for _n, _u in self.ENGINE_PRESETS[1:]:
+                        if eng.get() == _n:
+                            base.insert(0, _u)
                 key.delete(0, "end")
                 if _lb.get("type") == "openai":
                     key.insert(0, _lb.get("api_key") or "")
@@ -3602,10 +3610,10 @@ class AgentGUI:
             import urllib.request as _ur
             _lb = appconfig.backend_openai()
             if _lb:
-                r = json.loads(_ur.urlopen(_lb["base_url"] + "/models", timeout=2).read())
+                r = json.loads(appconfig.local_open(_lb["base_url"] + "/models", timeout=2).read())
                 _live = [{"name": x.get("id")} for x in (r.get("data") or []) if x.get("id")]
             else:
-                r = json.loads(_ur.urlopen(appconfig.ollama_host().rstrip("/") + "/api/tags", timeout=2).read())
+                r = json.loads(appconfig.local_open(appconfig.ollama_host().rstrip("/") + "/api/tags", timeout=2).read())
                 _live = r.get("models", [])
             up = True; has_models = bool(_live)
             # 自愈条件:当前下拉框里的 tag 集合 != 去重后的应有集合
