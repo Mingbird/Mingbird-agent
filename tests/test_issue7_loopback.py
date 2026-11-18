@@ -17,11 +17,11 @@ import urllib.request
 
 import pytest
 
+# 用 conftest 已加载进 sys.modules 的同一 appconfig 实例(conftest 的确定性
+# 护栏钉的就是它);importlib 单独加载会得到不受护栏约束的第二实例。
 _here = os.path.dirname(__file__)
-_spec = importlib.util.spec_from_file_location(
-    "appconfig", os.path.join(_here, "..", "appconfig.py"))
-appconfig = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(appconfig)
+sys.path.insert(0, os.path.dirname(_here))
+import appconfig
 
 
 # ---- 回环判定 ----
@@ -55,6 +55,8 @@ def test_local_open_bypasses_proxy(monkeypatch):
     th = threading.Thread(target=srv.serve_forever, daemon=True)
     th.start()
     try:
+        # conftest 默认把门控钉成 False(套件确定性);本测试要真实分支,显式打开
+        monkeypatch.setattr(appconfig, "_proxies_active", lambda: True)
         url = f"http://127.0.0.1:{port}/api/tags"
         # 毒化代理:绑一个立刻关闭监听的端口,连接必被拒(不依赖具体机器环境)
         sink = socket.socket()
@@ -83,6 +85,7 @@ def test_local_open_non_loopback_keeps_default(monkeypatch):
     sink.bind(("127.0.0.1", 0))
     sink_port = sink.getsockname()[1]
     sink.close()
+    monkeypatch.setattr(appconfig, "_proxies_active", lambda: True)   # 验"有代理时"非回环仍走默认
     monkeypatch.setenv("http_proxy", f"http://127.0.0.1:{sink_port}")
     with pytest.raises(Exception):
         appconfig.local_open("http://192.168.1.5:1/", timeout=3)
@@ -105,3 +108,13 @@ def test_source_no_bare_loopback_urlopen_left():
     assert gsrc.count("appconfig.local_open(") >= 4    # refresh_models×2 + check_ollama×2
     assert "appconfig.ollama_host()))" in gsrc          # 端点框 Ollama 预填真实地址
     assert "(_cur_base or self.ENGINE_PRESETS[1][1])" not in gsrc   # LM Studio 1234 预填已废
+    # 选"自定义 OpenAI 兼容"不得清空端点框(7f3c91e 回归钉:无条件 delete 曾把
+    # 框清空,选自定义后须手输完整 URL)。Ollama 分支=delete 紧跟 if(带注释),
+    # 自定义分支不出现 delete。
+    _nl = chr(10)
+    _ollama_branch = ('if eng.get() == "Ollama":' + _nl
+                      + '                    # issue #7:选 Ollama 时端点框跟随真实 API 地址,不再残留' + _nl
+                      + '                    # 上一个 OpenAI 兼容预设的端口(看着像"设置没保存")。' + _nl
+                      + '                    base.delete(0, "end")')
+    assert _ollama_branch in gsrc
+    assert gsrc.count("自定义 OpenAI 兼容") >= 1 and "保留当前值" in gsrc

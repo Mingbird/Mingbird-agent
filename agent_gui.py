@@ -3001,15 +3001,19 @@ class AgentGUI:
                 cloud_model.delete(0, "end")
                 cloud_model.insert(0, _cloud.get("model") or "")
             else:
-                base.delete(0, "end")
                 if eng.get() == "Ollama":
                     # issue #7:选 Ollama 时端点框跟随真实 API 地址,不再残留
                     # 上一个 OpenAI 兼容预设的端口(看着像"设置没保存")。
+                    base.delete(0, "end")
                     base.insert(0, appconfig.ollama_host())
                 else:
                     for _n, _u in self.ENGINE_PRESETS[1:]:
                         if eng.get() == _n:
+                            base.delete(0, "end")
                             base.insert(0, _u)
+                            break
+                    # "自定义 OpenAI 兼容"不动端点框:保留当前值,用户只改端口/
+                    # 路径即可(7f3c91e 曾无条件清空,选自定义后框变空,手输全址)。
                 key.delete(0, "end")
                 if _lb.get("type") == "openai":
                     key.insert(0, _lb.get("api_key") or "")
